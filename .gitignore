@@ -1,0 +1,68 @@
+# ============================================================================
+# CONFIDENTIAL / REAL DATA — NEVER COMMIT  (see docs/SECURITY.md, docs/00 §8)
+# Real source/import data and exports stay local. Tests use synthetic fixtures.
+# Drop confidential inputs in /data/ (gitignored) — not in the repo root.
+# ============================================================================
+/data/
+/private/
+/reports/
+*.local
+# Common confidential data file types kept out by default (allow-list a synthetic
+# fixture explicitly with a negation if one must be committed, e.g. tests/fixtures/*).
+*.xlsx
+*.xls
+*.csv
+*.sqlite
+*.db
+*.dump
+*.bak
+!tests/**/fixtures/**
+
+# ============================================================================
+# SECRETS & CONFIG
+# ============================================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+
+# ============================================================================
+# DEPENDENCIES (multi-ecosystem; trim to your stack)
+# ============================================================================
+node_modules/
+.pnpm-store/
+vendor/
+.venv/
+venv/
+__pycache__/
+target/
+
+# ============================================================================
+# BUILD / OUTPUT
+# ============================================================================
+dist/
+build/
+out/
+coverage/
+*.tsbuildinfo
+.next/
+.cache/
+
+# ============================================================================
+# LOGS & TMP
+# ============================================================================
+*.log
+tmp/
+.tmp/
+
+# ============================================================================
+# OS / EDITOR
+# ============================================================================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.claude/

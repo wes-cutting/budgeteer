@@ -1,0 +1,71 @@
+# ============================================================================
+# CI gate — carry as-is, then wire each step to your stack's real commands.
+#
+# This MUST run the SAME gate as local, in the SAME order (docs/TESTING_STRATEGY.md §3):
+#   types/typecheck → lint → format check → unit + integration → e2e (incl. a11y) → build
+#
+# Rules this skeleton encodes:
+#   • A failing OR skipped test blocks the merge — never green on skipped tests.
+#   • Exclude any illustrative / non-product code (e.g. examples/) from typecheck/lint/build.
+#   • Wire a dependency/vulnerability scan (SCA) in early (docs/SECURITY.md §4).
+#
+# Each step below is a PLACEHOLDER. Replace the `echo` with the real command from your
+# project's README / ADR-0001, then DELETE the `gate-not-configured` guard step.
+# ============================================================================
+name: gate
+
+on:
+  pull_request:
+  push:
+    branches: [main] # adjust to your default branch
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fails CI until the gate is wired — so a skeleton never reports a false "green"
+      # (docs/00_WAYS_OF_WORKING.md §10, "False-Certainty Docs"). Delete once configured.
+      - name: gate-not-configured
+        run: |
+          echo "::error::CI gate is a skeleton. Wire each step to your stack's commands"
+          echo "::error::(docs/TESTING_STRATEGY.md §3), then delete this guard step."
+          exit 1
+
+      # --- Set up your toolchain (runtime, package manager, dependency cache) ---
+      # - uses: actions/setup-node@v4        # or setup-python / setup-go / setup-java …
+      #   with: { node-version: '20', cache: 'npm' }
+      # - run: <install from the lockfile, e.g. `npm ci`>
+
+      - name: types / typecheck
+        # e.g. tsc --noEmit
+        run: echo "TODO - typecheck"
+
+      - name: lint
+        # e.g. eslint .
+        run: echo "TODO - lint"
+
+      - name: format check
+        # e.g. prettier --check .
+        run: echo "TODO - format check"
+
+      - name: unit + integration
+        # no skipped tests; ephemeral deps boot here
+        run: echo "TODO - unit and integration tests"
+
+      - name: e2e (incl. accessibility scan)
+        # accessibility scan on critical journeys
+        run: echo "TODO - e2e and a11y"
+
+      - name: build
+        run: echo "TODO - build"
+
+      - name: dependency / vulnerability scan (SCA)
+        # e.g. npm audit --audit-level=high / pip-audit / govulncheck
+        run: echo "TODO - SCA scan"

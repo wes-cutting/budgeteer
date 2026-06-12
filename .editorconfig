@@ -1,0 +1,27 @@
+# EditorConfig — consistent whitespace across editors and contributors.
+# https://editorconfig.org   (carry as-is; adjust per your stack's conventions)
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Markdown: trailing spaces can be meaningful (hard line breaks) — don't trim.
+[*.md]
+trim_trailing_whitespace = false
+
+# Makefiles require real tabs.
+[Makefile]
+indent_style = tab
+
+# Go uses tabs by convention.
+[*.go]
+indent_style = tab
+
+# YAML / JSON commonly use 2-space indent (already the default above; explicit for clarity).
+[*.{yml,yaml,json}]
+indent_size = 2
