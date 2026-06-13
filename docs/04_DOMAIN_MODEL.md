@@ -1,0 +1,145 @@
+<!--
+DOMAIN MODEL — copy of templates/DOMAIN-MODEL-TEMPLATE.md, filled for Budgeteer. The
+conceptual model: entities, invariants, lifecycles. Storage-neutral (05_DATA_MODEL maps it
+to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the same change.
+-->
+
+# Domain Model — Budgeteer
+
+| Field        | Value          |
+| ------------ | -------------- |
+| Status       | Proposed       |
+| Owner        | Wesley Cutting |
+| Last updated | 2026-06-13     |
+
+> Realizes [`02_PRD.md`](02_PRD.md); money per [`ADR-0003`](adr/ADR-0003-money-integer-minor-units.md);
+> validated-in-TS by [`SPIKE-02`](spikes/02-stack-feasibility.md). The **Foundation** slice
+> implements Accounts, Envelopes, and the opening transaction; **Slice 1** implements
+> transaction entry + split allocation. The full entity set is defined here so the schema
+> ([`05_DATA_MODEL.md`](05_DATA_MODEL.md)) is stable from the start.
+
+## 1. Glossary
+
+| Term | Meaning |
+| ---- | ------- |
+| **Money / Cents** | A signed amount in **integer minor units** (US cents). `+` = inflow, `−` = outflow. No floats (ADR-0003). |
+| **Account** | A real place money lives — a mirror of a bank/card/cash account (checking, savings, credit, cash). The *physical* truth. |
+| **Envelope** | A budget category (e.g. Groceries, Rent, a "Vacation" sinking fund). The *logical* budget. |
+| **Transaction** | One line item in **one** account: a deposit (`+`) or withdrawal (`−`). Includes the **opening** transaction that seeds an account's starting balance. |
+| **Allocation (split)** | A portion of a transaction assigned to **one** envelope. A transaction fans out to one-or-many allocations. |
+| **Unallocated** | The part of a transaction not yet assigned to any envelope (`amount − Σ allocations`). May be non-zero ("enter now, split later"). |
+| **Account balance** | **Derived:** Σ of the account's transaction amounts. |
+| **Envelope balance** | **Derived:** Σ of the allocation amounts landing in that envelope. |
+| **Household** | The future ownership/isolation boundary (multi-household). V1 has a single implicit household; entities carry `householdId` to design toward it. |
+
+## 2. Entities
+
+### Account
+- **Purpose:** mirror a real bank/card/cash account; the source of transactions.
+- **Key attributes:** `id`, `householdId`, `name`, `kind` (`checking | savings | credit | cash | other`), `createdAt`, `archivedAt?`.
+- **Invariants:**
+  - `name` is non-empty (trimmed) and **unique per household** (case-insensitive).
+  - An account's **starting balance is not a stored scalar** — it is represented as an
+    **opening Transaction** (see *Derived vs. stored*), so it flows through the same
+    splitting mechanism as any other money.
+  - Balance is **derived**, never stored.
+
+### Envelope
+- **Purpose:** a budget category that accumulates/drains via allocations.
+- **Key attributes:** `id`, `householdId`, `name`, `kind` (`standard | sinking_fund`), `createdAt`, `archivedAt?`.
+- **Invariants:**
+  - `name` non-empty (trimmed), **unique per household** (case-insensitive).
+  - An **archived** envelope cannot receive **new** allocations, but its history is
+    preserved and still counts toward historical balances (mirrors the sheet's `Archive*`).
+  - Balance is **derived**, never stored.
+
+### Transaction
+- **Purpose:** one movement of money in one account.
+- **Key attributes:** `id`, `householdId`, `accountId`, `amountCents` (signed), `kind` (`opening | normal`), `occurredOn` (date), `payee?`, `memo?`, `createdAt`.
+- **Invariants:**
+  - Belongs to exactly **one** account.
+  - `amountCents` is a whole integer (ADR-0003). A `normal` transaction is non-zero; an
+    `opening` transaction may be any value incl. 0.
+  - The sign of every one of its allocations matches the sign of `amountCents`.
+
+### Allocation
+- **Purpose:** assign a slice of a transaction to an envelope (the account↔envelope bridge).
+- **Key attributes:** `id`, `transactionId`, `envelopeId`, `amountCents` (signed).
+- **Invariants:**
+  - References exactly one transaction and one (non-archived, at creation time) envelope.
+  - **The split invariant** (the heart of the model): for a transaction `t`,
+    `0 ≤ |Σ allocation.amountCents| ≤ |t.amountCents|` **and** every allocation shares `t`'s
+    sign. **Partial is allowed** (`Σ < amount` ⇒ unallocated remainder); **over-allocation
+    is rejected.** Fully allocated ⟺ `Σ allocation.amountCents == t.amountCents`.
+  - *(Validated in TypeScript by [SPIKE-02](spikes/02-stack-feasibility.md):
+    `splitEvenly`/`splitByWeights`/`lastRowRemainder` sum exactly to the cent.)*
+
+## 3. Relationships
+
+```
+Household 1───* Account 1───* Transaction 1───* Allocation *───1 Envelope
+   (V1: single                                   (split)
+    implicit hh)
+```
+
+- An **Account** has many **Transactions**; a **Transaction** has many **Allocations**.
+- An **Envelope** has many **Allocations**. Account ↔ Envelope are connected **only**
+  through a Transaction's Allocations — never directly.
+- *(Future)* a **Household** owns Accounts and Envelopes; all scoping is by `householdId`.
+
+## 4. Lifecycles / state
+
+**Envelope** (and, symmetrically later, Account):
+
+```
+active ──archive──▶ archived        (archived = soft-delete; history retained;
+  ▲                    │                no NEW allocations; not deletable)
+  └──────unarchive─────┘  (optional, later)
+```
+
+**Transaction allocation status** (derived, not a stored state):
+
+```
+unallocated ──(add allocations)──▶ partially allocated ──(remainder)──▶ fully allocated
+   (Σ = 0)                              (0 < Σ < amount)                    (Σ = amount)
+```
+
+"Enter now, split later" means a transaction may rest in `unallocated`/`partially
+allocated` indefinitely; the app surfaces these via a **needs-allocation** indicator.
+
+## 5. Derived vs. stored
+
+**Stored:** accounts, envelopes, transactions, allocations (their attributes above).
+
+**Derived — never stored (derive-don't-store, ENGINEERING_STANDARDS §4):**
+- **Account balance** = `Σ transaction.amountCents` for the account (includes the opening txn).
+- **Envelope balance** = `Σ allocation.amountCents` into the envelope.
+- **Transaction.unallocated** = `amountCents − Σ its allocations`.
+- **Needs-allocation set** = transactions where `unallocated ≠ 0`.
+
+> **Opening balance = an opening Transaction.** Creating an account with a starting balance
+> creates the account **and** a `kind = opening` transaction for that amount (initially
+> unallocated). This unifies the ledger (every balance derives from transactions) and lets
+> the starting balance be split across envelopes through the *same* allocation flow — per
+> the intake ("starting balance, deposit and withdrawal all need to be splittable").
+
+## 6. Cross-cutting rules
+
+- **Money:** integer minor units everywhere (ADR-0003); parse/format only at the boundary.
+- **Ownership/household scoping:** every top-level entity carries `householdId`. V1 runs a
+  **single implicit household** (one seeded row); **no** auth/RLS is built yet. When
+  multi-household lands it becomes **default-deny**, owner-scoped at the resource level
+  (spine §8) — a future epic, designed toward, not built now.
+- **Validation at the boundary:** names trimmed + non-empty; money parsed from validated
+  strings; invalid input fails loudly.
+- **Account `kind`** is descriptive in V1 (display/grouping). Liability-account sign
+  semantics (e.g. credit-card "balance owed") are deferred to the debt/credit area; V1
+  treats every account balance uniformly as the signed sum of its transactions.
+
+## 7. Open questions
+
+| Question | Owner | Status |
+| -------- | ----- | ------ |
+| Should envelope/account name uniqueness be case-insensitive *and* whitespace-normalized? | Wesley | open (lean: yes) |
+| Do we need an explicit "unarchive" in V1, or is archive one-way for now? | Wesley | open → archive slice (#6) |
+| Liability (credit-card) balance sign convention | Wesley | open → debt/credit area (#14) |
