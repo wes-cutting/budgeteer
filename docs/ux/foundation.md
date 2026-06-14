@@ -8,7 +8,7 @@ Envelopes setup). Pairs with features/accounts.md (FEAT-001) and features/envelo
 
 | Field        | Value                                                |
 | ------------ | ---------------------------------------------------- |
-| Status       | Proposed                                             |
+| Status       | Accepted                                             |
 | Feature      | FEAT-001 ([accounts](../features/accounts.md)) · FEAT-002 ([envelopes](../features/envelopes.md)) |
 | Owner        | Wesley Cutting                                       |
 | Last updated | 2026-06-13                                           |

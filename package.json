@@ -1,0 +1,24 @@
+{
+  "name": "budgeteer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Envelope budgeting: enter once at the account level, split-allocate across envelopes.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --check .",
+    "format:write": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}

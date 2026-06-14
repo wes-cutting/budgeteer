@@ -1,0 +1,106 @@
+import { type Kysely, sql } from "kysely";
+import type { DB } from "./schema";
+
+/** V1 single implicit household (design-toward multi-household; no auth/RLS yet — ADR-0002). */
+export const DEFAULT_HOUSEHOLD_ID = "00000000-0000-0000-0000-000000000001";
+
+/**
+ * Forward-only schema creation realizing docs/05_DATA_MODEL.md. Idempotent (IF NOT EXISTS),
+ * so it doubles as the dev/test migrator. A versioned migrator replaces this when the schema
+ * starts to evolve; for the foundation a single forward migration is right-sized.
+ */
+export async function migrateToLatest(db: Kysely<DB>): Promise<void> {
+  await sql`
+    create table if not exists households (
+      id uuid primary key default gen_random_uuid(),
+      name text not null,
+      created_at timestamptz not null default now()
+    )
+  `.execute(db);
+
+  await sql`
+    create table if not exists accounts (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references households(id),
+      name text not null check (length(btrim(name)) > 0),
+      kind text not null check (kind in ('checking','savings','credit','cash','other')),
+      created_at timestamptz not null default now(),
+      archived_at timestamptz
+    )
+  `.execute(db);
+  await sql`
+    create unique index if not exists accounts_household_name_uniq
+      on accounts (household_id, lower(btrim(name)))
+  `.execute(db);
+
+  await sql`
+    create table if not exists envelopes (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references households(id),
+      name text not null check (length(btrim(name)) > 0),
+      kind text not null default 'standard' check (kind in ('standard','sinking_fund')),
+      created_at timestamptz not null default now(),
+      archived_at timestamptz
+    )
+  `.execute(db);
+  await sql`
+    create unique index if not exists envelopes_household_name_uniq
+      on envelopes (household_id, lower(btrim(name)))
+  `.execute(db);
+
+  await sql`
+    create table if not exists transactions (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references households(id),
+      account_id uuid not null references accounts(id),
+      amount_cents bigint not null,
+      kind text not null check (kind in ('opening','normal')),
+      occurred_on date not null,
+      payee text,
+      memo text,
+      created_at timestamptz not null default now(),
+      constraint normal_txn_nonzero check (kind <> 'normal' or amount_cents <> 0)
+    )
+  `.execute(db);
+  await sql`create index if not exists transactions_account_idx on transactions (account_id)`.execute(
+    db,
+  );
+  await sql`
+    create unique index if not exists transactions_one_opening_per_account
+      on transactions (account_id) where kind = 'opening'
+  `.execute(db);
+
+  await sql`
+    create table if not exists allocations (
+      id uuid primary key default gen_random_uuid(),
+      transaction_id uuid not null references transactions(id) on delete cascade,
+      envelope_id uuid not null references envelopes(id),
+      amount_cents bigint not null
+    )
+  `.execute(db);
+  await sql`create index if not exists allocations_txn_idx on allocations (transaction_id)`.execute(
+    db,
+  );
+  await sql`create index if not exists allocations_envelope_idx on allocations (envelope_id)`.execute(
+    db,
+  );
+
+  await sql`
+    create or replace view v_account_balances as
+      select a.id as account_id, coalesce(sum(t.amount_cents), 0)::bigint as balance_cents
+      from accounts a left join transactions t on t.account_id = a.id
+      group by a.id
+  `.execute(db);
+  await sql`
+    create or replace view v_envelope_balances as
+      select e.id as envelope_id, coalesce(sum(al.amount_cents), 0)::bigint as balance_cents
+      from envelopes e left join allocations al on al.envelope_id = e.id
+      group by e.id
+  `.execute(db);
+
+  await sql`
+    insert into households (id, name)
+    values (${DEFAULT_HOUSEHOLD_ID}::uuid, 'Default household')
+    on conflict (id) do nothing
+  `.execute(db);
+}
