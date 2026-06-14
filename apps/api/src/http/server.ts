@@ -14,6 +14,7 @@ import { makeAccountService } from "../services/accountService";
 import { makeEnvelopeService } from "../services/envelopeService";
 import { makeTransactionService } from "../services/transactionService";
 import { makeTransferService } from "../services/transferService";
+import { makeEnvelopeTransferService } from "../services/envelopeTransferService";
 import { makeTemplateService } from "../services/templateService";
 import { DuplicateNameError, NotFoundError, ValidationError } from "../services/errors";
 
@@ -42,6 +43,14 @@ const setAllocationsBody = z.object({ allocations: z.array(allocationInput).defa
 const createTransferBody = z.object({
   fromAccountId: z.string().min(1),
   toAccountId: z.string().min(1),
+  amount: z.string(),
+  occurredOn: z.string().optional(),
+  memo: z.string().optional(),
+});
+
+const createEnvelopeTransferBody = z.object({
+  fromEnvelopeId: z.string().min(1),
+  toEnvelopeId: z.string().min(1),
   amount: z.string(),
   occurredOn: z.string().optional(),
   memo: z.string().optional(),
@@ -103,6 +112,7 @@ export function buildServer(db: Kysely<DB>, opts: { logger?: boolean } = {}): Fa
   const envelopes = makeEnvelopeService(db);
   const transactions = makeTransactionService(db);
   const transfers = makeTransferService(db);
+  const envelopeTransfers = makeEnvelopeTransferService(db);
   const templates = makeTemplateService(db);
 
   app.setErrorHandler((err, _req, reply) => {
@@ -297,6 +307,30 @@ export function buildServer(db: Kysely<DB>, opts: { logger?: boolean } = {}): Fa
       return reply.code(201).send({ transfer });
     } catch (e) {
       if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
+      if (e instanceof ValidationError) return fail(reply, 400, e.message);
+      throw e;
+    }
+  });
+
+  // --- Envelope reallocation (FEAT-007 #7b, envelope↔envelope) ---
+  app.post("/envelope-transfers", async (req, reply) => {
+    const parsed = createEnvelopeTransferBody.safeParse(req.body);
+    if (!parsed.success) return fail(reply, 400, "Invalid request body.");
+    const magnitude = parsePositiveMagnitude(parsed.data.amount);
+    if (magnitude === null) return fail(reply, 400, "Enter an amount greater than 0.");
+    const occurredOn = parsed.data.occurredOn ?? todayStr();
+    if (!DATE_RE.test(occurredOn)) return fail(reply, 400, "Date must be YYYY-MM-DD.");
+    try {
+      const envelopeTransfer = await envelopeTransfers.create({
+        fromEnvelopeId: parsed.data.fromEnvelopeId,
+        toEnvelopeId: parsed.data.toEnvelopeId,
+        magnitudeCents: magnitude,
+        occurredOn,
+        memo: parsed.data.memo ?? null,
+      });
+      return reply.code(201).send({ envelopeTransfer });
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Envelope not found.");
       if (e instanceof ValidationError) return fail(reply, 400, e.message);
       throw e;
     }

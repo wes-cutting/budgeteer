@@ -47,3 +47,37 @@ export function transferLegs(
     { accountId: toAccountId, amountCents: cents(magnitudeCents) },
   ];
 }
+
+/**
+ * Envelope↔envelope reallocation (ADR-0004 (B)): re-budget money between two envelopes with NO
+ * account movement. Same boundary rule as an account transfer — a positive magnitude between
+ * two distinct envelopes. Archived-state is enforced at the data boundary (transfer INTO an
+ * archived envelope is rejected; draining FROM one is allowed). Negative envelope balances are
+ * permitted (consistent with normal over-spending), so there is no over-draw check here.
+ */
+export function validateEnvelopeTransfer(
+  fromEnvelopeId: string,
+  toEnvelopeId: string,
+  magnitudeCents: number,
+): TransferValidation {
+  if (!Number.isInteger(magnitudeCents) || magnitudeCents <= 0) {
+    return { ok: false, reason: "Enter a transfer amount greater than 0." };
+  }
+  if (fromEnvelopeId === toEnvelopeId) {
+    return { ok: false, reason: "Choose two different envelopes." };
+  }
+  return { ok: true };
+}
+
+/**
+ * Derived envelope balance with reallocation flow (ADR-0004): allocations plus net
+ * envelope-transfer movement. Mirrors the `v_envelope_balances` two-source view; kept pure for
+ * unit tests. `incoming`/`outgoing` are positive magnitudes into/out of the envelope.
+ */
+export function envelopeBalanceWithTransfers(
+  allocationCents: number,
+  incomingCents: number,
+  outgoingCents: number,
+): Cents {
+  return cents(allocationCents + incomingCents - outgoingCents);
+}

@@ -2,6 +2,7 @@ import {
   type AccountView,
   type Api,
   ApiError,
+  type EnvelopeTransferView,
   type EnvelopeView,
   type TemplateView,
   type TransactionView,
@@ -16,6 +17,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
   const accounts: AccountView[] = [];
   const envelopes: EnvelopeView[] = [];
   const txns: TransactionView[] = [];
+  const envelopeTransfers: EnvelopeTransferView[] = [];
   const templates: TemplateView[] = [];
   let seq = 0;
   const newId = (p: string) => `${p}${seq++}`;
@@ -32,10 +34,17 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
         .reduce((s, t) => s + t.amountCents, 0);
     }
     for (const e of envelopes) {
-      e.balanceCents = txns
+      const fromAllocations = txns
         .flatMap((t) => t.allocations)
         .filter((al) => al.envelopeId === e.id)
         .reduce((s, al) => s + al.amountCents, 0);
+      const incoming = envelopeTransfers
+        .filter((et) => et.to.envelopeId === e.id)
+        .reduce((s, et) => s + et.amountCents, 0);
+      const outgoing = envelopeTransfers
+        .filter((et) => et.from.envelopeId === e.id)
+        .reduce((s, et) => s + et.amountCents, 0);
+      e.balanceCents = fromAllocations + incoming - outgoing;
     }
     for (const t of txns) {
       t.allocatedCents = t.allocations.reduce((s, al) => s + al.amountCents, 0);
@@ -181,6 +190,26 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
           amountCents: magnitude,
         },
       };
+    },
+    async createEnvelopeTransfer({ fromEnvelopeId, toEnvelopeId, amount, occurredOn, memo }) {
+      const from = envelopes.find((e) => e.id === fromEnvelopeId);
+      const to = envelopes.find((e) => e.id === toEnvelopeId);
+      if (!from || !to) throw new ApiError("Envelope not found.");
+      if (from.id === to.id) throw new ApiError("Choose two different envelopes.");
+      if (to.archivedAt !== null) throw new ApiError("That envelope is archived.");
+      const magnitude = parseCents(amount) ?? 0;
+      if (magnitude <= 0) throw new ApiError("Enter an amount greater than 0.");
+      const et: EnvelopeTransferView = {
+        id: newId("etr"),
+        occurredOn: occurredOn ?? "2026-06-13",
+        memo: memo ?? null,
+        amountCents: magnitude,
+        from: { envelopeId: from.id, envelopeName: from.name },
+        to: { envelopeId: to.id, envelopeName: to.name },
+      };
+      envelopeTransfers.push(et);
+      recompute();
+      return { ...et, from: { ...et.from }, to: { ...et.to } };
     },
     async setAllocations(transactionId, allocations) {
       const txn = txns.find((t) => t.id === transactionId);

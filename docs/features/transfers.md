@@ -8,7 +8,7 @@ Models per ADR-0004 (validated by SPIKE-04). Envelope↔envelope reallocation = 
 | Field        | Value                                  |
 | ------------ | -------------------------------------- |
 | Feature ID   | FEAT-007                               |
-| Status       | Implemented (#7a account transfer) · #7b envelope reallocation Planned |
+| Status       | Implemented (#7a account transfer + #7b envelope reallocation) |
 | Owner        | Wesley Cutting                         |
 | Last updated | 2026-06-14                             |
 | Related      | [ADR-0004](../adr/ADR-0004-transfer-modeling.md) · [SPIKE-04](../spikes/04-transfer-modeling.md) · [UX](../ux/transfers.md) · [Domain](../04_DOMAIN_MODEL.md) · [Data](../05_DATA_MODEL.md) · [API](../06_API_CONTRACT.md) |
@@ -26,8 +26,10 @@ money is already budgeted, only relocated — so it does **not** appear in needs
 - **In scope (#7a)** — create an account↔account transfer; both account balances reflect it;
   the transfer legs show in each account's register, labeled by their counterpart; transfers
   are excluded from needs-allocation.
-- **Out of scope (#7a)** — editing/deleting a transfer (legs are immutable in #7a); moving
-  money between **envelopes** (that is **#7b**, §12); transfers between households; FX.
+- **In scope (#7b)** — create an envelope↔envelope reallocation; both envelope balances reflect
+  it; accounts untouched (§12).
+- **Out of scope** — editing/deleting a transfer or reallocation (immutable for now); transfers
+  between households; FX.
 
 ## 3. User stories
 
@@ -102,9 +104,31 @@ The Transfer form has labeled controls; transfer legs convey direction via text
 | Edit / delete a transfer (re-derive both legs atomically)? | Wesley | open (deferred past #7a) |
 | Warn (not block) when a transfer overdraws the source account? | Wesley | open (later) |
 
-## 12. Follow-up — #7b envelope↔envelope reallocation
+## 12. #7b — envelope↔envelope reallocation (Implemented)
 
-Per [ADR-0004](../adr/ADR-0004-transfer-modeling.md) (B): a dedicated `envelope_transfers` table
-that re-budgets money between envelopes with **no** account movement; envelope-balance
-derivation extends to `Σ allocations + Σ incoming − Σ outgoing`. Negative envelope balances are
-**allowed**. Built as its own vertical slice (`#7b`), with its data-model + view change and UX.
+Re-budget money between two **envelopes** with **no** account movement (ADR-0004 (B)): a
+dedicated `envelope_transfers` row `(from_envelope_id, to_envelope_id, amount_cents > 0)`.
+Envelope-balance derivation extends to `Σ allocations + Σ incoming − Σ outgoing` (the
+`v_envelope_balances` view becomes two-source). Account balances are **untouched**.
+
+**Acceptance criteria**
+- **Given** two envelopes with balances, **when** I move `$X` from one to the other, **then**
+  the source drops by `$X`, the destination rises by `$X`, the budgeted total is unchanged, and
+  no account balance moves.
+- **Given** an invalid request — same envelope, amount ≤ 0, or a missing envelope — **then**
+  the API rejects it (`400` / `404`).
+- **Given** an **archived** destination envelope, **then** the move is rejected `400`; moving
+  **from** an archived envelope (draining it) is **allowed**.
+- **Given** a move larger than the source's balance, **then** it is **allowed** and the source
+  goes **negative** (consistent with normal over-spending; owner decision).
+
+**Data:** new `envelope_transfers` table (`id, household_id, from_envelope_id, to_envelope_id,
+amount_cents > 0, occurred_on, memo, created_at`; check `from <> to`); `v_envelope_balances`
+becomes the two-source view. **API:** `POST /envelope-transfers` `{ fromEnvelopeId, toEnvelopeId,
+amount, occurredOn?, memo? }` → `201 { envelopeTransfer }`. **UI:** a **Move money between
+envelopes** form on the Dashboard envelopes section (from/to active envelopes + amount + memo);
+balances refresh on success (see [UX](../ux/transfers.md) §11).
+
+**Tests:** domain `validateEnvelopeTransfer` + `envelopeBalanceWithTransfers`; API
+move+conserve+account-untouched, same/zero/missing, into-archived `400`/from-archived ok,
+overdraw→negative; web Dashboard reallocation updates both balances + inline error.

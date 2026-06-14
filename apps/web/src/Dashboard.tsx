@@ -8,6 +8,7 @@ import {
   type EnvelopeView,
 } from "./api";
 import { formatCents } from "./format";
+import { MoveMoneyForm } from "./MoveMoneyForm";
 
 const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "cash", "other"];
 const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
@@ -94,6 +95,11 @@ export function Dashboard({
           envelopes={envelopes}
           onArchive={(id) => void archiveEnvelope(id)}
           onUnarchive={(id) => void unarchiveEnvelope(id)}
+        />
+        <MoveMoneyForm
+          api={api}
+          envelopes={envelopes ?? []}
+          onMoved={() => void refreshEnvelopes()}
         />
       </section>
     </main>

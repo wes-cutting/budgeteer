@@ -14,15 +14,15 @@ Sequencing model: docs/00_WAYS_OF_WORKING.md §7.
 | Last updated  | 2026-06-14     |
 | Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) |
 
-**Current focus:** **`#7a` (account↔account transfer) — ✅ `Done` (gate-green).** Double-entry
-transfer (a `transfers` parent + two linked `kind:'transfer'` legs, `−X`/`+X`); account balances
-re-derive and stay conserved; transfer legs are **excluded from needs-allocation** and show in
-the register labeled by counterpart. Modeled per [ADR-0004](adr/ADR-0004-transfer-modeling.md)
-(validated by [SPIKE-04](spikes/04-transfer-modeling.md)). **73 tests pass**, typecheck + web
-build + format green; transfer flow + guard rails (same-account/zero → 400, missing → 404)
-HTTP-smoked. **Next up:** **`#7b` envelope↔envelope reallocation** (the second primitive — a
-dedicated `envelope_transfers` table + the `v_envelope_balances` two-source change + its UX;
-negative envelope balances allowed), then **refunds `#8`**, **recurring `#9`**, **analysis**
+**Current focus:** **`#7` transfers — ✅ `Done` (both primitives, gate-green).** `#7a`
+**account↔account transfer** (a `transfers` parent + two linked `kind:'transfer'` legs, exempt
+from needs-allocation, labeled in the register) **and** `#7b` **envelope↔envelope reallocation**
+(a dedicated `envelope_transfers` table; `v_envelope_balances` now two-source = `Σ allocations +
+Σ in − Σ out`; into-archived blocked, drain-from-archived allowed, negative balances allowed).
+Both modeled per [ADR-0004](adr/ADR-0004-transfer-modeling.md) (validated by
+[SPIKE-04](spikes/04-transfer-modeling.md)); orthogonal, with the split model untouched. **82
+tests pass**, typecheck + web build + format green; both flows + guard rails HTTP-smoked. **Next
+up:** **refunds `#8`**, **recurring `#9`**, **reconcile `#10`**, then the **analysis** area
 (`#11`–`#14`). Deferred gate item unchanged: browser **Playwright e2e** (add in CI).
 
 ---
@@ -103,7 +103,7 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | 5 | **Edit a past split** (preserve the sum invariant) | slice | High | Med | #3 | **✅ Done** | Built & gate-green (57 tests + HTTP smoke); reuses editor + `PUT allocations`; [feature](features/edit-split.md)·[UX](ux/edit-split.md) |
 | 6 | **Archive an envelope** (soft-delete; history preserved) | slice | Med | Low | #1 | **✅ Done** | Built & gate-green (62 tests + HTTP smoke); archive/unarchive + picker filtering; [feature](features/archive-envelope.md)·[UX](ux/archive-envelope.md) |
 | 7a | **Transfer** (account↔account, **double-entry**) | slice | Med | High | #3 · ✅ SPIKE-04 | **✅ Done** | Built & gate-green (73 tests + HTTP smoke); `transfers` parent + `kind:'transfer'` legs, exempt from needs-allocation; [ADR-0004](adr/ADR-0004-transfer-modeling.md)·[feature](features/transfers.md)·[UX](ux/transfers.md) |
-| 7b | **Reallocation** (envelope↔envelope) | slice | Med | Med | #3 · ✅ SPIKE-04 · 7a | Ready | The second [ADR-0004](adr/ADR-0004-transfer-modeling.md) primitive: `envelope_transfers` table; envelope balance = `Σ allocations + Σ in − Σ out`; negative balances allowed; needs its own UX |
+| 7b | **Reallocation** (envelope↔envelope) | slice | Med | Med | #3 · ✅ SPIKE-04 · 7a | **✅ Done** | Built & gate-green (82 tests + HTTP smoke); `envelope_transfers` table + two-source `v_envelope_balances`; into-archived blocked, drain/negative allowed; [ADR-0004](adr/ADR-0004-transfer-modeling.md)·[feature](features/transfers.md)·[UX](ux/transfers.md) |
 | 8 | **Refunds** (negative allocation within a split) | slice | Med | Med | #3 | Planned | Resolves the "negative allocation rows?" open question |
 | 9 | **Recurring transactions** | slice | Med | Low | #3 | Planned | Generator over the txn model |
 | 10 | **Reconcile to bank** (manual balance compare) | slice | Med | Low | #1 | Planned | Open Q: cleared/statement concept vs. plain compare |
@@ -143,11 +143,13 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | 2026-06-13 | **`#6` Done** (gate-green); FEAT-006 `Implemented`; archive/unarchive endpoints in `06_API_CONTRACT` (**no schema change** — `archived_at` existed since the Foundation) | Archive/unarchive + picker filtering + Dashboard Archived section (62 tests + HTTP smoke) | **Next: transfers `#7`** (consider a modeling spike), then analysis |
 | 2026-06-14 | **SPIKE-04 Done** (modeling); confirmed an **additive two-primitive** transfer model (account-transfer legs + `envelope_transfers` table); owner confirmed transfers must cover **envelope↔envelope** too | [SPIKE-04](spikes/04-transfer-modeling.md): both movements proven exact + orthogonal, split model untouched (8/8 tests) | **`#7` Ready** → recommend split into **`#7a` account-transfer** then **`#7b` envelope-reallocation**; produces `ADR-0004`. *Pending owner nod on the split + negative-envelope-balance Q before building.* |
 | 2026-06-14 | Owner confirmed: **split `#7` into `#7a`/`#7b`**; **negative envelope balances allowed**. **`#7a` Done** (gate-green); `ADR-0004` `Accepted`; FEAT-007 `Implemented`; `transfers` table + `transactions.transfer_id`/kind-check in `05_DATA_MODEL`; `POST /transfers` in `06_API_CONTRACT` | Built account-transfer across domain→API→UI (73 tests + HTTP smoke) | **Next: `#7b`** (envelope reallocation — the second ADR-0004 primitive), then refunds `#8` |
+| 2026-06-14 | **`#7b` Done** (gate-green) — completes `#7`/ADR-0004; `envelope_transfers` table + **two-source** `v_envelope_balances` in `05_DATA_MODEL`; `POST /envelope-transfers` in `06_API_CONTRACT`; EnvelopeTransfer entity in `04_DOMAIN_MODEL` | Built envelope-reallocation across domain→API→UI (82 tests + HTTP smoke); orthogonal to accounts, split model untouched | **Next: refunds `#8`**, recurring `#9`, reconcile `#10`, then analysis (`#11`–`#14`) |
 
 ## 6. Done / shipped
 
 | # | Item | Shipped | Notes |
 | - | ---- | ---- | ----- |
+| 7b | **`#7b`** — envelope↔envelope reallocation | 2026-06-14 | `envelope_transfers` table · two-source `v_envelope_balances` · into-archived blocked/drain+negative allowed; [ADR-0004](adr/ADR-0004-transfer-modeling.md); 82 tests + HTTP smoke |
 | 7a | **`#7a`** — account↔account transfer (double-entry) | 2026-06-14 | `transfers` parent + `kind:'transfer'` legs · balances conserved · exempt from needs-allocation; [ADR-0004](adr/ADR-0004-transfer-modeling.md); 73 tests + HTTP smoke |
 | 6 | **`#6`** — archive an envelope (soft-delete) | 2026-06-13 | Archive/unarchive · pickers hide archived · history preserved; 62 tests + HTTP smoke |
 | 5 | **Slice #5** — edit a past split (from the register) | 2026-06-13 | Reuses the editor + `PUT allocations`; 57 tests + HTTP smoke |

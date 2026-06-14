@@ -28,7 +28,7 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 | **Transaction** | One line item in **one** account: a deposit (`+`) or withdrawal (`−`). Includes the **opening** transaction that seeds an account's starting balance, and the two **transfer** legs of an account↔account transfer. |
 | **Allocation (split)** | A portion of a transaction assigned to **one** envelope. A transaction fans out to one-or-many allocations. |
 | **Transfer** | A double-entry move of money between two **accounts**: a `transfers` parent linking two `kind: transfer` transaction legs (`−X` source, `+X` destination). The legs sum to zero; they carry no allocations (ADR-0004). |
-| **Envelope transfer** | A re-budget of money between two **envelopes** with no account movement (a dedicated `envelope_transfers` row). Extends envelope-balance derivation. *(ADR-0004 (B); built in `#7b`.)* |
+| **Envelope transfer** | A re-budget of money between two **envelopes** with no account movement (a dedicated `envelope_transfers` row). Extends envelope-balance derivation (ADR-0004 (B)). |
 | **Unallocated** | The part of a transaction not yet assigned to any envelope (`amount − Σ allocations`). May be non-zero ("enter now, split later"). |
 | **Account balance** | **Derived:** Σ of the account's transaction amounts. |
 | **Envelope balance** | **Derived:** Σ of the allocation amounts landing in that envelope. |
@@ -51,8 +51,10 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 - **Key attributes:** `id`, `householdId`, `name`, `kind` (`standard | sinking_fund`), `createdAt`, `archivedAt?`.
 - **Invariants:**
   - `name` non-empty (trimmed), **unique per household** (case-insensitive).
-  - An **archived** envelope cannot receive **new** allocations, but its history is
-    preserved and still counts toward historical balances (mirrors the sheet's `Archive*`).
+  - An **archived** envelope cannot receive **new** allocations **or incoming envelope
+    transfers**, but its history is preserved and still counts toward historical balances
+    (mirrors the sheet's `Archive*`). Draining an archived envelope **out** via an envelope
+    transfer is allowed (ADR-0004).
   - Balance is **derived**, never stored.
 
 ### Transaction
@@ -74,6 +76,16 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
     `+magnitude` on the destination; the legs **sum to zero** (money conserved, only relocated).
   - The two accounts are **distinct** and **non-archived** (at creation time); `magnitude > 0`.
   - Legs are created/deleted as an **atomic pair** (delete cascades both legs).
+
+### EnvelopeTransfer
+- **Purpose:** re-budget money between two envelopes with **no** account movement (ADR-0004 (B)).
+- **Key attributes:** `id`, `householdId`, `fromEnvelopeId`, `toEnvelopeId`, `amountCents` (positive magnitude), `occurredOn` (date), `memo?`, `createdAt`.
+- **Invariants:**
+  - The two envelopes are **distinct** (`from ≠ to`); `amountCents > 0`.
+  - The **destination** must be non-archived; the **source** may be archived (drain-out allowed).
+  - Affects **only** envelope balances (the source decreases, the destination increases by the
+    same magnitude — budgeted total conserved); **no** account/transaction is created.
+  - **Negative** envelope balances are permitted (consistent with normal over-spending).
 
 ### Allocation
 - **Purpose:** assign a slice of a transaction to an envelope (the account↔envelope bridge).
@@ -98,9 +110,8 @@ Household 1───* Account 1───* Transaction 1───* Allocation *�
 - An **Account** has many **Transactions**; a **Transaction** has many **Allocations**.
 - An **Envelope** has many **Allocations**. Account ↔ Envelope are connected **only**
   through a Transaction's Allocations — never directly.
-- A **Transfer** links exactly **two** Transactions (its legs) on two different Accounts
-  (ADR-0004). *(An **envelope transfer** — `#7b` — links two Envelopes directly, with no
-  Transaction.)*
+- A **Transfer** links exactly **two** Transactions (its legs) on two different Accounts; an
+  **EnvelopeTransfer** links two different Envelopes directly, with **no** Transaction (ADR-0004).
 - *(Future)* a **Household** owns Accounts and Envelopes; all scoping is by `householdId`.
 
 ## 4. Lifecycles / state
@@ -130,7 +141,8 @@ allocated` indefinitely; the app surfaces these via a **needs-allocation** indic
 **Derived — never stored (derive-don't-store, ENGINEERING_STANDARDS §4):**
 - **Account balance** = `Σ transaction.amountCents` for the account (includes the opening txn
   **and** any transfer legs — a transfer relocates money between accounts).
-- **Envelope balance** = `Σ allocation.amountCents` into the envelope.
+- **Envelope balance** = `Σ allocation.amountCents` into the envelope **plus** net envelope-
+  transfer flow (`Σ incoming − Σ outgoing`) — a two-source derivation (ADR-0004 (B)).
 - **Transaction.unallocated** = `amountCents − Σ its allocations`.
 - **Needs-allocation set** = transactions where `unallocated ≠ 0`, **excluding `transfer`
   legs** (relocated money is already budgeted — ADR-0004).

@@ -13,6 +13,7 @@ export interface DB {
   accounts: AccountsTable;
   envelopes: EnvelopesTable;
   transfers: TransfersTable;
+  envelope_transfers: EnvelopeTransfersTable;
   transactions: TransactionsTable;
   allocations: AllocationsTable;
   templates: TemplatesTable;
@@ -49,6 +50,18 @@ interface EnvelopesTable {
 interface TransfersTable {
   id: Generated<string>;
   household_id: string;
+  occurred_on: DateOnly;
+  memo: string | null;
+  created_at: Generated<Date>;
+}
+
+/** Envelope↔envelope reallocation (ADR-0004 B): re-budget money, no account movement. */
+interface EnvelopeTransfersTable {
+  id: Generated<string>;
+  household_id: string;
+  from_envelope_id: string;
+  to_envelope_id: string;
+  amount_cents: IntCents;
   occurred_on: DateOnly;
   memo: string | null;
   created_at: Generated<Date>;

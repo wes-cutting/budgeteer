@@ -67,6 +67,28 @@ export interface CreateTransferInput {
   memo?: string;
 }
 
+export interface EnvelopeTransferEndpointView {
+  envelopeId: string;
+  envelopeName: string;
+}
+
+export interface EnvelopeTransferView {
+  id: string;
+  occurredOn: string;
+  memo: string | null;
+  amountCents: number; // positive magnitude
+  from: EnvelopeTransferEndpointView;
+  to: EnvelopeTransferEndpointView;
+}
+
+export interface CreateEnvelopeTransferInput {
+  fromEnvelopeId: string;
+  toEnvelopeId: string;
+  amount: string;
+  occurredOn?: string;
+  memo?: string;
+}
+
 /** One row the user is allocating: a positive magnitude string for an envelope. */
 export interface AllocationDraft {
   envelopeId: string;
@@ -112,6 +134,7 @@ export interface Api {
   listTransactions(accountId: string): Promise<TransactionView[]>;
   createTransaction(accountId: string, input: CreateTransactionInput): Promise<TransactionView>;
   createTransfer(input: CreateTransferInput): Promise<TransferView>;
+  createEnvelopeTransfer(input: CreateEnvelopeTransferInput): Promise<EnvelopeTransferView>;
   setAllocations(transactionId: string, allocations: AllocationDraft[]): Promise<TransactionView>;
   listNeedsAllocation(): Promise<TransactionView[]>;
   listTemplates(): Promise<TemplateView[]>;
@@ -199,6 +222,14 @@ export const httpApi: Api = {
         body: JSON.stringify(input),
       })
     ).transfer;
+  },
+  async createEnvelopeTransfer(input) {
+    return (
+      await request<{ envelopeTransfer: EnvelopeTransferView }>("/envelope-transfers", {
+        method: "POST",
+        body: JSON.stringify(input),
+      })
+    ).envelopeTransfer;
   },
   async setAllocations(transactionId, allocations) {
     return (

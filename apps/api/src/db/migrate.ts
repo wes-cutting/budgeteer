@@ -115,17 +115,43 @@ export async function migrateToLatest(db: Kysely<DB>): Promise<void> {
     db,
   );
 
+  // Envelope↔envelope reallocation (ADR-0004 B) — created before the balance view that reads it.
+  await sql`
+    create table if not exists envelope_transfers (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references households(id),
+      from_envelope_id uuid not null references envelopes(id),
+      to_envelope_id uuid not null references envelopes(id),
+      amount_cents bigint not null check (amount_cents > 0),
+      occurred_on date not null,
+      memo text,
+      created_at timestamptz not null default now(),
+      constraint envelope_transfer_distinct check (from_envelope_id <> to_envelope_id)
+    )
+  `.execute(db);
+  await sql`create index if not exists envelope_transfers_from_idx on envelope_transfers (from_envelope_id)`.execute(
+    db,
+  );
+  await sql`create index if not exists envelope_transfers_to_idx on envelope_transfers (to_envelope_id)`.execute(
+    db,
+  );
+
   await sql`
     create or replace view v_account_balances as
       select a.id as account_id, coalesce(sum(t.amount_cents), 0)::bigint as balance_cents
       from accounts a left join transactions t on t.account_id = a.id
       group by a.id
   `.execute(db);
+  // Two-source (ADR-0004): allocations + net envelope-transfer flow (incoming − outgoing).
   await sql`
     create or replace view v_envelope_balances as
-      select e.id as envelope_id, coalesce(sum(al.amount_cents), 0)::bigint as balance_cents
-      from envelopes e left join allocations al on al.envelope_id = e.id
-      group by e.id
+      select e.id as envelope_id,
+        (
+          coalesce((select sum(al.amount_cents) from allocations al where al.envelope_id = e.id), 0)
+          + coalesce((select sum(et.amount_cents) from envelope_transfers et where et.to_envelope_id = e.id), 0)
+          - coalesce((select sum(et.amount_cents) from envelope_transfers et where et.from_envelope_id = e.id), 0)
+        )::bigint as balance_cents
+      from envelopes e
   `.execute(db);
 
   await sql`

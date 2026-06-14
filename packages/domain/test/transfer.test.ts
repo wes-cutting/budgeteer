@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { accountBalance, cents, transferLegs, validateTransfer } from "../src/index";
+import {
+  accountBalance,
+  cents,
+  envelopeBalanceWithTransfers,
+  transferLegs,
+  validateEnvelopeTransfer,
+  validateTransfer,
+} from "../src/index";
 
 describe("account transfer (FEAT-007 / ADR-0004)", () => {
   test("validateTransfer accepts a positive magnitude between distinct accounts", () => {
@@ -25,5 +32,27 @@ describe("account transfer (FEAT-007 / ADR-0004)", () => {
     // checking started at $1000, savings at $0
     expect(accountBalance([{ amountCents: cents(100000) }, out])).toBe(96667);
     expect(accountBalance([into])).toBe(3333);
+  });
+});
+
+describe("envelope reallocation (FEAT-007 #7b / ADR-0004 B)", () => {
+  test("validateEnvelopeTransfer accepts a positive magnitude between distinct envelopes", () => {
+    expect(validateEnvelopeTransfer("groceries", "vacation", 15000)).toEqual({ ok: true });
+  });
+
+  test("validateEnvelopeTransfer rejects non-positive magnitudes and same-envelope moves", () => {
+    expect(validateEnvelopeTransfer("a", "b", 0).ok).toBe(false);
+    expect(validateEnvelopeTransfer("a", "b", -1).ok).toBe(false);
+    expect(validateEnvelopeTransfer("a", "b", 1.5).ok).toBe(false);
+    expect(validateEnvelopeTransfer("a", "a", 100).ok).toBe(false);
+  });
+
+  test("envelopeBalanceWithTransfers = allocations + incoming − outgoing (exact, may go negative)", () => {
+    // Groceries: $600 allocated, received $150, sent $0 → $750
+    expect(envelopeBalanceWithTransfers(60000, 15000, 0)).toBe(75000);
+    // Vacation: $400 allocated, received $0, sent $150 → $250
+    expect(envelopeBalanceWithTransfers(40000, 0, 15000)).toBe(25000);
+    // Draining more than present is allowed → negative balance
+    expect(envelopeBalanceWithTransfers(10000, 0, 15000)).toBe(-5000);
   });
 });

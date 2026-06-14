@@ -18,7 +18,8 @@ migrations in the same change. Money = BIGINT integer cents (ADR-0003).
 Direct mapping of [`04_DOMAIN_MODEL`](04_DOMAIN_MODEL.md) to five tables. Money is **`BIGINT`
 integer cents** (ADR-0003) — never `numeric`/`float`. Balances are **derived** (not stored):
 served by SQL aggregates (`v_account_balances`, `v_envelope_balances` views) over indexed
-foreign keys; data volume is small (fresh start), so no materialization in V1. Every
+foreign keys; data volume is small (fresh start), so no materialization in V1.
+`v_envelope_balances` is **two-source** — allocations plus net envelope-transfer flow (ADR-0004). Every
 top-level row carries `household_id` to design toward multi-household, with a **single
 seeded household** in V1 (no auth/RLS yet).
 
@@ -92,6 +93,22 @@ seeded household** in V1 (no auth/RLS yet).
 | amount_cents | bigint | no | signed integer cents; same sign as its transaction |
 - **Keys/Indexes:** PK `id`; index `(transaction_id)`; index `(envelope_id)`.
 
+### envelope_transfers → `EnvelopeTransfer` (FEAT-007 #7b, ADR-0004 B)
+| Field | Type | Null | Notes |
+| ----- | ---- | ---- | ----- |
+| id | uuid | no | PK |
+| household_id | uuid | no | FK → households(id), **restrict** |
+| from_envelope_id | uuid | no | FK → envelopes(id), **restrict** |
+| to_envelope_id | uuid | no | FK → envelopes(id), **restrict** |
+| amount_cents | bigint | no | positive magnitude (`check (amount_cents > 0)`) |
+| occurred_on | date | no | the reallocation date |
+| memo | text | yes | free text |
+| created_at | timestamptz | no | default `now()` |
+- **Keys/Indexes:** PK `id`; index `(from_envelope_id)`; index `(to_envelope_id)`.
+- **Constraints:** `check (from_envelope_id <> to_envelope_id)` (`envelope_transfer_distinct`).
+  No account movement; archived-destination rejection is enforced in the app/core (the
+  destination must be non-archived; the source may be archived).
+
 ### templates → `Template` (FEAT-004)
 | Field | Type | Null | Notes |
 | ----- | ---- | ---- | ----- |
@@ -121,6 +138,9 @@ seeded household** in V1 (no auth/RLS yet).
 - `transactions.transfer_id → transfers` — **cascade** (a transfer owns its two legs; deleting
   the parent removes both). A transfer's two `kind='transfer'` legs (`−X` / `+X`) are inserted
   **atomically** in one DB transaction, so they always sum to zero (ADR-0004).
+- `envelope_transfers.{from_envelope_id,to_envelope_id} → envelopes` — **restrict** (envelopes
+  are archived, not deleted). An envelope transfer touches **no** account; it changes only the
+  derived envelope balances (`v_envelope_balances`), source `−X` / destination `+X` (ADR-0004 B).
 - `template_lines.template_id → templates` — **cascade** (a template owns its lines);
   `template_lines.envelope_id → envelopes` — **restrict**.
 - **Split invariant** (`0 ≤ |Σ allocations| ≤ |txn.amount|`, matching sign): enforced in the
@@ -139,8 +159,9 @@ created as migrations alongside the tables.
 > nullable `transactions.transfer_id` FK, and evolves the `kind` check to allow `'transfer'`
 > (dropping the foundation's inline check, adding the named `transactions_kind_chk`). It is
 > idempotent (no plpgsql) so the dev/test PGlite path keeps doubling as the migrator;
-> `v_account_balances` needs **no** change (it already sums all kinds). *(The `#7b`
-> `envelope_transfers` table + the `v_envelope_balances` two-source change land with that slice.)*
+> `v_account_balances` needs **no** change (it already sums all kinds). **`#7b`** adds the
+> `envelope_transfers` table and rebuilds `v_envelope_balances` as the **two-source** view
+> (`Σ allocations + Σ incoming − Σ outgoing`) via `create or replace`.
 
 ## 5. Seed / fixtures
 

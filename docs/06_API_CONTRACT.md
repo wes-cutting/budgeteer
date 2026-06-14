@@ -69,7 +69,7 @@ The error handler **preserves the original 4xx status** (e.g. a malformed/empty 
 
 ### `GET /envelopes`
 - **Output:** `200 { "envelopes": EnvelopeView[] }`.
-- `EnvelopeView = { id, name, kind, balanceCents, archivedAt }`; `kind ∈ {standard, sinking_fund}`; `balanceCents` **derived** from allocations (`0` until Slice 1).
+- `EnvelopeView = { id, name, kind, balanceCents, archivedAt }`; `kind ∈ {standard, sinking_fund}`; `balanceCents` **derived** from allocations **plus net envelope-transfer flow** (ADR-0004 B).
 
 ### `POST /envelopes`
 - **Purpose:** create an envelope (FEAT-002).
@@ -120,6 +120,18 @@ destination) sharing a `transferId`; account balances re-derive automatically an
 - **`POST /transfers`** — create a transfer. Input: `{ fromAccountId, toAccountId,
   amount: string, occurredOn?: "YYYY-MM-DD", memo? }`. → `201 { transfer }`.
   Errors: `400` (amount ≤ 0, same account, archived account, bad date); `404` (account missing).
+
+### Envelope reallocation (FEAT-007 #7b · envelope↔envelope, ADR-0004 B)
+
+`EnvelopeTransferView = { id, occurredOn, memo, amountCents (positive magnitude),
+from: { envelopeId, envelopeName }, to: { envelopeId, envelopeName } }`. A reallocation moves
+budgeted money between two envelopes with **no** account movement; envelope balances re-derive
+(`EnvelopeView.balanceCents` = `Σ allocations + Σ incoming − Σ outgoing` reallocations).
+
+- **`POST /envelope-transfers`** — create a reallocation. Input: `{ fromEnvelopeId, toEnvelopeId,
+  amount: string, occurredOn?: "YYYY-MM-DD", memo? }`. → `201 { envelopeTransfer }`.
+  Errors: `400` (amount ≤ 0, same envelope, **archived destination**, bad date); `404` (envelope
+  missing). Draining **from** an archived envelope is allowed; envelopes may go **negative**.
 
 ### Allocation templates (FEAT-004)
 

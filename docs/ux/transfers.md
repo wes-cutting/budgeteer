@@ -7,7 +7,7 @@ labeled transfer legs. Pairs with FEAT-007. #7b (envelope reallocation) gets its
 
 | Field        | Value                                              |
 | ------------ | -------------------------------------------------- |
-| Status       | Accepted (#7a account transfer)                    |
+| Status       | Accepted (#7a account transfer + #7b envelope reallocation) |
 | Feature      | FEAT-007 ([feature spec](../features/transfers.md)) |
 | Owner        | Wesley Cutting                                     |
 | Last updated | 2026-06-14                                         |
@@ -87,5 +87,37 @@ fully keyboard-operable.
 
 ## 10. Out of scope / later
 
-Editing/deleting a transfer; transfers initiated from the Dashboard (global); envelope↔envelope
-reallocation (**#7b**, its own UX).
+Editing/deleting a transfer or reallocation; account transfers initiated from the Dashboard
+(global); choosing an **archived** envelope as a reallocation source in the UI (the API allows
+draining-from-archived; the picker offers active envelopes only for now).
+
+## 11. #7b — envelope↔envelope reallocation (Move money)
+
+**Job:** the user re-budgets money between two envelopes (e.g. Groceries → Vacation) without
+touching any account.
+
+**Entry point:** on the **Dashboard**, below the Envelopes list, a **Move money between
+envelopes** form: **From envelope**, **To envelope**, **Amount**, optional **Memo**, **Move
+money**. Both pickers list **active** envelopes only; the form is hidden until there are at
+least two active envelopes.
+
+**Flow:** pick from/to + amount → **Move money** → the form clears and both envelope balances
+update in place (the source drops, the destination rises). Accounts are unaffected.
+
+**States:** **client guards** (both envelopes required; must differ) and **server messages**
+(amount, archived destination) surface inline via `role="alert"`. Submit disables while saving;
+balances refresh on success (reduced-motion).
+
+```
+ENVELOPES                         [+ Add]
+  Groceries   standard  $450.00   [ Archive ]
+  Vacation    sinking_fund  $550.00   [ Archive ]
+  MOVE MONEY BETWEEN ENVELOPES
+    From [ Groceries ▼ ]  To [ Vacation ▼ ]  Amount [ 150.00 ]  Memo [ ]  [ Move money ]
+```
+
+**Accessibility:** labeled `form` ("Move money between envelopes") with labeled selects/inputs;
+errors via `role="alert"`; keyboard-operable; no color-only signaling.
+
+**Acceptance (UX):** moving updates both envelope balances on the Dashboard; selecting the same
+envelope on both sides (or a zero amount) shows an inline error and moves nothing.
