@@ -8,7 +8,7 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 
 | Field        | Value          |
 | ------------ | -------------- |
-| Status       | Proposed       |
+| Status       | Accepted       |
 | Owner        | Wesley Cutting |
 | Last updated | 2026-06-13     |
 

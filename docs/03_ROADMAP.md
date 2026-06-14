@@ -14,13 +14,12 @@ Sequencing model: docs/00_WAYS_OF_WORKING.md §7.
 | Last updated  | 2026-06-13     |
 | Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) |
 
-**Current focus:** **Foundation slice — `In progress`.** `ADR-0001` **Accepted**; design
-landed and `Proposed` ([domain](04_DOMAIN_MODEL.md) · [data](05_DATA_MODEL.md) ·
-[accounts](features/accounts.md) · [envelopes](features/envelopes.md) ·
-[UX](ux/foundation.md)). **Next: implement the vertical slice** — scaffold → domain core
-(ported from SPIKE-02) → Postgres/Kysely migrations + repo → Fastify API → React UI → e2e,
-gate-green. *(Dev/test run Postgres in-process via **PGlite** so it runs without a DB server;
-`node-postgres` in prod — both behind the same Kysely dialect.)*
+**Current focus:** **Foundation slice — ✅ `Done` (gate-green).** Data → API → UI all built
+and usable: create accounts (opening-balance txn) & envelopes, derived balances, rename,
+with validation/errors. **31 tests pass** (domain 15 · API/PGlite 12 · web/jsdom 4),
+typecheck + web build + format all green; server smoke-tested over real HTTP. **Next up:
+Slice 1** — the core enter→allocate loop (the validated heart). One deferred gate item: a
+browser **Playwright e2e** (this sandbox can't install browsers) — to add in CI.
 
 ---
 
@@ -57,9 +56,9 @@ retired:
 | -------- | ---- | ---- |
 | [`ADR-0003`](adr/ADR-0003-money-integer-minor-units.md) — money = **integer minor units** | ✅ done | **`Accepted`** (2026-06-13); demonstrated exact by SPIKE-02. |
 | [`ADR-0001`](adr/ADR-0001-stack.md) — stack (TS · React+Vite · Fastify) | ✅ done | **`Validated`** by [SPIKE-02](spikes/02-stack-feasibility.md); awaiting owner nod → `Accepted`. |
-| [`ADR-0002`](adr/ADR-0002-datastore.md) — datastore (Postgres · Kysely) | ✅ drafted | **`Proposed`** — access-layer seam validated by SPIKE-02; Postgres wiring confirmed in the foundation. |
-| [`04_DOMAIN_MODEL`](04_DOMAIN_MODEL.md) · [`05_DATA_MODEL`](05_DATA_MODEL.md) | ✅ drafted | **`Proposed`** — full entity set (account · envelope · transaction · split-allocation) + Postgres schema; opening-balance modeled as an opening transaction; balances derived. |
-| [accounts](features/accounts.md) · [envelopes](features/envelopes.md) specs + [foundation UX](ux/foundation.md) | ✅ drafted | **`Proposed`** — Definition of Ready met for the Foundation slice. |
+| [`ADR-0002`](adr/ADR-0002-datastore.md) — datastore (Postgres · Kysely) | ✅ done | **`Validated`** — schema + queries run on PGlite (Postgres-in-WASM) with 12 passing API tests; prod node-postgres path wired, confirm at deploy. |
+| [`04_DOMAIN_MODEL`](04_DOMAIN_MODEL.md) · [`05_DATA_MODEL`](05_DATA_MODEL.md) | ✅ realized | **`Accepted`** — implemented + tested in the foundation slice. |
+| [accounts](features/accounts.md) · [envelopes](features/envelopes.md) specs · [foundation UX](ux/foundation.md) · [`06_API_CONTRACT`](06_API_CONTRACT.md) | ✅ built | FEAT-001/002 **`Implemented`**; UX `Accepted`; API contract documented. |
 
 > **Security, day-zero (not deferred):** the Foundation slice sets the `.gitignore` to
 > exclude confidential financial data **before** any such data can exist, and all tests use
@@ -74,7 +73,7 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 
 | # | Item | Kind | Value | Risk | Gated by | Status | Links (will produce) |
 | - | ---- | ---- | ----- | ---- | -------- | ------ | -------------------- |
-| 1 | **Foundation** — app shell + Postgres store + domain core + **account CRUD** (open with a starting balance, held *unallocated*) + **envelope CRUD** (create/rename). *Usable: set up your real accounts & envelopes and see balances.* Sets the **day-zero `.gitignore` + synthetic fixtures** guardrail. | slice | High | Med | ✅ SPIKE-02 · ADR-0001/0002/0003 | **In progress** | Design ✅ [domain](04_DOMAIN_MODEL.md)·[data](05_DATA_MODEL.md)·[accounts](features/accounts.md)·[envelopes](features/envelopes.md)·[UX](ux/foundation.md); code next |
+| 1 | **Foundation** — app shell + Postgres store + domain core + **account CRUD** (open with a starting balance, held *unallocated*) + **envelope CRUD** (create/rename). *Usable: set up your real accounts & envelopes and see balances.* Sets the **day-zero `.gitignore` + synthetic fixtures** guardrail. | slice | High | Med | ✅ SPIKE-02 · ADR-0001/0002/0003 | **✅ Done** | Built & gate-green (31 tests + HTTP smoke); [status report](status-reports/2026-06-13-foundation-slice.md) |
 
 ### Spikes (risk retirement)
 
@@ -124,10 +123,12 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | 2026-06-13 | **Templates** elevated to the primary accelerator (#4); **partial allocation** folded into the core loop (#3); **transfers/refunds/recurring/edit-split/archive** added as slices (#5–#9, mapped to A1.7/A1.5/A5.3 of the sheet) | [SPIKE-01](spikes/01-split-allocation-ux.md) confirmed the model + surfaced these | Shaped the domain-slice backlog; flagged transfers (double-entry) & edit-split (invariant) as the careful ones |
 | 2026-06-13 | Added **SPIKE-02** (feasibility) ahead of the foundation | Stack still unchosen; SPIKE-01 was a *paper* test, didn't probe the build | `ADR-0001`/`0002` now gate the foundation slice |
 | 2026-06-13 | **SPIKE-02 Done**; stack chosen (TS · React+Vite · Fastify · Postgres); `ADR-0001` `Validated`, `ADR-0002` `Proposed`, `ADR-0003` `Accepted` | [SPIKE-02](spikes/02-stack-feasibility.md) confirmed integer-money + split invariant exact (8/8 tests) | **Foundation slice → `Ready`**; no further pre-build spike needed |
+| 2026-06-13 | **Foundation slice Done** (gate-green); `ADR-0002` → `Validated`; domain/data model → `Accepted`; FEAT-001/002 → `Implemented`; `06_API_CONTRACT` written; `ADR-0001` → `Accepted` | Built data→API→UI with 31 passing tests + HTTP smoke | **Slice 1** (core enter→allocate loop) is now unblocked & next |
 
 ## 6. Done / shipped
 
 | # | Item | Shipped | Notes |
 | - | ---- | ------- | ----- |
+| 1 | **Foundation slice** — accounts + envelopes, data→API→UI | 2026-06-13 | Gate-green: 31 tests (domain/API/web), web build, HTTP smoke; usable app shell |
 | 2 | SPIKE-02 — stack feasibility | 2026-06-13 | Proved integer-money + split invariant exact in TS (8/8); produced `ADR-0001`/`0002`/`0003` |
 | 0 | SPIKE-01 — split-allocation UX | 2026-06-13 | De-risked the core bet (paper); reshaped the plan (see §5) |

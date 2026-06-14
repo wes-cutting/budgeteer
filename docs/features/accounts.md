@@ -8,7 +8,7 @@ Pairs with docs/ux/foundation.md. Build as a vertical slice (data → API → UI
 | Field        | Value                                  |
 | ------------ | -------------------------------------- |
 | Feature ID   | FEAT-001                               |
-| Status       | Proposed                               |
+| Status       | Implemented                            |
 | Owner        | Wesley Cutting                         |
 | Last updated | 2026-06-13                             |
 | Related      | PRD Foundation scope · [UX spec](../ux/foundation.md) · [ADR-0001](../adr/ADR-0001-stack.md) · [ADR-0002](../adr/ADR-0002-datastore.md) · [ADR-0003](../adr/ADR-0003-money-integer-minor-units.md) · [Domain](../04_DOMAIN_MODEL.md) |

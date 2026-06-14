@@ -8,7 +8,7 @@ migrations in the same change. Money = BIGINT integer cents (ADR-0003).
 
 | Field        | Value                                   |
 | ------------ | --------------------------------------- |
-| Status       | Proposed                                |
+| Status       | Accepted                                |
 | Owner        | Wesley Cutting                          |
 | Datastore    | PostgreSQL (per [`ADR-0002`](adr/ADR-0002-datastore.md)) |
 | Last updated | 2026-06-13                              |
