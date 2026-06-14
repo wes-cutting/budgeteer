@@ -46,4 +46,26 @@ describe("envelopes API (FEAT-002)", () => {
     expect(envelopes).toHaveLength(2);
     expect(envelopes.every((e: { balanceCents: number }) => e.balanceCents === 0)).toBe(true);
   });
+
+  test("archive then unarchive an envelope (FEAT-006); missing → 404", async () => {
+    const env = (await post("/envelopes", { name: "Vacation", kind: "sinking_fund" })).json()
+      .envelope;
+
+    const archived = await post(`/envelopes/${env.id}/archive`, {});
+    expect(archived.statusCode).toBe(200);
+    expect(archived.json().envelope.archivedAt).not.toBeNull();
+
+    const listed = (await get("/envelopes"))
+      .json()
+      .envelopes.find((e: { id: string }) => e.id === env.id);
+    expect(listed.archivedAt).not.toBeNull(); // still listed; history preserved
+
+    const unarchived = await post(`/envelopes/${env.id}/unarchive`, {});
+    expect(unarchived.statusCode).toBe(200);
+    expect(unarchived.json().envelope.archivedAt).toBeNull();
+
+    const ghost = "00000000-0000-0000-0000-0000000000ff";
+    expect((await post(`/envelopes/${ghost}/archive`, {})).statusCode).toBe(404);
+    expect((await post(`/envelopes/${ghost}/unarchive`, {})).statusCode).toBe(404);
+  });
 });

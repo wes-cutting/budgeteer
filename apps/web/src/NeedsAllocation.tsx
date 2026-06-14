@@ -6,8 +6,8 @@ import {
   type TemplateView,
   type TransactionView,
 } from "./api";
-import { centsToInput, formatCents } from "./format";
-import { AllocationEditor } from "./AllocationEditor";
+import { formatCents } from "./format";
+import { InlineAllocationEditor } from "./InlineAllocationEditor";
 
 interface Props {
   api: Api;
@@ -78,26 +78,17 @@ export function NeedsAllocation({ api, onBack }: Props) {
               <span>{t.payee ?? (t.kind === "opening" ? "Opening balance" : "—")}</span>{" "}
               <span>{formatCents(t.amountCents)}</span>{" "}
               <span>needs {formatCents(Math.abs(t.unallocatedCents))}</span>
-              <button
-                type="button"
-                onClick={() => setOpenId((cur) => (cur === t.id ? null : t.id))}
-              >
-                Allocate
-              </button>
-              {openId === t.id ? (
-                <AllocationEditor
-                  magnitudeCents={Math.abs(t.amountCents)}
-                  envelopes={envelopes.map((e) => ({ id: e.id, name: e.name }))}
-                  templates={templates}
-                  initial={t.allocations.map((a) => ({
-                    envelopeId: a.envelopeId,
-                    amount: centsToInput(Math.abs(a.amountCents)),
-                  }))}
-                  submitting={submittingId === t.id}
-                  saveLabel="Save allocation"
-                  onSave={(allocs) => void saveAllocations(t, allocs)}
-                />
-              ) : null}
+              <InlineAllocationEditor
+                txn={t}
+                envelopes={envelopes}
+                templates={templates}
+                open={openId === t.id}
+                submitting={submittingId === t.id}
+                toggleLabel="Allocate"
+                saveLabel="Save allocation"
+                onToggle={() => setOpenId((cur) => (cur === t.id ? null : t.id))}
+                onSave={(allocs) => void saveAllocations(t, allocs)}
+              />
             </li>
           ))}
         </ul>

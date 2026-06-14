@@ -104,6 +104,18 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       envelopes.push(envelope);
       return { ...envelope };
     },
+    async archiveEnvelope(id) {
+      const envelope = envelopes.find((e) => e.id === id);
+      if (!envelope) throw new ApiError("Envelope not found.");
+      envelope.archivedAt = new Date().toISOString();
+      return { ...envelope };
+    },
+    async unarchiveEnvelope(id) {
+      const envelope = envelopes.find((e) => e.id === id);
+      if (!envelope) throw new ApiError("Envelope not found.");
+      envelope.archivedAt = null;
+      return { ...envelope };
+    },
     async listTransactions(accountId) {
       recompute();
       return txns.filter((t) => t.accountId === accountId).map(clone);

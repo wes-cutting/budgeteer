@@ -182,6 +182,26 @@ export function buildServer(db: Kysely<DB>, opts: { logger?: boolean } = {}): Fa
     }
   });
 
+  app.post("/envelopes/:id/archive", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    try {
+      return { envelope: await envelopes.setArchived(id, true) };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Envelope not found.");
+      throw e;
+    }
+  });
+
+  app.post("/envelopes/:id/unarchive", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    try {
+      return { envelope: await envelopes.setArchived(id, false) };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Envelope not found.");
+      throw e;
+    }
+  });
+
   // --- Transactions & allocation (FEAT-003) ---
   app.get("/transactions/needs-allocation", async () => ({
     transactions: await transactions.needsAllocation(),

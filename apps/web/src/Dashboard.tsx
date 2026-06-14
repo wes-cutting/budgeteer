@@ -43,6 +43,30 @@ export function Dashboard({
     };
   }, [api]);
 
+  async function refreshEnvelopes() {
+    try {
+      setEnvelopes(await api.listEnvelopes());
+    } catch (err: unknown) {
+      setLoadError(err instanceof Error ? err.message : "Couldn't refresh envelopes.");
+    }
+  }
+  async function archiveEnvelope(id: string) {
+    try {
+      await api.archiveEnvelope(id);
+      await refreshEnvelopes();
+    } catch (err: unknown) {
+      setLoadError(err instanceof Error ? err.message : "Couldn't archive the envelope.");
+    }
+  }
+  async function unarchiveEnvelope(id: string) {
+    try {
+      await api.unarchiveEnvelope(id);
+      await refreshEnvelopes();
+    } catch (err: unknown) {
+      setLoadError(err instanceof Error ? err.message : "Couldn't unarchive the envelope.");
+    }
+  }
+
   return (
     <main>
       <header>
@@ -66,7 +90,11 @@ export function Dashboard({
       <section aria-labelledby="envelopes-heading">
         <h2 id="envelopes-heading">Envelopes</h2>
         <AddEnvelopeForm api={api} onCreated={(e) => setEnvelopes((cur) => [...(cur ?? []), e])} />
-        <EnvelopeList envelopes={envelopes} />
+        <EnvelopeList
+          envelopes={envelopes}
+          onArchive={(id) => void archiveEnvelope(id)}
+          onUnarchive={(id) => void unarchiveEnvelope(id)}
+        />
       </section>
     </main>
   );
@@ -101,19 +129,53 @@ function AccountList({
   );
 }
 
-function EnvelopeList({ envelopes }: { envelopes: EnvelopeView[] | null }) {
+function EnvelopeList({
+  envelopes,
+  onArchive,
+  onUnarchive,
+}: {
+  envelopes: EnvelopeView[] | null;
+  onArchive?: (id: string) => void;
+  onUnarchive?: (id: string) => void;
+}) {
   if (envelopes === null) return <p>Loading…</p>;
-  if (envelopes.length === 0) {
+  const active = envelopes.filter((e) => e.archivedAt === null);
+  const archived = envelopes.filter((e) => e.archivedAt !== null);
+  if (active.length === 0 && archived.length === 0) {
     return <p>No envelopes yet — add your budget categories.</p>;
   }
   return (
-    <ul aria-label="Envelopes list">
-      {envelopes.map((e) => (
-        <li key={e.id}>
-          <span>{e.name}</span> <span>{e.kind}</span> <span>{formatCents(e.balanceCents)}</span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul aria-label="Envelopes list">
+        {active.map((e) => (
+          <li key={e.id}>
+            <span>{e.name}</span> <span>{e.kind}</span> <span>{formatCents(e.balanceCents)}</span>
+            {onArchive ? (
+              <button type="button" onClick={() => onArchive(e.id)}>
+                Archive
+              </button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {archived.length > 0 ? (
+        <section aria-labelledby="archived-heading">
+          <h3 id="archived-heading">Archived</h3>
+          <ul aria-label="Archived envelopes">
+            {archived.map((e) => (
+              <li key={e.id}>
+                <span>{e.name}</span> <span>{formatCents(e.balanceCents)}</span>
+                {onUnarchive ? (
+                  <button type="button" onClick={() => onUnarchive(e.id)}>
+                    Unarchive
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </>
   );
 }
 

@@ -8,6 +8,7 @@ import {
 } from "./api";
 import { formatCents } from "./format";
 import { AddTransactionForm } from "./AddTransactionForm";
+import { InlineAllocationEditor } from "./InlineAllocationEditor";
 
 interface Props {
   api: Api;
@@ -23,6 +24,8 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
   const [templates, setTemplates] = useState<TemplateView[]>([]);
   const [balanceCents, setBalanceCents] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   async function load() {
     try {
@@ -48,6 +51,20 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
       await load();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Couldn't save the template.");
+    }
+  }
+
+  async function saveSplit(txn: TransactionView, allocations: AllocationDraft[]) {
+    setSavingId(txn.id);
+    setError(null);
+    try {
+      await api.setAllocations(txn.id, allocations);
+      setEditingId(null);
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Couldn't save the split.");
+    } finally {
+      setSavingId(null);
     }
   }
 
@@ -98,6 +115,17 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
                     ? "fully allocated"
                     : `needs ${formatCents(Math.abs(t.unallocatedCents))}`}
                 </span>
+                <InlineAllocationEditor
+                  txn={t}
+                  envelopes={envelopes}
+                  templates={templates}
+                  open={editingId === t.id}
+                  submitting={savingId === t.id}
+                  toggleLabel="Edit split"
+                  saveLabel="Save split"
+                  onToggle={() => setEditingId((cur) => (cur === t.id ? null : t.id))}
+                  onSave={(allocs) => void saveSplit(t, allocs)}
+                />
               </li>
             ))}
           </ul>

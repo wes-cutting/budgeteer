@@ -35,4 +35,69 @@ describe("AccountRegister (add transaction → allocate)", () => {
     expect(await screen.findByText("fully allocated")).toBeTruthy();
     expect(await screen.findByText(/Balance: \$151\.80/)).toBeTruthy();
   });
+
+  test("editing a fully-allocated split to a partial shows the remainder (FEAT-005)", async () => {
+    const api = makeFakeApi();
+    const account = await api.createAccount({
+      name: "Checking",
+      kind: "checking",
+      startingBalance: "0",
+    });
+    const rent = await api.createEnvelope({ name: "Rent", kind: "standard" });
+    await api.createTransaction(account.id, {
+      kind: "deposit",
+      amount: "100.00",
+      payee: "Employer",
+      allocations: [{ envelopeId: rent.id, amount: "100.00" }],
+    });
+
+    const user = userEvent.setup();
+    render(
+      <AccountRegister
+        api={api}
+        accountId={account.id}
+        accountName="Checking"
+        onBack={() => {}}
+        onOpenNeeds={() => {}}
+      />,
+    );
+
+    const depositRow = (await screen.findByText("$100.00")).closest("li") as HTMLElement;
+    await user.click(within(depositRow).getByRole("button", { name: "Edit split" }));
+    await user.click(within(depositRow).getByLabelText("Split"));
+    const amount = within(depositRow).getByLabelText("Amount for row 1");
+    await user.clear(amount);
+    await user.type(amount, "60.00");
+    await user.click(within(depositRow).getByRole("button", { name: "Save split" }));
+
+    expect(await screen.findByText(/needs \$40\.00/)).toBeTruthy();
+  });
+
+  test("archived envelopes are excluded from the allocation picker (FEAT-006)", async () => {
+    const api = makeFakeApi();
+    const account = await api.createAccount({
+      name: "Checking",
+      kind: "checking",
+      startingBalance: "0",
+    });
+    await api.createEnvelope({ name: "Rent", kind: "standard" });
+    const vac = await api.createEnvelope({ name: "Vacation", kind: "sinking_fund" });
+    await api.archiveEnvelope(vac.id);
+
+    render(
+      <AccountRegister
+        api={api}
+        accountId={account.id}
+        accountName="Checking"
+        onBack={() => {}}
+        onOpenNeeds={() => {}}
+      />,
+    );
+    await screen.findByText("Transactions");
+
+    const form = screen.getByRole("form", { name: "Add transaction" });
+    const select = within(form).getByLabelText("Envelope");
+    expect(within(select).getByRole("option", { name: "Rent" })).toBeTruthy();
+    expect(within(select).queryByRole("option", { name: "Vacation" })).toBeNull();
+  });
 });

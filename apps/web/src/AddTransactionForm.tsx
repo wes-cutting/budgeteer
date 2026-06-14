@@ -99,7 +99,9 @@ export function AddTransactionForm({
       </label>
       <AllocationEditor
         magnitudeCents={magnitudeCents}
-        envelopes={envelopes.map((e) => ({ id: e.id, name: e.name }))}
+        envelopes={envelopes
+          .filter((e) => e.archivedAt === null)
+          .map((e) => ({ id: e.id, name: e.name }))}
         templates={templates}
         submitting={submitting}
         saveLabel="Save transaction"

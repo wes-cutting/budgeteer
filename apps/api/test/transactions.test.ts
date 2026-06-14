@@ -162,4 +162,49 @@ describe("transactions & allocation API (FEAT-003)", () => {
     expect(register).toHaveLength(3); // opening(0) + two
     expect(register[0].occurredOn >= register[1].occurredOn).toBe(true);
   });
+
+  test("editing a fully-allocated split (FEAT-005) replaces it and re-derives balances", async () => {
+    const { accountId, env } = await seed();
+    const txn = (
+      await post(`/accounts/${accountId}/transactions`, {
+        kind: "deposit",
+        amount: "100.00",
+        allocations: [{ envelopeId: env.Rent, amount: "100.00" }],
+      })
+    ).json().transaction;
+    expect(txn.unallocatedCents).toBe(0);
+
+    const upd = await put(`/transactions/${txn.id}/allocations`, {
+      allocations: [
+        { envelopeId: env.Rent, amount: "30.00" },
+        { envelopeId: env.Groceries, amount: "70.00" },
+      ],
+    });
+    expect(upd.statusCode).toBe(200);
+    expect(upd.json().transaction.unallocatedCents).toBe(0);
+    expect(await balanceOf("envelopes", env.Rent)).toBe(3000);
+    expect(await balanceOf("envelopes", env.Groceries)).toBe(7000);
+  });
+
+  test("allocating to an archived envelope is rejected (FEAT-006)", async () => {
+    const { accountId, env } = await seed();
+    await post(`/envelopes/${env.Rent}/archive`, {});
+    const res = await post(`/accounts/${accountId}/transactions`, {
+      kind: "deposit",
+      amount: "100.00",
+      allocations: [{ envelopeId: env.Rent, amount: "100.00" }],
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("an archived envelope keeps its balance — history preserved (FEAT-006)", async () => {
+    const { accountId, env } = await seed();
+    await post(`/accounts/${accountId}/transactions`, {
+      kind: "deposit",
+      amount: "100.00",
+      allocations: [{ envelopeId: env.Rent, amount: "100.00" }],
+    });
+    await post(`/envelopes/${env.Rent}/archive`, {});
+    expect(await balanceOf("envelopes", env.Rent)).toBe(10000);
+  });
 });

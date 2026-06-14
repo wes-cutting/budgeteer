@@ -116,11 +116,13 @@ export function TemplatesView({ api, onBack }: Props) {
               }
             >
               <option value="">Choose an envelope…</option>
-              {envelopes.map((env) => (
-                <option key={env.id} value={env.id}>
-                  {env.name}
-                </option>
-              ))}
+              {envelopes
+                .filter((env) => env.archivedAt === null)
+                .map((env) => (
+                  <option key={env.id} value={env.id}>
+                    {env.name}
+                  </option>
+                ))}
             </select>
             <input
               aria-label={`Template amount ${i + 1}`}

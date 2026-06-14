@@ -81,6 +81,8 @@ export interface Api {
   }): Promise<AccountView>;
   listEnvelopes(): Promise<EnvelopeView[]>;
   createEnvelope(input: { name: string; kind: EnvelopeKind }): Promise<EnvelopeView>;
+  archiveEnvelope(id: string): Promise<EnvelopeView>;
+  unarchiveEnvelope(id: string): Promise<EnvelopeView>;
   listTransactions(accountId: string): Promise<TransactionView[]>;
   createTransaction(accountId: string, input: CreateTransactionInput): Promise<TransactionView>;
   setAllocations(transactionId: string, allocations: AllocationDraft[]): Promise<TransactionView>;
@@ -138,6 +140,16 @@ export const httpApi: Api = {
         method: "POST",
         body: JSON.stringify(input),
       })
+    ).envelope;
+  },
+  async archiveEnvelope(id) {
+    return (
+      await request<{ envelope: EnvelopeView }>(`/envelopes/${id}/archive`, { method: "POST" })
+    ).envelope;
+  },
+  async unarchiveEnvelope(id) {
+    return (
+      await request<{ envelope: EnvelopeView }>(`/envelopes/${id}/unarchive`, { method: "POST" })
     ).envelope;
   },
   async listTransactions(accountId) {

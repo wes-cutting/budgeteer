@@ -58,4 +58,17 @@ describe("Dashboard (Foundation UX)", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toMatch(/already exists/i);
   });
+
+  test("archiving an envelope moves it to the Archived section (FEAT-006)", async () => {
+    const api = makeFakeApi();
+    await api.createEnvelope({ name: "Vacation", kind: "sinking_fund" });
+
+    const user = userEvent.setup();
+    render(<Dashboard api={api} />);
+    await screen.findByText("Vacation");
+
+    await user.click(screen.getByRole("button", { name: "Archive" }));
+    expect(await screen.findByRole("button", { name: "Unarchive" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Archive" })).toBeNull();
+  });
 });

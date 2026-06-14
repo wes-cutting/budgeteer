@@ -80,6 +80,12 @@ The error handler **preserves the original 4xx status** (e.g. a malformed/empty 
 - **Purpose:** rename an envelope. **Input:** `{ name: string }`. **Output:** `200 { "envelope": EnvelopeView }`.
 - **Errors:** `400`; `404`; `409`.
 
+### `POST /envelopes/:id/archive` · `POST /envelopes/:id/unarchive` (FEAT-006)
+- **Purpose:** soft-delete / restore an envelope (history + balance preserved).
+- **Output:** `200 { "envelope": EnvelopeView }` (`archivedAt` set / `null`); `404` if missing.
+- `GET /envelopes` returns **all** envelopes (active + archived) with `archivedAt`; allocating
+  to an **archived** envelope is rejected `400` (the `assertEnvelopesUsable` guard).
+
 ### Transactions & allocation (FEAT-003)
 
 `TransactionView = { id, accountId, accountName, kind: "opening"|"normal", amountCents (signed),
@@ -94,9 +100,9 @@ split invariant (`|Σ allocations| ≤ |amount|`, matching sign) is enforced ato
   Errors: `400` (amount ≤ 0, bad date, over-allocation, unknown/archived envelope); `404` (account).
 - **`GET /accounts/:accountId/transactions`** — the account register (newest-first).
   → `200 { transactions: TransactionView[] }`; `404` if the account is missing.
-- **`PUT /transactions/:id/allocations`** — replace a transaction's allocations (allocate-later).
-  Input: `{ allocations: [{ envelopeId, amount }] }`. → `200 { transaction }`.
-  Errors: `400` (over-allocation, unknown/archived envelope); `404` (transaction).
+- **`PUT /transactions/:id/allocations`** — replace a transaction's allocations (allocate-later
+  **and edit a past split**, FEAT-005). Input: `{ allocations: [{ envelopeId, amount }] }`. →
+  `200 { transaction }`. Errors: `400` (over-allocation, unknown/archived envelope); `404` (transaction).
 - **`GET /transactions/needs-allocation`** — household-wide transactions with a non-zero
   unallocated remainder (includes opening balances). → `200 { transactions: TransactionView[] }`.
 

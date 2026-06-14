@@ -104,5 +104,24 @@ export function makeEnvelopeService(db: Kysely<DB>) {
         return toView(row);
       });
     },
+
+    /** Soft-delete (archive) or restore an envelope; history/balance is preserved either way. */
+    async setArchived(id: string, archived: boolean): Promise<EnvelopeView> {
+      const current = await db
+        .selectFrom("envelopes")
+        .select("id")
+        .where("id", "=", id)
+        .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .executeTakeFirst();
+      if (!current) throw new NotFoundError("envelope");
+      await db
+        .updateTable("envelopes")
+        .set({ archived_at: archived ? new Date() : null })
+        .where("id", "=", id)
+        .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .execute();
+      const row = await selectView(db).where("e.id", "=", id).executeTakeFirstOrThrow();
+      return toView(row);
+    },
   };
 }
