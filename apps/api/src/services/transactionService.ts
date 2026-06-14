@@ -16,7 +16,7 @@ export interface TransactionView {
   id: string;
   accountId: string;
   accountName: string;
-  kind: "opening" | "normal";
+  kind: "opening" | "normal" | "transfer";
   amountCents: number; // signed
   occurredOn: string; // YYYY-MM-DD
   payee: string | null;
@@ -24,6 +24,9 @@ export interface TransactionView {
   allocations: AllocationView[];
   allocatedCents: number;
   unallocatedCents: number;
+  /** Set iff kind = 'transfer' (ADR-0004): the transfer group + the other account's name. */
+  transferId: string | null;
+  transferCounterpartName: string | null;
 }
 
 /** Magnitudes are positive; the service applies sign from the transaction's direction. */
@@ -48,8 +51,13 @@ interface TxnRow {
   occurred_on: unknown;
   payee: string | null;
   memo: string | null;
+  transfer_id: string | null;
   account_name: string;
 }
+
+const VIEW_KINDS = new Set(["opening", "normal", "transfer"]);
+const toViewKind = (k: string): TransactionView["kind"] =>
+  VIEW_KINDS.has(k) ? (k as TransactionView["kind"]) : "normal";
 
 const HH = DEFAULT_HOUSEHOLD_ID;
 const todayStr = (): string => new Date().toISOString().slice(0, 10);
@@ -72,6 +80,7 @@ export function makeTransactionService(db: Kysely<DB>) {
         "t.occurred_on",
         "t.payee",
         "t.memo",
+        "t.transfer_id",
         "a.name as account_name",
       ]);
   }
@@ -103,6 +112,33 @@ export function makeTransactionService(db: Kysely<DB>) {
       });
       byTxn.set(a.transaction_id, list);
     }
+
+    // For transfer legs, look up the OTHER leg's account name so the register can read
+    // "Transfer to/from <account>" (ADR-0004). Keyed by transfer_id.
+    const transferIds = [
+      ...new Set(txns.map((t) => t.transfer_id).filter((x): x is string => !!x)),
+    ];
+    const counterpartByTxn = new Map<string, string>();
+    if (transferIds.length) {
+      const legRows = await exec
+        .selectFrom("transactions as t")
+        .innerJoin("accounts as a", "a.id", "t.account_id")
+        .select(["t.id", "t.transfer_id", "a.name as account_name"])
+        .where("t.transfer_id", "in", transferIds)
+        .execute();
+      const byTransfer = new Map<string, { id: string; accountName: string }[]>();
+      for (const r of legRows) {
+        const list = byTransfer.get(r.transfer_id as string) ?? [];
+        list.push({ id: r.id, accountName: r.account_name });
+        byTransfer.set(r.transfer_id as string, list);
+      }
+      for (const t of txns) {
+        if (!t.transfer_id) continue;
+        const other = (byTransfer.get(t.transfer_id) ?? []).find((l) => l.id !== t.id);
+        if (other) counterpartByTxn.set(t.id, other.accountName);
+      }
+    }
+
     return txns.map((t) => {
       const allocations = byTxn.get(t.id) ?? [];
       const allocatedCents = allocations.reduce((s, a) => s + a.amountCents, 0);
@@ -111,7 +147,7 @@ export function makeTransactionService(db: Kysely<DB>) {
         id: t.id,
         accountId: t.account_id,
         accountName: t.account_name,
-        kind: t.kind === "opening" ? "opening" : "normal",
+        kind: toViewKind(t.kind),
         amountCents,
         occurredOn: toDateStr(t.occurred_on),
         payee: t.payee,
@@ -119,6 +155,8 @@ export function makeTransactionService(db: Kysely<DB>) {
         allocations,
         allocatedCents,
         unallocatedCents: amountCents - allocatedCents,
+        transferId: t.transfer_id,
+        transferCounterpartName: counterpartByTxn.get(t.id) ?? null,
       };
     });
   }
@@ -257,7 +295,8 @@ export function makeTransactionService(db: Kysely<DB>) {
         .orderBy("t.occurred_on", "desc")
         .execute();
       const views = await attachViews(db, rows);
-      return views.filter((v) => v.unallocatedCents !== 0);
+      // Transfer legs carry no allocations but are already-budgeted money — exempt (ADR-0004).
+      return views.filter((v) => v.kind !== "transfer" && v.unallocatedCents !== 0);
     },
   };
 }

@@ -12,6 +12,7 @@ export interface DB {
   households: HouseholdsTable;
   accounts: AccountsTable;
   envelopes: EnvelopesTable;
+  transfers: TransfersTable;
   transactions: TransactionsTable;
   allocations: AllocationsTable;
   templates: TemplatesTable;
@@ -44,6 +45,15 @@ interface EnvelopesTable {
   archived_at: Date | null;
 }
 
+/** Account↔account transfer parent (ADR-0004): links its two `kind:'transfer'` legs. */
+interface TransfersTable {
+  id: Generated<string>;
+  household_id: string;
+  occurred_on: DateOnly;
+  memo: string | null;
+  created_at: Generated<Date>;
+}
+
 interface TransactionsTable {
   id: Generated<string>;
   household_id: string;
@@ -53,6 +63,8 @@ interface TransactionsTable {
   occurred_on: DateOnly;
   payee: string | null;
   memo: string | null;
+  /** Set iff kind = 'transfer'; both legs of a transfer share one transfer_id (ADR-0004). */
+  transfer_id: string | null;
   created_at: Generated<Date>;
 }
 

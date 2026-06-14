@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  type AccountView,
   type AllocationDraft,
   type Api,
   type EnvelopeView,
@@ -8,6 +9,7 @@ import {
 } from "./api";
 import { formatCents } from "./format";
 import { AddTransactionForm } from "./AddTransactionForm";
+import { TransferForm } from "./TransferForm";
 import { InlineAllocationEditor } from "./InlineAllocationEditor";
 
 interface Props {
@@ -22,6 +24,7 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
   const [transactions, setTransactions] = useState<TransactionView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[]>([]);
   const [templates, setTemplates] = useState<TemplateView[]>([]);
+  const [accounts, setAccounts] = useState<AccountView[]>([]);
   const [balanceCents, setBalanceCents] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -38,6 +41,7 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
       setTransactions(txns);
       setEnvelopes(envs);
       setTemplates(tpls);
+      setAccounts(accounts);
       setBalanceCents(accounts.find((a) => a.id === accountId)?.balanceCents ?? 0);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Couldn't load this account.");
@@ -97,6 +101,21 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
         onSaveAsTemplate={(name, lines) => void saveAsTemplate(name, lines)}
       />
 
+      <TransferForm
+        api={api}
+        fromAccount={
+          accounts.find((a) => a.id === accountId) ?? {
+            id: accountId,
+            name: accountName,
+            kind: "checking",
+            balanceCents: balanceCents ?? 0,
+            archivedAt: null,
+          }
+        }
+        accounts={accounts}
+        onTransferred={() => void load()}
+      />
+
       <section aria-labelledby="register-heading">
         <h2 id="register-heading">Transactions</h2>
         {transactions === null ? (
@@ -105,29 +124,40 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
           <p>No transactions yet — add your first one.</p>
         ) : (
           <ul aria-label="Transactions">
-            {transactions.map((t) => (
-              <li key={t.id}>
-                <span>{t.occurredOn}</span>{" "}
-                <span>{t.payee ?? (t.kind === "opening" ? "Opening balance" : "—")}</span>{" "}
-                <span>{formatCents(t.amountCents)}</span>{" "}
-                <span>
-                  {t.unallocatedCents === 0
-                    ? "fully allocated"
-                    : `needs ${formatCents(Math.abs(t.unallocatedCents))}`}
-                </span>
-                <InlineAllocationEditor
-                  txn={t}
-                  envelopes={envelopes}
-                  templates={templates}
-                  open={editingId === t.id}
-                  submitting={savingId === t.id}
-                  toggleLabel="Edit split"
-                  saveLabel="Save split"
-                  onToggle={() => setEditingId((cur) => (cur === t.id ? null : t.id))}
-                  onSave={(allocs) => void saveSplit(t, allocs)}
-                />
-              </li>
-            ))}
+            {transactions.map((t) =>
+              t.kind === "transfer" ? (
+                <li key={t.id}>
+                  <span>{t.occurredOn}</span>{" "}
+                  <span>
+                    {t.amountCents < 0 ? "Transfer to " : "Transfer from "}
+                    {t.transferCounterpartName ?? "another account"}
+                  </span>{" "}
+                  <span>{formatCents(t.amountCents)}</span>
+                </li>
+              ) : (
+                <li key={t.id}>
+                  <span>{t.occurredOn}</span>{" "}
+                  <span>{t.payee ?? (t.kind === "opening" ? "Opening balance" : "—")}</span>{" "}
+                  <span>{formatCents(t.amountCents)}</span>{" "}
+                  <span>
+                    {t.unallocatedCents === 0
+                      ? "fully allocated"
+                      : `needs ${formatCents(Math.abs(t.unallocatedCents))}`}
+                  </span>
+                  <InlineAllocationEditor
+                    txn={t}
+                    envelopes={envelopes}
+                    templates={templates}
+                    open={editingId === t.id}
+                    submitting={savingId === t.id}
+                    toggleLabel="Edit split"
+                    saveLabel="Save split"
+                    onToggle={() => setEditingId((cur) => (cur === t.id ? null : t.id))}
+                    onSave={(allocs) => void saveSplit(t, allocs)}
+                  />
+                </li>
+              ),
+            )}
           </ul>
         )}
       </section>

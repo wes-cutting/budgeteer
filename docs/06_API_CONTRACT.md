@@ -88,11 +88,14 @@ The error handler **preserves the original 4xx status** (e.g. a malformed/empty 
 
 ### Transactions & allocation (FEAT-003)
 
-`TransactionView = { id, accountId, accountName, kind: "opening"|"normal", amountCents (signed),
-occurredOn, payee, memo, allocations: AllocationView[], allocatedCents, unallocatedCents }`;
+`TransactionView = { id, accountId, accountName, kind: "opening"|"normal"|"transfer",
+amountCents (signed), occurredOn, payee, memo, allocations: AllocationView[], allocatedCents,
+unallocatedCents, transferId, transferCounterpartName }`;
 `AllocationView = { id, envelopeId, envelopeName, amountCents (signed) }`. **Amounts are entered
 as positive magnitudes**; the server applies the sign from the transaction's direction. The
 split invariant (`|Σ allocations| ≤ |amount|`, matching sign) is enforced atomically.
+`transferId`/`transferCounterpartName` are set **iff** `kind = "transfer"` (the other account's
+name, for the register label — FEAT-007). Transfer legs are **excluded** from needs-allocation.
 
 - **`POST /accounts/:accountId/transactions`** — create a transaction + its allocations.
   Input: `{ kind: "deposit"|"withdrawal", amount: string, occurredOn?: "YYYY-MM-DD",
@@ -105,6 +108,18 @@ split invariant (`|Σ allocations| ≤ |amount|`, matching sign) is enforced ato
   `200 { transaction }`. Errors: `400` (over-allocation, unknown/archived envelope); `404` (transaction).
 - **`GET /transactions/needs-allocation`** — household-wide transactions with a non-zero
   unallocated remainder (includes opening balances). → `200 { transactions: TransactionView[] }`.
+
+### Transfers (FEAT-007 · account↔account double-entry, ADR-0004)
+
+`TransferView = { id, occurredOn, memo, amountCents (positive magnitude), from: TransferLegView,
+to: TransferLegView }`; `TransferLegView = { transactionId, accountId, accountName, amountCents
+(signed) }`. A transfer is **two linked `kind:"transfer"` transactions** (`−X` source, `+X`
+destination) sharing a `transferId`; account balances re-derive automatically and the legs are
+**not** in needs-allocation.
+
+- **`POST /transfers`** — create a transfer. Input: `{ fromAccountId, toAccountId,
+  amount: string, occurredOn?: "YYYY-MM-DD", memo? }`. → `201 { transfer }`.
+  Errors: `400` (amount ≤ 0, same account, archived account, bad date); `404` (account missing).
 
 ### Allocation templates (FEAT-004)
 

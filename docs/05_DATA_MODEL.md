@@ -55,6 +55,17 @@ seeded household** in V1 (no auth/RLS yet).
 | archived_at | timestamptz | yes | null = active; archived ⇒ no new allocations (enforced in app/core) |
 - **Keys/Indexes:** PK `id`; **unique** `(household_id, lower(btrim(name)))`; index `(household_id)`.
 
+### transfers → `Transfer` (FEAT-007, ADR-0004)
+| Field | Type | Null | Notes |
+| ----- | ---- | ---- | ----- |
+| id | uuid | no | PK |
+| household_id | uuid | no | FK → households(id), **restrict** |
+| occurred_on | date | no | the transfer date |
+| memo | text | yes | free text |
+| created_at | timestamptz | no | default `now()` |
+- **Keys/Indexes:** PK `id`; index `(household_id)`. Parents exactly **two** `kind='transfer'`
+  transaction legs (the pair is created atomically; see below).
+
 ### transactions → `Transaction`
 | Field | Type | Null | Notes |
 | ----- | ---- | ---- | ----- |
@@ -62,13 +73,14 @@ seeded household** in V1 (no auth/RLS yet).
 | household_id | uuid | no | FK → households(id), restrict (denormalized for scoping/queries) |
 | account_id | uuid | no | FK → accounts(id), **restrict** (archive, don't delete, accounts with history) |
 | amount_cents | bigint | no | signed integer cents (ADR-0003); `+`=deposit, `−`=withdrawal |
-| kind | text | no | `check (kind in ('opening','normal'))` |
+| kind | text | no | `check (kind in ('opening','normal','transfer'))` (named `transactions_kind_chk`) |
 | occurred_on | date | no | the transaction date (weekly grain not required) |
 | payee | text | yes | free text |
 | memo | text | yes | free text |
+| transfer_id | uuid | yes | FK → transfers(id), **cascade**; set iff `kind='transfer'` (ADR-0004) |
 | created_at | timestamptz | no | default `now()` |
-- **Keys/Indexes:** PK `id`; index `(account_id)`; index `(household_id)`; partial unique
-  `(account_id) where kind = 'opening'` (**at most one opening txn per account**).
+- **Keys/Indexes:** PK `id`; index `(account_id)`; index `(transfer_id)`; index `(household_id)`;
+  partial unique `(account_id) where kind = 'opening'` (**at most one opening txn per account**).
 - **Constraints:** `check (kind <> 'normal' or amount_cents <> 0)` (normal txns are non-zero).
 
 ### allocations → `Allocation`
@@ -106,6 +118,9 @@ seeded household** in V1 (no auth/RLS yet).
 - `transactions.account_id → accounts` — **restrict** (preserve ledger history; archive accounts).
 - `allocations.transaction_id → transactions` — **cascade** (a transaction owns its splits).
 - `allocations.envelope_id → envelopes` — **restrict** (envelopes are archived, not deleted).
+- `transactions.transfer_id → transfers` — **cascade** (a transfer owns its two legs; deleting
+  the parent removes both). A transfer's two `kind='transfer'` legs (`−X` / `+X`) are inserted
+  **atomically** in one DB transaction, so they always sum to zero (ADR-0004).
 - `template_lines.template_id → templates` — **cascade** (a template owns its lines);
   `template_lines.envelope_id → envelopes` — **restrict**.
 - **Split invariant** (`0 ≤ |Σ allocations| ≤ |txn.amount|`, matching sign): enforced in the
@@ -119,6 +134,13 @@ Versioned SQL migrations (Kysely migrator) committed in the repo under
 `server/migrations/`. **Rule:** a schema change ships with this doc and the code in the
 **same change**. Views `v_account_balances` and `v_envelope_balances` (derived balances) are
 created as migrations alongside the tables.
+
+> **ADR-0004 evolution (transfers):** the forward migration adds the `transfers` table, the
+> nullable `transactions.transfer_id` FK, and evolves the `kind` check to allow `'transfer'`
+> (dropping the foundation's inline check, adding the named `transactions_kind_chk`). It is
+> idempotent (no plpgsql) so the dev/test PGlite path keeps doubling as the migrator;
+> `v_account_balances` needs **no** change (it already sums all kinds). *(The `#7b`
+> `envelope_transfers` table + the `v_envelope_balances` two-source change land with that slice.)*
 
 ## 5. Seed / fixtures
 

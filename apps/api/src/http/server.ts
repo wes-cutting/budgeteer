@@ -13,6 +13,7 @@ import type { DB } from "../db/schema";
 import { makeAccountService } from "../services/accountService";
 import { makeEnvelopeService } from "../services/envelopeService";
 import { makeTransactionService } from "../services/transactionService";
+import { makeTransferService } from "../services/transferService";
 import { makeTemplateService } from "../services/templateService";
 import { DuplicateNameError, NotFoundError, ValidationError } from "../services/errors";
 
@@ -37,6 +38,14 @@ const createTransactionBody = z.object({
   allocations: z.array(allocationInput).default([]),
 });
 const setAllocationsBody = z.object({ allocations: z.array(allocationInput).default([]) });
+
+const createTransferBody = z.object({
+  fromAccountId: z.string().min(1),
+  toAccountId: z.string().min(1),
+  amount: z.string(),
+  occurredOn: z.string().optional(),
+  memo: z.string().optional(),
+});
 
 const templateLineInput = z.object({ envelopeId: z.string().min(1), amount: z.string() });
 const upsertTemplateBody = z.object({
@@ -93,6 +102,7 @@ export function buildServer(db: Kysely<DB>, opts: { logger?: boolean } = {}): Fa
   const accounts = makeAccountService(db);
   const envelopes = makeEnvelopeService(db);
   const transactions = makeTransactionService(db);
+  const transfers = makeTransferService(db);
   const templates = makeTemplateService(db);
 
   app.setErrorHandler((err, _req, reply) => {
@@ -263,6 +273,30 @@ export function buildServer(db: Kysely<DB>, opts: { logger?: boolean } = {}): Fa
       return { transaction };
     } catch (e) {
       if (e instanceof NotFoundError) return fail(reply, 404, "Transaction not found.");
+      if (e instanceof ValidationError) return fail(reply, 400, e.message);
+      throw e;
+    }
+  });
+
+  // --- Transfers (FEAT-007, account↔account double-entry) ---
+  app.post("/transfers", async (req, reply) => {
+    const parsed = createTransferBody.safeParse(req.body);
+    if (!parsed.success) return fail(reply, 400, "Invalid request body.");
+    const magnitude = parsePositiveMagnitude(parsed.data.amount);
+    if (magnitude === null) return fail(reply, 400, "Enter an amount greater than 0.");
+    const occurredOn = parsed.data.occurredOn ?? todayStr();
+    if (!DATE_RE.test(occurredOn)) return fail(reply, 400, "Date must be YYYY-MM-DD.");
+    try {
+      const transfer = await transfers.create({
+        fromAccountId: parsed.data.fromAccountId,
+        toAccountId: parsed.data.toAccountId,
+        magnitudeCents: magnitude,
+        occurredOn,
+        memo: parsed.data.memo ?? null,
+      });
+      return reply.code(201).send({ transfer });
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
       if (e instanceof ValidationError) return fail(reply, 400, e.message);
       throw e;
     }

@@ -45,11 +45,12 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
 
   function makeTxn(
     account: AccountView,
-    kind: "opening" | "normal",
+    kind: "opening" | "normal" | "transfer",
     amountCents: number,
     payee: string | null,
     allocations: { envelopeId: string; amountCents: number }[],
     occurredOn = "2026-06-13",
+    transfer: { id: string; counterpartName: string } | null = null,
   ): TransactionView {
     return {
       id: newId("t"),
@@ -68,6 +69,8 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       })),
       allocatedCents: 0,
       unallocatedCents: 0,
+      transferId: transfer?.id ?? null,
+      transferCounterpartName: transfer?.counterpartName ?? null,
     };
   }
 
@@ -141,6 +144,44 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       recompute();
       return clone(txn);
     },
+    async createTransfer({ fromAccountId, toAccountId, amount, occurredOn, memo }) {
+      const from = accounts.find((a) => a.id === fromAccountId);
+      const to = accounts.find((a) => a.id === toAccountId);
+      if (!from || !to) throw new ApiError("Account not found.");
+      if (from.id === to.id) throw new ApiError("Choose two different accounts.");
+      const magnitude = parseCents(amount) ?? 0;
+      if (magnitude <= 0) throw new ApiError("Enter an amount greater than 0.");
+      const id = newId("xfer");
+      const on = occurredOn ?? "2026-06-13";
+      const outLeg = makeTxn(from, "transfer", -magnitude, null, [], on, {
+        id,
+        counterpartName: to.name,
+      });
+      const inLeg = makeTxn(to, "transfer", magnitude, null, [], on, {
+        id,
+        counterpartName: from.name,
+      });
+      txns.push(outLeg, inLeg);
+      recompute();
+      return {
+        id,
+        occurredOn: on,
+        memo: memo ?? null,
+        amountCents: magnitude,
+        from: {
+          transactionId: outLeg.id,
+          accountId: from.id,
+          accountName: from.name,
+          amountCents: -magnitude,
+        },
+        to: {
+          transactionId: inLeg.id,
+          accountId: to.id,
+          accountName: to.name,
+          amountCents: magnitude,
+        },
+      };
+    },
     async setAllocations(transactionId, allocations) {
       const txn = txns.find((t) => t.id === transactionId);
       if (!txn) throw new ApiError("Transaction not found.");
@@ -156,7 +197,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
     },
     async listNeedsAllocation() {
       recompute();
-      return txns.filter((t) => t.unallocatedCents !== 0).map(clone);
+      return txns.filter((t) => t.kind !== "transfer" && t.unallocatedCents !== 0).map(clone);
     },
     async listTemplates() {
       return templates.map((t) => ({ ...t, lines: t.lines.map((l) => ({ ...l })) }));

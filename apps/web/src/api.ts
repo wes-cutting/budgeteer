@@ -31,7 +31,7 @@ export interface TransactionView {
   id: string;
   accountId: string;
   accountName: string;
-  kind: "opening" | "normal";
+  kind: "opening" | "normal" | "transfer";
   amountCents: number;
   occurredOn: string;
   payee: string | null;
@@ -39,6 +39,32 @@ export interface TransactionView {
   allocations: AllocationView[];
   allocatedCents: number;
   unallocatedCents: number;
+  transferId: string | null;
+  transferCounterpartName: string | null;
+}
+
+export interface TransferLegView {
+  transactionId: string;
+  accountId: string;
+  accountName: string;
+  amountCents: number; // signed
+}
+
+export interface TransferView {
+  id: string;
+  occurredOn: string;
+  memo: string | null;
+  amountCents: number; // positive magnitude
+  from: TransferLegView;
+  to: TransferLegView;
+}
+
+export interface CreateTransferInput {
+  fromAccountId: string;
+  toAccountId: string;
+  amount: string;
+  occurredOn?: string;
+  memo?: string;
 }
 
 /** One row the user is allocating: a positive magnitude string for an envelope. */
@@ -85,6 +111,7 @@ export interface Api {
   unarchiveEnvelope(id: string): Promise<EnvelopeView>;
   listTransactions(accountId: string): Promise<TransactionView[]>;
   createTransaction(accountId: string, input: CreateTransactionInput): Promise<TransactionView>;
+  createTransfer(input: CreateTransferInput): Promise<TransferView>;
   setAllocations(transactionId: string, allocations: AllocationDraft[]): Promise<TransactionView>;
   listNeedsAllocation(): Promise<TransactionView[]>;
   listTemplates(): Promise<TemplateView[]>;
@@ -164,6 +191,14 @@ export const httpApi: Api = {
         body: JSON.stringify(input),
       })
     ).transaction;
+  },
+  async createTransfer(input) {
+    return (
+      await request<{ transfer: TransferView }>("/transfers", {
+        method: "POST",
+        body: JSON.stringify(input),
+      })
+    ).transfer;
   },
   async setAllocations(transactionId, allocations) {
     return (

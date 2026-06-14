@@ -8,8 +8,10 @@ a decision, write a new ADR that supersedes the old one — never edit history);
 | ADR | Title | Status |
 | --- | ----- | ------ |
 | [ADR-0000](ADR-0000-record-architecture-decisions.md) | Record architecture decisions | Accepted |
-| ADR-0001 | Language / framework / runtime | _reserved — `Proposed` until a feasibility/UX spike validates the stack_ |
-| ADR-0002 | Datastore + access layer | _reserved_ |
+| [ADR-0001](ADR-0001-stack.md) | Stack (TypeScript · React+Vite · Fastify) | Accepted (validated by SPIKE-02) |
+| [ADR-0002](ADR-0002-datastore.md) | Datastore + access layer (PostgreSQL · Kysely) | Validated (prod path confirmed at deploy) |
+| [ADR-0003](ADR-0003-money-integer-minor-units.md) | Money is integer minor units | Accepted |
+| [ADR-0004](ADR-0004-transfer-modeling.md) | Transfer modeling (account legs + envelope-transfer rows) | Accepted (validated by SPIKE-04) |
 
 > Add a row per ADR as it's written, newest decisions kept discoverable. When a decision
 > is replaced, mark the old ADR `Superseded by ADR-XXXX` and add the new one — don't delete

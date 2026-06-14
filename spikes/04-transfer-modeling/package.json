@@ -1,0 +1,16 @@
+{
+  "name": "spike-04-transfer-modeling",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "THROWAWAY spike — proves account-transfer + envelope-transfer representations preserve every balance invariant, orthogonally, in integer cents. Not the V1 app.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/transfer-modeling.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}

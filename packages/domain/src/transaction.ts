@@ -1,6 +1,6 @@
 import { type Cents, cents } from "./money";
 
-export const TRANSACTION_KINDS = ["opening", "normal"] as const;
+export const TRANSACTION_KINDS = ["opening", "normal", "transfer"] as const;
 export type TransactionKind = (typeof TRANSACTION_KINDS)[number];
 
 export interface Transaction {

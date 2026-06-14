@@ -48,21 +48,51 @@ export async function migrateToLatest(db: Kysely<DB>): Promise<void> {
       on envelopes (household_id, lower(btrim(name)))
   `.execute(db);
 
+  // Transfer parent (ADR-0004) — created before transactions so the leg FK can reference it.
+  await sql`
+    create table if not exists transfers (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references households(id),
+      occurred_on date not null,
+      memo text,
+      created_at timestamptz not null default now()
+    )
+  `.execute(db);
+  await sql`create index if not exists transfers_household_idx on transfers (household_id)`.execute(
+    db,
+  );
+
   await sql`
     create table if not exists transactions (
       id uuid primary key default gen_random_uuid(),
       household_id uuid not null references households(id),
       account_id uuid not null references accounts(id),
       amount_cents bigint not null,
-      kind text not null check (kind in ('opening','normal')),
+      kind text not null,
       occurred_on date not null,
       payee text,
       memo text,
+      transfer_id uuid references transfers(id) on delete cascade,
       created_at timestamptz not null default now(),
       constraint normal_txn_nonzero check (kind <> 'normal' or amount_cents <> 0)
     )
   `.execute(db);
+  // Evolve the kind check to allow 'transfer' (ADR-0004), idempotently and without plpgsql:
+  // drop the foundation's inline check and any prior named variant, then (re)add ours.
+  await sql`alter table transactions drop constraint if exists transactions_kind_check`.execute(db);
+  await sql`alter table transactions drop constraint if exists transactions_kind_chk`.execute(db);
+  await sql`
+    alter table transactions
+      add constraint transactions_kind_chk check (kind in ('opening','normal','transfer'))
+  `.execute(db);
+  // Defensive: a DB created before ADR-0004 won't have transfer_id from the create above.
+  await sql`alter table transactions add column if not exists transfer_id uuid references transfers(id) on delete cascade`.execute(
+    db,
+  );
   await sql`create index if not exists transactions_account_idx on transactions (account_id)`.execute(
+    db,
+  );
+  await sql`create index if not exists transactions_transfer_idx on transactions (transfer_id)`.execute(
     db,
   );
   await sql`
