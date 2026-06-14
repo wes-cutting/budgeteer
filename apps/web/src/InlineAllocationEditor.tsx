@@ -56,6 +56,8 @@ export function InlineAllocationEditor({
           initial={txn.allocations.map((a) => ({
             envelopeId: a.envelopeId,
             amount: centsToInput(Math.abs(a.amountCents)),
+            // A row whose sign opposes the transaction's direction is a refund (FEAT-008).
+            refund: txn.amountCents < 0 ? a.amountCents > 0 : a.amountCents < 0,
           }))}
           submitting={submitting}
           saveLabel={saveLabel}

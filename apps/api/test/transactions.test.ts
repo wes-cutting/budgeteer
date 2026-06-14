@@ -207,4 +207,59 @@ describe("transactions & allocation API (FEAT-003)", () => {
     await post(`/envelopes/${env.Rent}/archive`, {});
     expect(await balanceOf("envelopes", env.Rent)).toBe(10000);
   });
+
+  test("a refund row within a split nets to the amount and credits its envelope (FEAT-008)", async () => {
+    const { accountId, env } = await seed("0");
+    // A $70 receipt: $100 spent on Groceries, $30 returned to Gas (refund row).
+    const res = await post(`/accounts/${accountId}/transactions`, {
+      kind: "withdrawal",
+      amount: "70.00",
+      payee: "Store",
+      allocations: [
+        { envelopeId: env.Groceries, amount: "100.00" },
+        { envelopeId: env.Gas, amount: "30.00", refund: true },
+      ],
+    });
+    expect(res.statusCode).toBe(201);
+    const txn = res.json().transaction;
+    expect(txn.amountCents).toBe(-7000);
+    expect(txn.unallocatedCents).toBe(0); // net −100 + 30 = −70
+    expect(await balanceOf("accounts", accountId)).toBe(-7000);
+    expect(await balanceOf("envelopes", env.Groceries)).toBe(-10000); // spent
+    expect(await balanceOf("envelopes", env.Gas)).toBe(3000); // refunded (opposite sign)
+  });
+
+  test("refunds that flip the net direction are rejected (FEAT-008)", async () => {
+    const { accountId, env } = await seed("0");
+    const res = await post(`/accounts/${accountId}/transactions`, {
+      kind: "withdrawal",
+      amount: "70.00",
+      allocations: [
+        { envelopeId: env.Groceries, amount: "50.00" },
+        { envelopeId: env.Gas, amount: "60.00", refund: true }, // net +10 → not a withdrawal
+      ],
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("a refund row survives allocate-later / edit (PUT) (FEAT-008)", async () => {
+    const { accountId, env } = await seed("0");
+    const txn = (
+      await post(`/accounts/${accountId}/transactions`, {
+        kind: "withdrawal",
+        amount: "70.00",
+        allocations: [{ envelopeId: env.Groceries, amount: "70.00" }],
+      })
+    ).json().transaction;
+
+    const upd = await put(`/transactions/${txn.id}/allocations`, {
+      allocations: [
+        { envelopeId: env.Groceries, amount: "100.00" },
+        { envelopeId: env.Gas, amount: "30.00", refund: true },
+      ],
+    });
+    expect(upd.statusCode).toBe(200);
+    expect(upd.json().transaction.unallocatedCents).toBe(0);
+    expect(await balanceOf("envelopes", env.Gas)).toBe(3000);
+  });
 });

@@ -139,7 +139,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       const amount = (parseCents(input.amount) ?? 0) * sign;
       const allocations = input.allocations.map((d) => ({
         envelopeId: d.envelopeId,
-        amountCents: (parseCents(d.amount) ?? 0) * sign,
+        amountCents: (parseCents(d.amount) ?? 0) * (d.refund ? -sign : sign),
       }));
       const txn = makeTxn(
         account,
@@ -219,7 +219,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
         id: newId("al"),
         envelopeId: d.envelopeId,
         envelopeName: envName(d.envelopeId),
-        amountCents: (parseCents(d.amount) ?? 0) * sign,
+        amountCents: (parseCents(d.amount) ?? 0) * (d.refund ? -sign : sign),
       }));
       recompute();
       return clone(txn);

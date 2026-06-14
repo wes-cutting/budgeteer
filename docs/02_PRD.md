@@ -141,7 +141,7 @@ Ordered by value/uncertainty for sequencing (the roadmap is the plan of record):
 | Do envelopes carry a **monthly budget target** in V1 (needed for budget-vs-actual)? | Wesley | open → analysis area |
 | ~~Template definition — fixed-dollar, percentage, or both?~~ | Wesley | **resolved: fixed dollar amounts** (Slice 2); percentage/both deferred |
 | Does "reconcile to bank" need a cleared/statement concept, or just a balance compare? | Wesley | open → later slice |
-| Should a transaction's allocation also support **negative** rows (for refunds within a split)? | Wesley + agent | open → refunds slice |
+| ~~Should a transaction's allocation also support **negative** rows (for refunds within a split)?~~ | Wesley + agent | **resolved: yes** — per-row **Refund** flag (#8/FEAT-008); the split invariant governs the signed total (mixed-sign rows allowed; net-flip/over-allocation rejected) |
 
 > `Proposed`. The core bet is `Validated` (paper); the document is promoted toward
 > `Accepted` as slices validate it against reality. Next: the

@@ -64,7 +64,8 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
   - Belongs to exactly **one** account.
   - `amountCents` is a whole integer (ADR-0003). A `normal` transaction is non-zero; an
     `opening` transaction may be any value incl. 0; a `transfer` leg is non-zero.
-  - The sign of every one of its allocations matches the sign of `amountCents`.
+  - Its allocations may be **either sign** (a refund row opposes the transaction — FEAT-008);
+    their **signed total** stays within `[0, amountCents]` in the transaction's direction.
   - A `transfer` leg carries **no allocations**, sets `transferId`, and is **excluded from
     needs-allocation** (it relocates already-budgeted money — ADR-0004).
 
@@ -92,10 +93,12 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 - **Key attributes:** `id`, `transactionId`, `envelopeId`, `amountCents` (signed).
 - **Invariants:**
   - References exactly one transaction and one (non-archived, at creation time) envelope.
-  - **The split invariant** (the heart of the model): for a transaction `t`,
-    `0 ≤ |Σ allocation.amountCents| ≤ |t.amountCents|` **and** every allocation shares `t`'s
-    sign. **Partial is allowed** (`Σ < amount` ⇒ unallocated remainder); **over-allocation
-    is rejected.** Fully allocated ⟺ `Σ allocation.amountCents == t.amountCents`.
+  - **The split invariant** (the heart of the model): for a transaction `t`, the **signed
+    total** satisfies `0 ≤ |Σ allocation.amountCents| ≤ |t.amountCents|` with the total in
+    `t`'s direction. **Individual rows may be either sign** — a **refund** row points opposite
+    `t` (FEAT-008), e.g. a `−$70` withdrawal split `−$100` spend + `+$30` refund. **Partial is
+    allowed** (`|Σ| < |amount|` ⇒ unallocated remainder); **over-allocation and a net
+    direction-flip are rejected.** Fully allocated ⟺ `Σ allocation.amountCents == t.amountCents`.
   - *(Validated in TypeScript by [SPIKE-02](spikes/02-stack-feasibility.md):
     `splitEvenly`/`splitByWeights`/`lastRowRemainder` sum exactly to the cent.)*
 

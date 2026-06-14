@@ -89,10 +89,12 @@ export interface CreateEnvelopeTransferInput {
   memo?: string;
 }
 
-/** One row the user is allocating: a positive magnitude string for an envelope. */
+/** One row the user is allocating: a positive magnitude string for an envelope. A `refund` row
+ *  points OPPOSITE the transaction's direction (FEAT-008). */
 export interface AllocationDraft {
   envelopeId: string;
   amount: string;
+  refund?: boolean;
 }
 
 export interface CreateTransactionInput {

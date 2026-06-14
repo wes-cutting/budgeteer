@@ -14,6 +14,8 @@ interface TemplateOption {
 interface Row {
   envelopeId: string;
   amount: string;
+  /** A refund row points OPPOSITE the transaction direction (FEAT-008): it gives money back. */
+  refund: boolean;
 }
 
 interface Props {
@@ -45,12 +47,16 @@ export function AllocationEditor({
   onSaveAsTemplate,
 }: Props) {
   const [mode, setMode] = useState<"single" | "split">(
-    initial && initial.length > 1 ? "split" : "single",
+    initial && (initial.length > 1 || initial.some((a) => a.refund)) ? "split" : "single",
   );
   const [rows, setRows] = useState<Row[]>(
     initial && initial.length > 0
-      ? initial.map((a) => ({ ...a }))
-      : [{ envelopeId: "", amount: "" }],
+      ? initial.map((a) => ({
+          envelopeId: a.envelopeId,
+          amount: a.amount,
+          refund: a.refund ?? false,
+        }))
+      : [{ envelopeId: "", amount: "", refund: false }],
   );
   const [singleEnvelopeId, setSingleEnvelopeId] = useState<string>(
     initial && initial.length === 1 ? (initial[0]?.envelopeId ?? "") : "",
@@ -66,21 +72,29 @@ export function AllocationEditor({
     }
     return rows
       .filter((r) => r.envelopeId !== "" && (parseCents(r.amount) ?? 0) > 0)
-      .map((r) => ({ envelopeId: r.envelopeId, amount: r.amount }));
+      .map((r) =>
+        // `refund` is an exception flag — include it only when set (normal rows stay {envelopeId, amount}).
+        r.refund
+          ? { envelopeId: r.envelopeId, amount: r.amount, refund: true }
+          : { envelopeId: r.envelopeId, amount: r.amount },
+      );
   }
 
-  const allocatedCents = allocationsToSave().reduce(
-    (sum, a) => sum + (parseCents(a.amount) ?? 0),
+  // Net toward the amount: a normal row adds its magnitude, a refund row subtracts it (FEAT-008).
+  const netCents = allocationsToSave().reduce(
+    (sum, a) => sum + (parseCents(a.amount) ?? 0) * (a.refund ? -1 : 1),
     0,
   );
-  const remainingCents = magnitudeCents - allocatedCents;
-  const over = remainingCents < 0;
+  const remainingCents = magnitudeCents - netCents;
+  const over = remainingCents < 0; // net exceeds the amount
+  const under = netCents < 0; // refunds exceed spend → would flip direction
   const anyInvalidAmount =
     mode === "split" && rows.some((r) => r.amount.trim() !== "" && parseCents(r.amount) === null);
   const canSave =
     !submitting &&
     magnitudeCents > 0 &&
     !over &&
+    !under &&
     !anyInvalidAmount &&
     (mode === "single" ? singleEnvelopeId !== "" : true);
 
@@ -90,7 +104,7 @@ export function AllocationEditor({
   function addRow(focus: boolean) {
     setRows((cur) => {
       if (focus) setAutoFocusIndex(cur.length);
-      return [...cur, { envelopeId: "", amount: "" }];
+      return [...cur, { envelopeId: "", amount: "", refund: false }];
     });
   }
   function useRemaining(index: number) {
@@ -104,7 +118,10 @@ export function AllocationEditor({
     }
   }
   function distributeRemaining() {
-    const eligible = rows.map((r, i) => i).filter((i) => rows[i]?.envelopeId !== "");
+    // Spread the remainder across normal (non-refund) rows only.
+    const eligible = rows
+      .map((r, i) => i)
+      .filter((i) => rows[i]?.envelopeId !== "" && !rows[i]?.refund);
     if (eligible.length === 0) return;
     const parts = splitEvenly(remainingCents, eligible.length);
     setRows((cur) =>
@@ -121,7 +138,11 @@ export function AllocationEditor({
     if (!tpl) return;
     setMode("split");
     setRows(
-      tpl.lines.map((l) => ({ envelopeId: l.envelopeId, amount: centsToInput(l.amountCents) })),
+      tpl.lines.map((l) => ({
+        envelopeId: l.envelopeId,
+        amount: centsToInput(l.amountCents),
+        refund: false,
+      })),
     );
   }
 
@@ -237,6 +258,15 @@ export function AllocationEditor({
                 onChange={(e) => setRow(i, { amount: e.target.value })}
                 onKeyDown={onAmountKeyDown}
               />
+              <label>
+                <input
+                  type="checkbox"
+                  aria-label={`Refund for row ${i + 1}`}
+                  checked={row.refund}
+                  onChange={(e) => setRow(i, { refund: e.target.checked })}
+                />{" "}
+                Refund
+              </label>
               <button type="button" onClick={() => useRemaining(i)}>
                 use remaining
               </button>
@@ -259,10 +289,12 @@ export function AllocationEditor({
       )}
 
       <p>
-        Allocated {formatCents(allocatedCents)} ·{" "}
+        Allocated {formatCents(netCents)} ·{" "}
         {over
           ? `Over-allocated by ${formatCents(-remainingCents)}`
-          : `Remaining ${formatCents(remainingCents)}`}
+          : under
+            ? `Refunds exceed the amount by ${formatCents(-netCents)}`
+            : `Remaining ${formatCents(remainingCents)}`}
       </p>
       <button type="button" disabled={!canSave} onClick={() => onSave(allocationsToSave())}>
         {saveLabel}

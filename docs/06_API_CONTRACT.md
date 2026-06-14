@@ -92,20 +92,23 @@ The error handler **preserves the original 4xx status** (e.g. a malformed/empty 
 amountCents (signed), occurredOn, payee, memo, allocations: AllocationView[], allocatedCents,
 unallocatedCents, transferId, transferCounterpartName }`;
 `AllocationView = { id, envelopeId, envelopeName, amountCents (signed) }`. **Amounts are entered
-as positive magnitudes**; the server applies the sign from the transaction's direction. The
-split invariant (`|Σ allocations| ≤ |amount|`, matching sign) is enforced atomically.
+as positive magnitudes**; the server applies the sign from the transaction's direction. An
+allocation input may set **`refund: boolean`** (default `false`, FEAT-008) — a refund row is
+stored **opposite** the transaction's direction. The split invariant is on the **signed total**
+(`0 ≤ |Σ allocations| ≤ |amount|`, total in the txn's direction; rows may be mixed sign;
+net-flip/over-allocation rejected) and is enforced atomically.
 `transferId`/`transferCounterpartName` are set **iff** `kind = "transfer"` (the other account's
 name, for the register label — FEAT-007). Transfer legs are **excluded** from needs-allocation.
 
 - **`POST /accounts/:accountId/transactions`** — create a transaction + its allocations.
   Input: `{ kind: "deposit"|"withdrawal", amount: string, occurredOn?: "YYYY-MM-DD",
-  payee?, memo?, allocations?: [{ envelopeId, amount }] }`. → `201 { transaction }`.
-  Errors: `400` (amount ≤ 0, bad date, over-allocation, unknown/archived envelope); `404` (account).
+  payee?, memo?, allocations?: [{ envelopeId, amount, refund? }] }`. → `201 { transaction }`.
+  Errors: `400` (amount ≤ 0, bad date, over-allocation, net direction-flip, unknown/archived envelope); `404` (account).
 - **`GET /accounts/:accountId/transactions`** — the account register (newest-first).
   → `200 { transactions: TransactionView[] }`; `404` if the account is missing.
 - **`PUT /transactions/:id/allocations`** — replace a transaction's allocations (allocate-later
-  **and edit a past split**, FEAT-005). Input: `{ allocations: [{ envelopeId, amount }] }`. →
-  `200 { transaction }`. Errors: `400` (over-allocation, unknown/archived envelope); `404` (transaction).
+  **and edit a past split**, FEAT-005). Input: `{ allocations: [{ envelopeId, amount, refund? }] }`. →
+  `200 { transaction }`. Errors: `400` (over-allocation, net direction-flip, unknown/archived envelope); `404` (transaction).
 - **`GET /transactions/needs-allocation`** — household-wide transactions with a non-zero
   unallocated remainder (includes opening balances). → `200 { transactions: TransactionView[] }`.
 

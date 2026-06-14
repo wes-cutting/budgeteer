@@ -29,7 +29,11 @@ const createEnvelopeBody = z.object({
 });
 const renameBody = z.object({ name: z.string() });
 
-const allocationInput = z.object({ envelopeId: z.string().min(1), amount: z.string() });
+const allocationInput = z.object({
+  envelopeId: z.string().min(1),
+  amount: z.string(),
+  refund: z.boolean().optional(),
+});
 const createTransactionBody = z.object({
   kind: z.enum(["deposit", "withdrawal"]),
   amount: z.string(),
@@ -244,11 +248,11 @@ export function buildServer(db: Kysely<DB>, opts: { logger?: boolean } = {}): Fa
     if (magnitude === null) return fail(reply, 400, "Enter an amount greater than 0.");
     const occurredOn = parsed.data.occurredOn ?? todayStr();
     if (!DATE_RE.test(occurredOn)) return fail(reply, 400, "Date must be YYYY-MM-DD.");
-    const allocations: { envelopeId: string; magnitudeCents: number }[] = [];
+    const allocations: { envelopeId: string; magnitudeCents: number; refund: boolean }[] = [];
     for (const a of parsed.data.allocations) {
       const m = parsePositiveMagnitude(a.amount);
       if (m === null) return fail(reply, 400, "Each allocation amount must be greater than 0.");
-      allocations.push({ envelopeId: a.envelopeId, magnitudeCents: m });
+      allocations.push({ envelopeId: a.envelopeId, magnitudeCents: m, refund: a.refund ?? false });
     }
     const { accountId } = req.params as { accountId: string };
     try {
@@ -271,11 +275,11 @@ export function buildServer(db: Kysely<DB>, opts: { logger?: boolean } = {}): Fa
   app.put("/transactions/:id/allocations", async (req, reply) => {
     const parsed = setAllocationsBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
-    const allocations: { envelopeId: string; magnitudeCents: number }[] = [];
+    const allocations: { envelopeId: string; magnitudeCents: number; refund: boolean }[] = [];
     for (const a of parsed.data.allocations) {
       const m = parsePositiveMagnitude(a.amount);
       if (m === null) return fail(reply, 400, "Each allocation amount must be greater than 0.");
-      allocations.push({ envelopeId: a.envelopeId, magnitudeCents: m });
+      allocations.push({ envelopeId: a.envelopeId, magnitudeCents: m, refund: a.refund ?? false });
     }
     const { id } = req.params as { id: string };
     try {

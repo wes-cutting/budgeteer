@@ -41,7 +41,13 @@ export interface CreateTransactionInput {
 export interface AllocationInput {
   envelopeId: string;
   magnitudeCents: number;
+  /** A refund row points OPPOSITE the transaction's direction (FEAT-008). Default false. */
+  refund?: boolean;
 }
+
+/** Signed allocation amount: a normal row follows the txn sign; a refund row flips it. */
+const signedAllocation = (a: AllocationInput, txnSign: 1 | -1): number =>
+  a.magnitudeCents * (a.refund ? -txnSign : txnSign);
 
 interface TxnRow {
   id: string;
@@ -178,7 +184,7 @@ export function makeTransactionService(db: Kysely<DB>) {
       const amount = cents(input.magnitudeCents * sign);
       const signed = input.allocations.map((a) => ({
         envelopeId: a.envelopeId,
-        amountCents: cents(a.magnitudeCents * sign),
+        amountCents: cents(signedAllocation(a, sign)),
       }));
       const id = await db.transaction().execute(async (trx) => {
         const account = await trx
@@ -260,7 +266,7 @@ export function makeTransactionService(db: Kysely<DB>) {
         const sign = amount >= 0 ? 1 : -1;
         const signed = allocations.map((a) => ({
           envelopeId: a.envelopeId,
-          amountCents: cents(a.magnitudeCents * sign),
+          amountCents: cents(signedAllocation(a, sign)),
         }));
         await assertEnvelopesUsable(
           trx,
