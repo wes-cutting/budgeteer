@@ -12,7 +12,15 @@ import { formatCents } from "./format";
 const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "cash", "other"];
 const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
 
-export function Dashboard({ api }: { api: Api }) {
+export function Dashboard({
+  api,
+  onOpenAccount,
+  onOpenNeeds,
+}: {
+  api: Api;
+  onOpenAccount?: (account: AccountView) => void;
+  onOpenNeeds?: () => void;
+}) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -37,7 +45,9 @@ export function Dashboard({ api }: { api: Api }) {
     <main>
       <header>
         <h1>Budgeteer</h1>
-        <p>Needs allocation: {formatCents(0)}</p>
+        <button type="button" onClick={() => onOpenNeeds?.()}>
+          Needs allocation
+        </button>
       </header>
 
       {loadError ? <p role="alert">{loadError}</p> : null}
@@ -45,7 +55,7 @@ export function Dashboard({ api }: { api: Api }) {
       <section aria-labelledby="accounts-heading">
         <h2 id="accounts-heading">Accounts</h2>
         <AddAccountForm api={api} onCreated={(a) => setAccounts((cur) => [...(cur ?? []), a])} />
-        <AccountList accounts={accounts} />
+        <AccountList accounts={accounts} onOpen={onOpenAccount} />
       </section>
 
       <section aria-labelledby="envelopes-heading">
@@ -57,7 +67,13 @@ export function Dashboard({ api }: { api: Api }) {
   );
 }
 
-function AccountList({ accounts }: { accounts: AccountView[] | null }) {
+function AccountList({
+  accounts,
+  onOpen,
+}: {
+  accounts: AccountView[] | null;
+  onOpen?: (account: AccountView) => void;
+}) {
   if (accounts === null) return <p>Loading…</p>;
   if (accounts.length === 0) {
     return <p>No accounts yet — add the bank, card, or cash accounts you use.</p>;
@@ -66,7 +82,14 @@ function AccountList({ accounts }: { accounts: AccountView[] | null }) {
     <ul aria-label="Accounts list">
       {accounts.map((a) => (
         <li key={a.id}>
-          <span>{a.name}</span> <span>{a.kind}</span> <span>{formatCents(a.balanceCents)}</span>
+          {onOpen ? (
+            <button type="button" onClick={() => onOpen(a)}>
+              {a.name}
+            </button>
+          ) : (
+            <span>{a.name}</span>
+          )}{" "}
+          <span>{a.kind}</span> <span>{formatCents(a.balanceCents)}</span>
         </li>
       ))}
     </ul>

@@ -77,6 +77,26 @@ Every non-2xx response uses one shape:
 - **Purpose:** rename an envelope. **Input:** `{ name: string }`. **Output:** `200 { "envelope": EnvelopeView }`.
 - **Errors:** `400`; `404`; `409`.
 
+### Transactions & allocation (FEAT-003)
+
+`TransactionView = { id, accountId, accountName, kind: "opening"|"normal", amountCents (signed),
+occurredOn, payee, memo, allocations: AllocationView[], allocatedCents, unallocatedCents }`;
+`AllocationView = { id, envelopeId, envelopeName, amountCents (signed) }`. **Amounts are entered
+as positive magnitudes**; the server applies the sign from the transaction's direction. The
+split invariant (`|Σ allocations| ≤ |amount|`, matching sign) is enforced atomically.
+
+- **`POST /accounts/:accountId/transactions`** — create a transaction + its allocations.
+  Input: `{ kind: "deposit"|"withdrawal", amount: string, occurredOn?: "YYYY-MM-DD",
+  payee?, memo?, allocations?: [{ envelopeId, amount }] }`. → `201 { transaction }`.
+  Errors: `400` (amount ≤ 0, bad date, over-allocation, unknown/archived envelope); `404` (account).
+- **`GET /accounts/:accountId/transactions`** — the account register (newest-first).
+  → `200 { transactions: TransactionView[] }`; `404` if the account is missing.
+- **`PUT /transactions/:id/allocations`** — replace a transaction's allocations (allocate-later).
+  Input: `{ allocations: [{ envelopeId, amount }] }`. → `200 { transaction }`.
+  Errors: `400` (over-allocation, unknown/archived envelope); `404` (transaction).
+- **`GET /transactions/needs-allocation`** — household-wide transactions with a non-zero
+  unallocated remainder (includes opening balances). → `200 { transactions: TransactionView[] }`.
+
 ## 4. Internal contracts (non-network)
 
 - **Domain core** (`@budgeteer/domain`, pure, no I/O): `parseMoney`/`formatMoney`/`sumMoney`
@@ -90,5 +110,5 @@ Every non-2xx response uses one shape:
 
 V1 is unversioned and single-consumer; treat the shapes above as stable for the web app.
 Introduce `/v1` and additive-only changes once a second consumer (or multi-household)
-arrives; breaking changes get a new version. Transaction/allocation endpoints arrive in
-Slice 1 and will be added here in the same change.
+arrives; breaking changes get a new version. (Transaction/allocation endpoints landed with
+Slice 1; documented above.)

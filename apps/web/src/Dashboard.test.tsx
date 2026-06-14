@@ -2,56 +2,19 @@ import { describe, expect, test } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Dashboard } from "./Dashboard";
-import { type AccountView, type Api, ApiError, type EnvelopeView } from "./api";
-
-/** An in-memory fake of the API, so the UI is tested without a server (UX spec acceptance). */
-function fakeApi(overrides: Partial<Api> = {}): Api {
-  const accounts: AccountView[] = [];
-  const envelopes: EnvelopeView[] = [];
-  let seq = 0;
-  return {
-    async listAccounts() {
-      return [...accounts];
-    },
-    async listEnvelopes() {
-      return [...envelopes];
-    },
-    async createAccount({ name, kind, startingBalance }) {
-      const account: AccountView = {
-        id: `a${seq++}`,
-        name,
-        kind,
-        balanceCents: Math.round(Number(startingBalance) * 100),
-        archivedAt: null,
-      };
-      accounts.push(account);
-      return account;
-    },
-    async createEnvelope({ name, kind }) {
-      const envelope: EnvelopeView = {
-        id: `e${seq++}`,
-        name,
-        kind,
-        balanceCents: 0,
-        archivedAt: null,
-      };
-      envelopes.push(envelope);
-      return envelope;
-    },
-    ...overrides,
-  };
-}
+import { ApiError } from "./api";
+import { makeFakeApi } from "./test/fakeApi";
 
 describe("Dashboard (Foundation UX)", () => {
   test("renders both empty states on first run", async () => {
-    render(<Dashboard api={fakeApi()} />);
+    render(<Dashboard api={makeFakeApi()} />);
     expect(await screen.findByText(/No accounts yet/i)).toBeTruthy();
     expect(await screen.findByText(/No envelopes yet/i)).toBeTruthy();
   });
 
   test("adding an account shows it with its formatted balance", async () => {
     const user = userEvent.setup();
-    render(<Dashboard api={fakeApi()} />);
+    render(<Dashboard api={makeFakeApi()} />);
     await screen.findByText(/No accounts yet/i);
 
     const form = screen.getByRole("form", { name: /add account/i });
@@ -67,7 +30,7 @@ describe("Dashboard (Foundation UX)", () => {
 
   test("adding an envelope shows it at $0.00", async () => {
     const user = userEvent.setup();
-    render(<Dashboard api={fakeApi()} />);
+    render(<Dashboard api={makeFakeApi()} />);
     await screen.findByText(/No envelopes yet/i);
 
     const form = screen.getByRole("form", { name: /add envelope/i });
@@ -80,7 +43,7 @@ describe("Dashboard (Foundation UX)", () => {
 
   test("a server error message is surfaced inline", async () => {
     const user = userEvent.setup();
-    const api = fakeApi({
+    const api = makeFakeApi({
       async createAccount() {
         throw new ApiError("An account with that name already exists.");
       },
