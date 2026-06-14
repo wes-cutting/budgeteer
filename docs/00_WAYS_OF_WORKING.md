@@ -207,6 +207,15 @@ executes a flawed plan flawlessly:
   output. (Reviewing the plan is what catches "no UI is being built" immediately.)
 - **"Is it usable yet?"** is asked at every increment by both parties.
 - **Surprises become spikes**, not silent workarounds.
+- **Close out each block with a Definition-of-Done snapshot.** At the end of every executed
+  block — a spike, a vertical slice, or a phase — write a dated
+  [status report](../templates/STATUS-REPORT-TEMPLATE.md) whose **outline is the Definition
+  of Done** (§5): report each check (vertical & usable · gate-green · acceptance criteria &
+  UX states · accessibility · input-validation & secrets · docs-in-the-same-change) as
+  ✅/⚠/❌ **with evidence**, then the test-count delta and a one-line Conventional-Commit
+  summary. Anything not done stays visible (⚠ + reason + owner) so a snapshot never
+  overstates "done." This is what makes hand-offs between sessions/context windows clean and
+  honest — and it doubles as the per-block review record.
 - Keep the practices that worked: pure-core/impure-shell (so logic is testable without
   I/O), pass/fail gates, gate-green-per-slice, and resumable status reports for clean
   hand-offs between sessions/context windows.

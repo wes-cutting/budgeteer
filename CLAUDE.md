@@ -61,6 +61,13 @@ pure-core/impure-shell, reconcilable idempotent imports, a consistent error enve
   **A failing or skipped test blocks completion.**
 - Before declaring anything done, verify the Definition of Done in
   [`docs/ENGINEERING_STANDARDS.md`](docs/ENGINEERING_STANDARDS.md) §2.
+- **Close out each block with a DoD-shaped snapshot.** At the end of every spike, vertical
+  slice, or phase, write a dated [status report](templates/STATUS-REPORT-TEMPLATE.md) whose
+  **outline is the Definition of Done** — each check ✅/⚠/❌ **with evidence**, plus the
+  test-count delta and a one-line Conventional-Commit summary; deferred checks stay visible
+  (⚠ + reason + owner) so it never overstates "done." Right-size it: a trivial docs/config
+  tweak gets a commit line, not a full report. See
+  [`docs/00_WAYS_OF_WORKING.md`](docs/00_WAYS_OF_WORKING.md) §9.
 
 ## Documentation discipline
 
