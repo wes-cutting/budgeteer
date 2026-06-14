@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { type Api, type EnvelopeView, type TransactionView } from "./api";
+import {
+  type AllocationDraft,
+  type Api,
+  type EnvelopeView,
+  type TemplateView,
+  type TransactionView,
+} from "./api";
 import { formatCents } from "./format";
 import { AddTransactionForm } from "./AddTransactionForm";
 
@@ -14,21 +20,34 @@ interface Props {
 export function AccountRegister({ api, accountId, accountName, onBack, onOpenNeeds }: Props) {
   const [transactions, setTransactions] = useState<TransactionView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[]>([]);
+  const [templates, setTemplates] = useState<TemplateView[]>([]);
   const [balanceCents, setBalanceCents] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
     try {
-      const [txns, envs, accounts] = await Promise.all([
+      const [txns, envs, accounts, tpls] = await Promise.all([
         api.listTransactions(accountId),
         api.listEnvelopes(),
         api.listAccounts(),
+        api.listTemplates(),
       ]);
       setTransactions(txns);
       setEnvelopes(envs);
+      setTemplates(tpls);
       setBalanceCents(accounts.find((a) => a.id === accountId)?.balanceCents ?? 0);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Couldn't load this account.");
+    }
+  }
+
+  async function saveAsTemplate(name: string, lines: AllocationDraft[]) {
+    setError(null);
+    try {
+      await api.createTemplate({ name, lines });
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Couldn't save the template.");
     }
   }
 
@@ -56,7 +75,9 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
         api={api}
         accountId={accountId}
         envelopes={envelopes}
+        templates={templates}
         onCreated={() => void load()}
+        onSaveAsTemplate={(name, lines) => void saveAsTemplate(name, lines)}
       />
 
       <section aria-labelledby="register-heading">

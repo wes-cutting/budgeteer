@@ -62,3 +62,71 @@ describe("AllocationEditor (split UX — SPIKE-01)", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 });
+
+describe("AllocationEditor accelerators (Slice 2)", () => {
+  const templates = [
+    {
+      id: "t1",
+      name: "Paycheck",
+      lines: [
+        { envelopeId: "rent", amountCents: 140000 },
+        { envelopeId: "sav", amountCents: 80000 },
+      ],
+    },
+  ];
+
+  test("applying a template pre-fills the split rows", async () => {
+    const user = userEvent.setup();
+    render(
+      <AllocationEditor
+        magnitudeCents={320000}
+        envelopes={envelopes}
+        templates={templates}
+        onSave={vi.fn()}
+      />,
+    );
+    await user.selectOptions(screen.getByLabelText("Apply template"), "t1");
+    expect((screen.getByLabelText("Amount for row 1") as HTMLInputElement).value).toBe("1400.00");
+    expect((screen.getByLabelText("Amount for row 2") as HTMLInputElement).value).toBe("800.00");
+    expect(screen.getByText(/Remaining \$1,000\.00/)).toBeTruthy();
+  });
+
+  test("distribute remaining spreads the leftover to zero", async () => {
+    const user = userEvent.setup();
+    render(<AllocationEditor magnitudeCents={10000} envelopes={envelopes} onSave={vi.fn()} />);
+    await user.click(screen.getByLabelText("Split"));
+    await user.selectOptions(screen.getByLabelText("Envelope for row 1"), "rent");
+    await user.click(screen.getByRole("button", { name: "distribute remaining" }));
+    expect((screen.getByLabelText("Amount for row 1") as HTMLInputElement).value).toBe("100.00");
+    expect(screen.getByText(/Remaining \$0\.00/)).toBeTruthy();
+  });
+
+  test("Enter in an amount adds the next row (keyboard-first)", async () => {
+    const user = userEvent.setup();
+    render(<AllocationEditor magnitudeCents={10000} envelopes={envelopes} onSave={vi.fn()} />);
+    await user.click(screen.getByLabelText("Split"));
+    await user.type(screen.getByLabelText("Amount for row 1"), "40.00{Enter}");
+    expect(screen.getByLabelText("Amount for row 2")).toBeTruthy();
+  });
+
+  test("save as template reports the name and current rows", async () => {
+    const user = userEvent.setup();
+    const onSaveAsTemplate = vi.fn();
+    render(
+      <AllocationEditor
+        magnitudeCents={320000}
+        envelopes={envelopes}
+        onSave={vi.fn()}
+        onSaveAsTemplate={onSaveAsTemplate}
+      />,
+    );
+    await user.click(screen.getByLabelText("Split"));
+    await user.selectOptions(screen.getByLabelText("Envelope for row 1"), "rent");
+    await user.type(screen.getByLabelText("Amount for row 1"), "1400.00");
+    await user.type(screen.getByLabelText("New template name"), "Paycheck");
+    await user.click(screen.getByRole("button", { name: "Save as template" }));
+    expect(onSaveAsTemplate).toHaveBeenCalledWith("Paycheck", [
+      { envelopeId: "rent", amount: "1400.00" },
+    ]);
+  });
+});

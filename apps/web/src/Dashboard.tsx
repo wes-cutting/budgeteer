@@ -16,10 +16,12 @@ export function Dashboard({
   api,
   onOpenAccount,
   onOpenNeeds,
+  onOpenTemplates,
 }: {
   api: Api;
   onOpenAccount?: (account: AccountView) => void;
   onOpenNeeds?: () => void;
+  onOpenTemplates?: () => void;
 }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
@@ -47,6 +49,9 @@ export function Dashboard({
         <h1>Budgeteer</h1>
         <button type="button" onClick={() => onOpenNeeds?.()}>
           Needs allocation
+        </button>
+        <button type="button" onClick={() => onOpenTemplates?.()}>
+          Templates
         </button>
       </header>
 

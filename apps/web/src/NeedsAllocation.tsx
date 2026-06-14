@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { type AllocationDraft, type Api, type EnvelopeView, type TransactionView } from "./api";
+import {
+  type AllocationDraft,
+  type Api,
+  type EnvelopeView,
+  type TemplateView,
+  type TransactionView,
+} from "./api";
 import { centsToInput, formatCents } from "./format";
 import { AllocationEditor } from "./AllocationEditor";
 
@@ -11,15 +17,21 @@ interface Props {
 export function NeedsAllocation({ api, onBack }: Props) {
   const [items, setItems] = useState<TransactionView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[]>([]);
+  const [templates, setTemplates] = useState<TemplateView[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
     try {
-      const [needs, envs] = await Promise.all([api.listNeedsAllocation(), api.listEnvelopes()]);
+      const [needs, envs, tpls] = await Promise.all([
+        api.listNeedsAllocation(),
+        api.listEnvelopes(),
+        api.listTemplates(),
+      ]);
       setItems(needs);
       setEnvelopes(envs);
+      setTemplates(tpls);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Couldn't load.");
     }
@@ -76,6 +88,7 @@ export function NeedsAllocation({ api, onBack }: Props) {
                 <AllocationEditor
                   magnitudeCents={Math.abs(t.amountCents)}
                   envelopes={envelopes.map((e) => ({ id: e.id, name: e.name }))}
+                  templates={templates}
                   initial={t.allocations.map((a) => ({
                     envelopeId: a.envelopeId,
                     amount: centsToInput(Math.abs(a.amountCents)),

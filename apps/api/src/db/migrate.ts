@@ -99,6 +99,32 @@ export async function migrateToLatest(db: Kysely<DB>): Promise<void> {
   `.execute(db);
 
   await sql`
+    create table if not exists templates (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references households(id),
+      name text not null check (length(btrim(name)) > 0),
+      created_at timestamptz not null default now()
+    )
+  `.execute(db);
+  await sql`
+    create unique index if not exists templates_household_name_uniq
+      on templates (household_id, lower(btrim(name)))
+  `.execute(db);
+
+  await sql`
+    create table if not exists template_lines (
+      id uuid primary key default gen_random_uuid(),
+      template_id uuid not null references templates(id) on delete cascade,
+      envelope_id uuid not null references envelopes(id),
+      amount_cents bigint not null check (amount_cents > 0),
+      position integer not null
+    )
+  `.execute(db);
+  await sql`create index if not exists template_lines_template_idx on template_lines (template_id)`.execute(
+    db,
+  );
+
+  await sql`
     insert into households (id, name)
     values (${DEFAULT_HOUSEHOLD_ID}::uuid, 'Default household')
     on conflict (id) do nothing

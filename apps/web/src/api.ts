@@ -56,6 +56,19 @@ export interface CreateTransactionInput {
   allocations: AllocationDraft[];
 }
 
+export interface TemplateLineView {
+  id: string;
+  envelopeId: string;
+  envelopeName: string;
+  amountCents: number;
+}
+
+export interface TemplateView {
+  id: string;
+  name: string;
+  lines: TemplateLineView[];
+}
+
 /** Thrown on a non-2xx response, carrying the server's user-facing message. */
 export class ApiError extends Error {}
 
@@ -72,6 +85,13 @@ export interface Api {
   createTransaction(accountId: string, input: CreateTransactionInput): Promise<TransactionView>;
   setAllocations(transactionId: string, allocations: AllocationDraft[]): Promise<TransactionView>;
   listNeedsAllocation(): Promise<TransactionView[]>;
+  listTemplates(): Promise<TemplateView[]>;
+  createTemplate(input: { name: string; lines: AllocationDraft[] }): Promise<TemplateView>;
+  updateTemplate(
+    id: string,
+    input: { name: string; lines: AllocationDraft[] },
+  ): Promise<TemplateView>;
+  deleteTemplate(id: string): Promise<void>;
 }
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -85,10 +105,13 @@ function errorMessage(data: unknown): string | undefined {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { "content-type": "application/json" },
-    ...init,
-  });
+  // Only declare a JSON content-type when there's actually a body — a bodyless request
+  // (GET/DELETE) with `content-type: application/json` trips servers' empty-body checks.
+  const headers: Record<string, string> = { ...(init?.headers as Record<string, string>) };
+  if (init?.body !== undefined && headers["content-type"] === undefined) {
+    headers["content-type"] = "application/json";
+  }
+  const res = await fetch(`${BASE}${path}`, { ...init, headers });
   const data: unknown = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(errorMessage(data) ?? "Request failed.");
   return data as T;
@@ -141,5 +164,27 @@ export const httpApi: Api = {
   async listNeedsAllocation() {
     return (await request<{ transactions: TransactionView[] }>("/transactions/needs-allocation"))
       .transactions;
+  },
+  async listTemplates() {
+    return (await request<{ templates: TemplateView[] }>("/templates")).templates;
+  },
+  async createTemplate(input) {
+    return (
+      await request<{ template: TemplateView }>("/templates", {
+        method: "POST",
+        body: JSON.stringify(input),
+      })
+    ).template;
+  },
+  async updateTemplate(id, input) {
+    return (
+      await request<{ template: TemplateView }>(`/templates/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(input),
+      })
+    ).template;
+  },
+  async deleteTemplate(id) {
+    await request<unknown>(`/templates/${id}`, { method: "DELETE" });
   },
 };

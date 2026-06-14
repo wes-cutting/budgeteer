@@ -3,11 +3,13 @@ import { type AccountView, type Api } from "./api";
 import { Dashboard } from "./Dashboard";
 import { AccountRegister } from "./AccountRegister";
 import { NeedsAllocation } from "./NeedsAllocation";
+import { TemplatesView } from "./TemplatesView";
 
 type View =
   | { name: "dashboard" }
   | { name: "account"; accountId: string; accountName: string }
-  | { name: "needs" };
+  | { name: "needs" }
+  | { name: "templates" };
 
 export function App({ api }: { api: Api }) {
   const [view, setView] = useState<View>({ name: "dashboard" });
@@ -26,6 +28,9 @@ export function App({ api }: { api: Api }) {
   if (view.name === "needs") {
     return <NeedsAllocation api={api} onBack={() => setView({ name: "dashboard" })} />;
   }
+  if (view.name === "templates") {
+    return <TemplatesView api={api} onBack={() => setView({ name: "dashboard" })} />;
+  }
   return (
     <Dashboard
       api={api}
@@ -33,6 +38,7 @@ export function App({ api }: { api: Api }) {
         setView({ name: "account", accountId: a.id, accountName: a.name })
       }
       onOpenNeeds={() => setView({ name: "needs" })}
+      onOpenTemplates={() => setView({ name: "templates" })}
     />
   );
 }

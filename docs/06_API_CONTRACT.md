@@ -44,6 +44,9 @@ Every non-2xx response uses one shape:
 > **Planned (hardening):** add a stable `code` (`VALIDATION_ERROR`/`CONFLICT`/…) and a
 > `correlationId` to the envelope. Deferred from the foundation deliberately (right-sized).
 
+The error handler **preserves the original 4xx status** (e.g. a malformed/empty JSON body is a
+`400`, not a masked `500`); only genuinely unexpected errors become `500` and are logged.
+
 ## 3. Resources / operations
 
 ### `GET /health`
@@ -96,6 +99,21 @@ split invariant (`|Σ allocations| ≤ |amount|`, matching sign) is enforced ato
   Errors: `400` (over-allocation, unknown/archived envelope); `404` (transaction).
 - **`GET /transactions/needs-allocation`** — household-wide transactions with a non-zero
   unallocated remainder (includes opening balances). → `200 { transactions: TransactionView[] }`.
+
+### Allocation templates (FEAT-004)
+
+`TemplateView = { id, name, lines: TemplateLineView[] }`;
+`TemplateLineView = { id, envelopeId, envelopeName, amountCents }`. Lines are **fixed positive
+magnitudes**; **applying a template is client-side** (it pre-fills the allocation editor).
+Template names are unique per household (case-insensitive).
+
+- **`GET /templates`** → `200 { templates: TemplateView[] }`.
+- **`POST /templates`** `{ name, lines: [{ envelopeId, amount }] }` → `201 { template }`.
+  Errors: `400` (empty name, no lines, amount ≤ 0, unknown/archived envelope); `409` (duplicate name).
+- **`PUT /templates/:id`** `{ name, lines }` → `200 { template }` (replaces name + lines).
+  Errors: `400`; `404`; `409`.
+- **`DELETE /templates/:id`** → `204` (cascade-deletes its lines); `404` if missing. A bodyless
+  request needs no `content-type`; an empty `application/json` body is tolerated.
 
 ## 4. Internal contracts (non-network)
 

@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { type AllocationDraft, type Api, ApiError, type EnvelopeView } from "./api";
+import {
+  type AllocationDraft,
+  type Api,
+  ApiError,
+  type EnvelopeView,
+  type TemplateView,
+} from "./api";
 import { parseCents } from "./format";
 import { AllocationEditor } from "./AllocationEditor";
 
@@ -7,10 +13,19 @@ interface Props {
   api: Api;
   accountId: string;
   envelopes: EnvelopeView[];
+  templates?: TemplateView[];
   onCreated: () => void;
+  onSaveAsTemplate?: (name: string, lines: AllocationDraft[]) => void;
 }
 
-export function AddTransactionForm({ api, accountId, envelopes, onCreated }: Props) {
+export function AddTransactionForm({
+  api,
+  accountId,
+  envelopes,
+  templates,
+  onCreated,
+  onSaveAsTemplate,
+}: Props) {
   const [kind, setKind] = useState<"deposit" | "withdrawal">("withdrawal");
   const [amount, setAmount] = useState("");
   const [payee, setPayee] = useState("");
@@ -85,9 +100,11 @@ export function AddTransactionForm({ api, accountId, envelopes, onCreated }: Pro
       <AllocationEditor
         magnitudeCents={magnitudeCents}
         envelopes={envelopes.map((e) => ({ id: e.id, name: e.name }))}
+        templates={templates}
         submitting={submitting}
         saveLabel="Save transaction"
         onSave={save}
+        onSaveAsTemplate={onSaveAsTemplate}
       />
       {error ? <p role="alert">{error}</p> : null}
     </form>

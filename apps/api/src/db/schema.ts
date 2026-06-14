@@ -14,6 +14,8 @@ export interface DB {
   envelopes: EnvelopesTable;
   transactions: TransactionsTable;
   allocations: AllocationsTable;
+  templates: TemplatesTable;
+  template_lines: TemplateLinesTable;
   v_account_balances: AccountBalancesView;
   v_envelope_balances: EnvelopeBalancesView;
 }
@@ -59,6 +61,21 @@ interface AllocationsTable {
   transaction_id: string;
   envelope_id: string;
   amount_cents: IntCents;
+}
+
+interface TemplatesTable {
+  id: Generated<string>;
+  household_id: string;
+  name: string;
+  created_at: Generated<Date>;
+}
+
+interface TemplateLinesTable {
+  id: Generated<string>;
+  template_id: string;
+  envelope_id: string;
+  amount_cents: IntCents;
+  position: number;
 }
 
 interface AccountBalancesView {

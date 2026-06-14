@@ -7,11 +7,13 @@ import {
   parseMoney,
   validateAccountName,
   validateEnvelopeName,
+  validateName,
 } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { makeAccountService } from "../services/accountService";
 import { makeEnvelopeService } from "../services/envelopeService";
 import { makeTransactionService } from "../services/transactionService";
+import { makeTemplateService } from "../services/templateService";
 import { DuplicateNameError, NotFoundError, ValidationError } from "../services/errors";
 
 const createAccountBody = z.object({
@@ -36,6 +38,12 @@ const createTransactionBody = z.object({
 });
 const setAllocationsBody = z.object({ allocations: z.array(allocationInput).default([]) });
 
+const templateLineInput = z.object({ envelopeId: z.string().min(1), amount: z.string() });
+const upsertTemplateBody = z.object({
+  name: z.string(),
+  lines: z.array(templateLineInput).default([]),
+});
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const todayStr = (): string => new Date().toISOString().slice(0, 10);
 
@@ -53,15 +61,45 @@ function parsePositiveMagnitude(s: string): number | null {
   }
 }
 
+/** Parse template line magnitudes; null if any amount is invalid or ≤ 0. */
+function parseTemplateLines(
+  raw: { envelopeId: string; amount: string }[],
+): { envelopeId: string; amountCents: number }[] | null {
+  const lines: { envelopeId: string; amountCents: number }[] = [];
+  for (const l of raw) {
+    const m = parsePositiveMagnitude(l.amount);
+    if (m === null) return null;
+    lines.push({ envelopeId: l.envelopeId, amountCents: m });
+  }
+  return lines;
+}
+
 export function buildServer(db: Kysely<DB>, opts: { logger?: boolean } = {}): FastifyInstance {
   const app = Fastify({ logger: opts.logger ?? false });
+
+  // Tolerate an empty body on application/json requests (e.g. a bodyless DELETE) rather than
+  // erroring; still reject malformed JSON with a 400.
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (_req, body, done) => {
+    if (body === "" || body == null) return done(null, undefined);
+    try {
+      done(null, JSON.parse(body as string));
+    } catch {
+      const err = new Error("Invalid JSON body.") as Error & { statusCode?: number };
+      err.statusCode = 400;
+      done(err, undefined);
+    }
+  });
+
   const accounts = makeAccountService(db);
   const envelopes = makeEnvelopeService(db);
   const transactions = makeTransactionService(db);
+  const templates = makeTemplateService(db);
 
   app.setErrorHandler((err, _req, reply) => {
-    app.log.error(err);
-    return fail(reply, 500, "Something went wrong.");
+    const e = err as Error & { statusCode?: number };
+    const status = typeof e.statusCode === "number" ? e.statusCode : 500;
+    if (status >= 500) app.log.error(e);
+    return fail(reply, status, status >= 500 ? "Something went wrong." : e.message);
   });
 
   app.get("/health", async () => ({ status: "ok" }));
@@ -206,6 +244,60 @@ export function buildServer(db: Kysely<DB>, opts: { logger?: boolean } = {}): Fa
     } catch (e) {
       if (e instanceof NotFoundError) return fail(reply, 404, "Transaction not found.");
       if (e instanceof ValidationError) return fail(reply, 400, e.message);
+      throw e;
+    }
+  });
+
+  // --- Allocation templates (FEAT-004) ---
+  app.get("/templates", async () => ({ templates: await templates.list() }));
+
+  app.post("/templates", async (req, reply) => {
+    const parsed = upsertTemplateBody.safeParse(req.body);
+    if (!parsed.success) return fail(reply, 400, "Invalid request body.");
+    const nameCheck = validateName(parsed.data.name, "Template");
+    if (!nameCheck.ok) return fail(reply, 400, nameCheck.reason);
+    if (parsed.data.lines.length === 0)
+      return fail(reply, 400, "A template needs at least one line.");
+    const lines = parseTemplateLines(parsed.data.lines);
+    if (lines === null) return fail(reply, 400, "Each line amount must be greater than 0.");
+    try {
+      const template = await templates.create({ name: nameCheck.name, lines });
+      return reply.code(201).send({ template });
+    } catch (e) {
+      if (e instanceof DuplicateNameError) return fail(reply, 409, e.message);
+      if (e instanceof ValidationError) return fail(reply, 400, e.message);
+      throw e;
+    }
+  });
+
+  app.put("/templates/:id", async (req, reply) => {
+    const parsed = upsertTemplateBody.safeParse(req.body);
+    if (!parsed.success) return fail(reply, 400, "Invalid request body.");
+    const nameCheck = validateName(parsed.data.name, "Template");
+    if (!nameCheck.ok) return fail(reply, 400, nameCheck.reason);
+    if (parsed.data.lines.length === 0)
+      return fail(reply, 400, "A template needs at least one line.");
+    const lines = parseTemplateLines(parsed.data.lines);
+    if (lines === null) return fail(reply, 400, "Each line amount must be greater than 0.");
+    const { id } = req.params as { id: string };
+    try {
+      const template = await templates.update(id, { name: nameCheck.name, lines });
+      return { template };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Template not found.");
+      if (e instanceof DuplicateNameError) return fail(reply, 409, e.message);
+      if (e instanceof ValidationError) return fail(reply, 400, e.message);
+      throw e;
+    }
+  });
+
+  app.delete("/templates/:id", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    try {
+      await templates.remove(id);
+      return reply.code(204).send();
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Template not found.");
       throw e;
     }
   });

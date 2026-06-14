@@ -139,7 +139,7 @@ Ordered by value/uncertainty for sequencing (the roadmap is the plan of record):
 | ~~Money representation — integer minor units vs. decimal?~~ | Wesley + agent | **DECIDED: integer minor units** → formalize in a money ADR next round |
 | ~~Fixed seed vs. user-managed envelopes?~~ | Wesley | **DECIDED: user-managed CRUD + archive** (sinking-fund lifecycle; soft-delete preserves history) |
 | Do envelopes carry a **monthly budget target** in V1 (needed for budget-vs-actual)? | Wesley | open → analysis area |
-| Template definition — fixed-dollar, percentage, or both? | Wesley | open → slice 2 |
+| ~~Template definition — fixed-dollar, percentage, or both?~~ | Wesley | **resolved: fixed dollar amounts** (Slice 2); percentage/both deferred |
 | Does "reconcile to bank" need a cleared/statement concept, or just a balance compare? | Wesley | open → later slice |
 | Should a transaction's allocation also support **negative** rows (for refunds within a split)? | Wesley + agent | open → refunds slice |
 

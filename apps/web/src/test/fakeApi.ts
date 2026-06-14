@@ -3,6 +3,7 @@ import {
   type Api,
   ApiError,
   type EnvelopeView,
+  type TemplateView,
   type TransactionView,
 } from "../api";
 import { parseCents } from "../format";
@@ -15,6 +16,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
   const accounts: AccountView[] = [];
   const envelopes: EnvelopeView[] = [];
   const txns: TransactionView[] = [];
+  const templates: TemplateView[] = [];
   let seq = 0;
   const newId = (p: string) => `${p}${seq++}`;
   const envName = (id: string) => envelopes.find((e) => e.id === id)?.name ?? "?";
@@ -143,6 +145,42 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
     async listNeedsAllocation() {
       recompute();
       return txns.filter((t) => t.unallocatedCents !== 0).map(clone);
+    },
+    async listTemplates() {
+      return templates.map((t) => ({ ...t, lines: t.lines.map((l) => ({ ...l })) }));
+    },
+    async createTemplate({ name, lines }) {
+      if (templates.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
+        throw new ApiError("A template with that name already exists.");
+      }
+      const tpl: TemplateView = {
+        id: newId("tpl"),
+        name,
+        lines: lines.map((l) => ({
+          id: newId("tl"),
+          envelopeId: l.envelopeId,
+          envelopeName: envName(l.envelopeId),
+          amountCents: parseCents(l.amount) ?? 0,
+        })),
+      };
+      templates.push(tpl);
+      return { ...tpl, lines: tpl.lines.map((l) => ({ ...l })) };
+    },
+    async updateTemplate(id, { name, lines }) {
+      const tpl = templates.find((t) => t.id === id);
+      if (!tpl) throw new ApiError("Template not found.");
+      tpl.name = name;
+      tpl.lines = lines.map((l) => ({
+        id: newId("tl"),
+        envelopeId: l.envelopeId,
+        envelopeName: envName(l.envelopeId),
+        amountCents: parseCents(l.amount) ?? 0,
+      }));
+      return { ...tpl, lines: tpl.lines.map((l) => ({ ...l })) };
+    },
+    async deleteTemplate(id) {
+      const idx = templates.findIndex((t) => t.id === id);
+      if (idx >= 0) templates.splice(idx, 1);
     },
     ...overrides,
   };

@@ -3,6 +3,7 @@ import { cents, validateAllocations } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../db/migrate";
 import { NotFoundError, ValidationError } from "./errors";
+import { assertEnvelopesUsable } from "./envelopeGuards";
 
 export interface AllocationView {
   id: string;
@@ -59,21 +60,6 @@ function toDateStr(v: unknown): string {
 }
 
 export function makeTransactionService(db: Kysely<DB>) {
-  async function assertEnvelopesUsable(exec: Kysely<DB>, envelopeIds: string[]): Promise<void> {
-    const unique = [...new Set(envelopeIds)];
-    if (unique.length === 0) return;
-    const rows = await exec
-      .selectFrom("envelopes")
-      .select(["id", "archived_at"])
-      .where("household_id", "=", HH)
-      .where("id", "in", unique)
-      .execute();
-    const usable = new Set(rows.filter((r) => r.archived_at === null).map((r) => r.id));
-    for (const id of unique) {
-      if (!usable.has(id)) throw new ValidationError("Unknown or archived envelope.");
-    }
-  }
-
   function selectTxns(exec: Kysely<DB>) {
     return exec
       .selectFrom("transactions as t")
@@ -166,6 +152,7 @@ export function makeTransactionService(db: Kysely<DB>) {
         if (!account) throw new NotFoundError("account");
         await assertEnvelopesUsable(
           trx,
+          HH,
           signed.map((s) => s.envelopeId),
         );
         const check = validateAllocations(
@@ -239,6 +226,7 @@ export function makeTransactionService(db: Kysely<DB>) {
         }));
         await assertEnvelopesUsable(
           trx,
+          HH,
           signed.map((s) => s.envelopeId),
         );
         const check = validateAllocations(

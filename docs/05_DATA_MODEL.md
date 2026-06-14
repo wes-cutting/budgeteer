@@ -80,6 +80,25 @@ seeded household** in V1 (no auth/RLS yet).
 | amount_cents | bigint | no | signed integer cents; same sign as its transaction |
 - **Keys/Indexes:** PK `id`; index `(transaction_id)`; index `(envelope_id)`.
 
+### templates → `Template` (FEAT-004)
+| Field | Type | Null | Notes |
+| ----- | ---- | ---- | ----- |
+| id | uuid | no | PK |
+| household_id | uuid | no | FK → households(id), **restrict** |
+| name | text | no | trimmed, non-empty |
+| created_at | timestamptz | no | default `now()` |
+- **Keys/Indexes:** PK `id`; **unique** `(household_id, lower(btrim(name)))`.
+
+### template_lines → a template's fixed-amount lines
+| Field | Type | Null | Notes |
+| ----- | ---- | ---- | ----- |
+| id | uuid | no | PK |
+| template_id | uuid | no | FK → templates(id), **cascade** |
+| envelope_id | uuid | no | FK → envelopes(id), **restrict** |
+| amount_cents | bigint | no | positive magnitude (`check (amount_cents > 0)`) |
+| position | integer | no | line order |
+- **Keys/Indexes:** PK `id`; index `(template_id)`.
+
 ## 3. Relationships & integrity
 
 - `accounts/envelopes/transactions.household_id → households` — **restrict** (the single V1
@@ -87,6 +106,8 @@ seeded household** in V1 (no auth/RLS yet).
 - `transactions.account_id → accounts` — **restrict** (preserve ledger history; archive accounts).
 - `allocations.transaction_id → transactions` — **cascade** (a transaction owns its splits).
 - `allocations.envelope_id → envelopes` — **restrict** (envelopes are archived, not deleted).
+- `template_lines.template_id → templates` — **cascade** (a template owns its lines);
+  `template_lines.envelope_id → envelopes` — **restrict**.
 - **Split invariant** (`0 ≤ |Σ allocations| ≤ |txn.amount|`, matching sign): enforced in the
   **domain core** and written **atomically** (a transaction + its allocations in one DB
   transaction). A DB-level trigger/constraint as defense-in-depth is deferred to hardening;

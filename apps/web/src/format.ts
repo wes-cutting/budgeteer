@@ -14,6 +14,27 @@ export function centsToInput(cents: number): string {
   return `${negative ? "-" : ""}${Math.floor(abs / 100)}.${(abs % 100).toString().padStart(2, "0")}`;
 }
 
+/**
+ * Split a total into n parts, distributing the leftover cents so the parts sum to the total
+ * EXACTLY (parts differ by at most 1 cent). Used by "distribute remaining". Mirrors SPIKE-02.
+ */
+export function splitEvenly(totalCents: number, n: number): number[] {
+  if (n < 1) return [];
+  const base = Math.trunc(totalCents / n);
+  let leftover = totalCents - base * n;
+  const step = leftover >= 0 ? 1 : -1;
+  const parts: number[] = [];
+  for (let i = 0; i < n; i++) {
+    let part = base;
+    if (leftover !== 0) {
+      part += step;
+      leftover -= step;
+    }
+    parts.push(part);
+  }
+  return parts;
+}
+
 const MONEY_RE = /^-?\d+(\.\d{1,2})?$/;
 
 /** Parse a decimal string to integer cents for the live tally; null if not valid money. */

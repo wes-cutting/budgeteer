@@ -14,13 +14,13 @@ Sequencing model: docs/00_WAYS_OF_WORKING.md §7.
 | Last updated  | 2026-06-13     |
 | Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) |
 
-**Current focus:** **Slice 1 (core enter→allocate loop) — ✅ `Done` (gate-green).** Enter a
-deposit/withdrawal, allocate **Single/Split** with a live remainder + "use remaining", save
-**partial**, and finish later from the **Needs-allocation** list; derived balances update —
-the SPIKE-01 felt-friction caveat is now exercised in the running app. **44 tests pass**
-(domain 15 · API/PGlite 19 · web/jsdom 10), typecheck + web build + format green; new
-endpoints smoke-tested over HTTP. **Next up: Slice 2** — accelerators (templates first).
-Deferred gate item unchanged: browser **Playwright e2e** (add in CI).
+**Current focus:** **Slice 2 (accelerators) — ✅ `Done` (gate-green).** Allocation
+**templates** (fixed-amount lines) applied to pre-fill the split editor, plus
+**distribute-remaining** and **keyboard-first** row entry; a Templates screen manages them.
+**55 tests pass** (domain 15 · API/PGlite 23 · web/jsdom 17), typecheck + web build + format
+green; template endpoints smoke-tested over HTTP (a content-type/error-status bug surfaced
+and was fixed with a regression test). **Next up:** **edit-a-past-split** (#5) and
+**archive an envelope** (#6). Deferred gate item unchanged: browser **Playwright e2e** (add in CI).
 
 ---
 
@@ -88,7 +88,7 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | # | Item | Kind | Value | Risk | Gated by | Status | Notes |
 | - | ---- | ---- | ----- | ---- | -------- | ------ | ----- |
 | 3 | **Slice 1 — core enter→allocate loop** — enter deposit/withdrawal → allocate in **Single** (one-tap) or **Split** (multi-row, live `Allocated/Remaining`, use-remaining) + **partial allocation** (save now, "needs allocation" surface) → balances reconcile, invariant holds | slice | High | Med | #1 | **✅ Done** | Built & gate-green (44 tests + HTTP smoke); [feature](features/transactions.md)·[UX](ux/transactions.md); felt-friction caveat now exercised in-app |
-| 4 | **Slice 2 — accelerators** — **templates/presets** (primary) · keyboard-first row entry · distribute-remainder | slice | High | Med | #3 | Planned | What turns the paycheck split from tolerable → good |
+| 4 | **Slice 2 — accelerators** — **templates/presets** (primary, **fixed-amount** lines) · keyboard-first row entry · distribute-remainder | slice | High | Med | #3 | **✅ Done** | Built & gate-green (55 tests + HTTP smoke); [feature](features/templates.md)·[UX](ux/templates.md) |
 | 5 | **Edit a past split** (preserve the sum invariant) | slice | High | Med | #3 | Planned | Correctness — you *will* mis-split; high value, sequence early |
 | 6 | **Archive an envelope** (soft-delete; history preserved) | slice | Med | Low | #1 | Planned | Sinking-fund lifecycle; mirrors the sheet's `Archive*` pattern |
 | 7 | **Transfers** (account↔account, **double-entry**) | slice | Med | High | #3 | Planned | Modeling risk — may need a small modeling spike (SPIKE-04) before building |
@@ -126,11 +126,13 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | 2026-06-13 | **SPIKE-02 Done**; stack chosen (TS · React+Vite · Fastify · Postgres); `ADR-0001` `Validated`, `ADR-0002` `Proposed`, `ADR-0003` `Accepted` | [SPIKE-02](spikes/02-stack-feasibility.md) confirmed integer-money + split invariant exact (8/8 tests) | **Foundation slice → `Ready`**; no further pre-build spike needed |
 | 2026-06-13 | **Foundation slice Done** (gate-green); `ADR-0002` → `Validated`; domain/data model → `Accepted`; FEAT-001/002 → `Implemented`; `06_API_CONTRACT` written; `ADR-0001` → `Accepted` | Built data→API→UI with 31 passing tests + HTTP smoke | **Slice 1** (core enter→allocate loop) is now unblocked & next |
 | 2026-06-13 | **Slice 1 Done** (gate-green); FEAT-003 `Implemented`; UX `Accepted`; transaction/allocation endpoints added to `06_API_CONTRACT` | Built enter→split-allocate across domain→API→UI (44 tests + HTTP smoke); SPIKE-01 felt-friction caveat exercised in-app | **Next: Slice 2** (accelerators — templates) |
+| 2026-06-13 | **Slice 2 Done** (gate-green); FEAT-004 `Implemented`; templates tables in `05_DATA_MODEL`; template endpoints in `06_API_CONTRACT`; template lines = **fixed amounts** (PRD open Q resolved) | Built templates + distribute/keyboard accelerators (55 tests + HTTP smoke); smoke caught & fixed a content-type/error-status bug | **Next: edit-a-past-split (#5), archive (#6)** |
 
 ## 6. Done / shipped
 
 | # | Item | Shipped | Notes |
 | - | ---- | ---- | ----- |
+| 4 | **Slice 2** — allocation templates + accelerators | 2026-06-13 | Apply/save templates · distribute-remaining · keyboard-first; 55 tests + HTTP smoke |
 | 3 | **Slice 1** — transactions & split allocation, data→API→UI | 2026-06-13 | Single/Split/partial · needs-allocation · allocate-later; 44 tests + HTTP smoke |
 | 1 | **Foundation slice** — accounts + envelopes, data→API→UI | 2026-06-13 | Gate-green: 31 tests (domain/API/web), web build, HTTP smoke; usable app shell |
 | 2 | SPIKE-02 — stack feasibility | 2026-06-13 | Proved integer-money + split invariant exact in TS (8/8); produced `ADR-0001`/`0002`/`0003` |
