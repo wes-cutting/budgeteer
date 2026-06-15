@@ -33,6 +33,9 @@ own ADRs but never weakens the baseline below.
   concatenation of untrusted input.
 - Return a **consistent error envelope**; never leak stack traces, secrets, or internal
   identifiers in errors.
+- **CORS is an allowlist, never `*`.** The browser app calls the API cross-origin, so the API
+  sends CORS headers (`@fastify/cors`) only for explicitly configured origins (env
+  `CORS_ORIGINS`; dev default = the Vite origin). Widen it deliberately per environment.
 
 ## 3. Authentication & authorization
 

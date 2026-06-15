@@ -22,6 +22,10 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
   input fails loudly with `400`.
 - **Versioning:** unversioned in V1 (single client). A `/v1` prefix will be introduced
   before any second consumer (change policy §5).
+- **CORS:** the browser app calls this API **cross-origin** (web on `:5173`, API on `:3001`),
+  so the API sends CORS headers via `@fastify/cors`. The allowed origins are an **allowlist**
+  (env `CORS_ORIGINS`, comma-separated; defaults to the Vite dev origins) — **never `*`**
+  (SECURITY.md). Without this, browsers block every response with "Failed to fetch".
 - **Authz:** **none yet** — V1 is a single implicit household (`DEFAULT_HOUSEHOLD_ID`). When
   multi-household lands it becomes **default-deny, household-scoped at the resource level**
   (ADR-0002, SECURITY.md). Every resource already carries `householdId` server-side.

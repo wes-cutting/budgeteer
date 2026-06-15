@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
+import cors from "@fastify/cors";
 import type { Kysely } from "kysely";
 import { z } from "zod";
 import {
@@ -109,8 +110,18 @@ function parseTemplateLines(
   return lines;
 }
 
-export function buildServer(db: Kysely<DB>, opts: { logger?: boolean } = {}): FastifyInstance {
+export function buildServer(
+  db: Kysely<DB>,
+  opts: { logger?: boolean; corsOrigins?: string[] } = {},
+): FastifyInstance {
   const app = Fastify({ logger: opts.logger ?? false });
+
+  // Browsers call this API cross-origin (web on :5173, API on :3001), so it must send CORS
+  // headers or the browser blocks every response ("Failed to fetch"). Allowlist only — the
+  // configured origins, never `*` (SECURITY.md). Default covers the Vite dev origin.
+  void app.register(cors, {
+    origin: opts.corsOrigins ?? ["http://localhost:5173", "http://127.0.0.1:5173"],
+  });
 
   // Tolerate an empty body on application/json requests (e.g. a bodyless DELETE) rather than
   // erroring; still reject malformed JSON with a 400.
