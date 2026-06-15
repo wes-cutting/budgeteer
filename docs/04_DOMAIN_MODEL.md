@@ -30,6 +30,7 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 | **Transfer** | A double-entry move of money between two **accounts**: a `transfers` parent linking two `kind: transfer` transaction legs (`−X` source, `+X` destination). The legs sum to zero; they carry no allocations (ADR-0004). |
 | **Envelope transfer** | A re-budget of money between two **envelopes** with no account movement (a dedicated `envelope_transfers` row). Extends envelope-balance derivation (ADR-0004 (B)). |
 | **Recurring rule** | A scheduled template transaction (account + direction + fixed amount + split + frequency) with a `next occurrence` cursor; **Post due** generates concrete transactions and advances the cursor (FEAT-009). |
+| **Reconciliation** | A recorded compare of an account's derived balance against the real bank **statement** balance at a point in time (FEAT-010). `difference = statement − derived`. Manual; no per-transaction *cleared* concept in V1. |
 | **Unallocated** | The part of a transaction not yet assigned to any envelope (`amount − Σ allocations`). May be non-zero ("enter now, split later"). |
 | **Account balance** | **Derived:** Σ of the account's transaction amounts. |
 | **Envelope balance** | **Derived:** Σ of the allocation amounts landing in that envelope. |
@@ -101,6 +102,17 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
     (each with the rule's split, `recurring_id` set) and advances `nextOccurrenceOn` past today,
     atomically per rule. Deleting a rule **keeps** generated transactions (their `recurringId`
     is nulled).
+
+### Reconciliation
+- **Purpose:** record a manual compare of an account's derived balance to its real bank balance (FEAT-010).
+- **Key attributes:** `id`, `householdId`, `accountId`, `statementBalanceCents` (the real balance, signed), `derivedBalanceCents` (the **snapshot** of the derived balance at reconcile time), `reconciledOn` (date), `createdAt`.
+- **Invariants:**
+  - `differenceCents = statementBalanceCents − derivedBalanceCents` is **derived**, never stored;
+    `matched ⟺ difference == 0`.
+  - It is a **record**, not a ledger entry — it creates **no** transaction and does **not**
+    affect any balance. Past reconciliations keep their snapshot (historical truth) even as the
+    account's derived balance later changes.
+  - V1 has **no per-transaction cleared/statement state** (deferred).
 
 ### Allocation
 - **Purpose:** assign a slice of a transaction to an envelope (the account↔envelope bridge).

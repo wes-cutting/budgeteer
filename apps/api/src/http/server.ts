@@ -18,6 +18,7 @@ import { makeTransactionService } from "../services/transactionService";
 import { makeTransferService } from "../services/transferService";
 import { makeEnvelopeTransferService } from "../services/envelopeTransferService";
 import { makeRecurringService } from "../services/recurringService";
+import { makeReconcileService } from "../services/reconcileService";
 import { makeTemplateService } from "../services/templateService";
 import { DuplicateNameError, NotFoundError, ValidationError } from "../services/errors";
 
@@ -72,6 +73,11 @@ const createRecurringBody = z.object({
   frequency: z.string(),
   anchorOn: z.string(),
   lines: z.array(allocationInput).default([]),
+});
+
+const createReconciliationBody = z.object({
+  statementBalance: z.string(),
+  reconciledOn: z.string().optional(),
 });
 
 const templateLineInput = z.object({ envelopeId: z.string().min(1), amount: z.string() });
@@ -142,6 +148,7 @@ export function buildServer(
   const transfers = makeTransferService(db);
   const envelopeTransfers = makeEnvelopeTransferService(db);
   const recurring = makeRecurringService(db);
+  const reconcile = makeReconcileService(db);
   const templates = makeTemplateService(db);
 
   app.setErrorHandler((err, _req, reply) => {
@@ -313,6 +320,41 @@ export function buildServer(
     } catch (e) {
       if (e instanceof NotFoundError) return fail(reply, 404, "Transaction not found.");
       if (e instanceof ValidationError) return fail(reply, 400, e.message);
+      throw e;
+    }
+  });
+
+  // --- Reconcile to bank (FEAT-010, manual balance compare) ---
+  app.get("/accounts/:accountId/reconciliations", async (req, reply) => {
+    const { accountId } = req.params as { accountId: string };
+    try {
+      return { reconciliations: await reconcile.listByAccount(accountId) };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
+      throw e;
+    }
+  });
+
+  app.post("/accounts/:accountId/reconciliations", async (req, reply) => {
+    const parsed = createReconciliationBody.safeParse(req.body);
+    if (!parsed.success) return fail(reply, 400, "Invalid request body.");
+    let statementBalanceCents: number;
+    try {
+      statementBalanceCents = parseMoney(parsed.data.statementBalance);
+    } catch {
+      return fail(reply, 400, "Enter an amount like 1234.56.");
+    }
+    const reconciledOn = parsed.data.reconciledOn ?? todayStr();
+    if (!DATE_RE.test(reconciledOn)) return fail(reply, 400, "Date must be YYYY-MM-DD.");
+    const { accountId } = req.params as { accountId: string };
+    try {
+      const reconciliation = await reconcile.create(accountId, {
+        statementBalanceCents,
+        reconciledOn,
+      });
+      return reply.code(201).send({ reconciliation });
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
       throw e;
     }
   });

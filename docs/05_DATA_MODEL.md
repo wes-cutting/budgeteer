@@ -156,6 +156,19 @@ seeded household** in V1 (no auth/RLS yet).
 | position | integer | no | line order |
 - **Keys/Indexes:** PK `id`; index `(recurring_id)`.
 
+### reconciliations → `Reconciliation` (FEAT-010)
+| Field | Type | Null | Notes |
+| ----- | ---- | ---- | ----- |
+| id | uuid | no | PK |
+| household_id | uuid | no | FK → households(id), **restrict** |
+| account_id | uuid | no | FK → accounts(id), **restrict** |
+| statement_balance_cents | bigint | no | the real bank balance entered (signed; ADR-0003) |
+| derived_balance_cents | bigint | no | **snapshot** of the derived balance at reconcile time |
+| reconciled_on | date | no | the reconciliation date |
+| created_at | timestamptz | no | default `now()` |
+- **Keys/Indexes:** PK `id`; index `(account_id)`. `difference = statement − derived` is
+  **derived**, never stored. A record only — no transaction, no balance effect.
+
 ## 3. Relationships & integrity
 
 - `accounts/envelopes/transactions.household_id → households` — **restrict** (the single V1
@@ -197,7 +210,8 @@ created as migrations alongside the tables.
 > (`Σ allocations + Σ incoming − Σ outgoing`) via `create or replace`. **`#9`** adds the
 > `recurring_transactions` + `recurring_lines` tables and the nullable `transactions.recurring_id`
 > FK (idempotent `add column if not exists`); balance views are unchanged (generated rows are
-> ordinary transactions/allocations).
+> ordinary transactions/allocations). **`#10`** adds the `reconciliations` table (a recorded
+> compare; no transaction, no balance/view change).
 
 ## 5. Seed / fixtures
 

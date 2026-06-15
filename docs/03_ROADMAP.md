@@ -14,16 +14,17 @@ Sequencing model: docs/00_WAYS_OF_WORKING.md §7.
 | Last updated  | 2026-06-14     |
 | Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) |
 
-**Current focus:** **`#9` recurring transactions — ✅ `Done` (gate-green).** Define a recurring
-rule (account + direction + fixed amount + split + schedule: weekly/biweekly/monthly anchored on
-a date) and **Post due** to generate the concrete transactions due on/before today — **idempotent**
-via a `next_occurrence_on` cursor (no background worker). Generated transactions are ordinary
-transactions (register + balances; partial split → needs-allocation) carrying `recurring_id`;
-deleting a rule keeps them. New `recurring_transactions` + `recurring_lines` tables; pure
-schedule core (`recurring.ts`, monthly anchor-day clamp). FEAT-009. **106 tests pass**, typecheck
-+ web build + format green; create→post-due→idempotent re-post HTTP-smoked. **Next up:**
-**reconcile `#10`**, then the **analysis** area (`#11`–`#14`). Deferred gate item unchanged:
-browser **Playwright e2e** (add in CI). Prior block: **`#8` refunds — ✅ Done**, 93 tests.
+**Current focus:** **`#10` reconcile to bank — ✅ `Done` (gate-green).** A **plain balance
+compare**: enter your real bank balance on an account's register, see the live signed difference
+(`bank − Budgeteer`), and **record** the reconciliation (snapshots the derived balance + statement
++ date) so each account keeps a **"last reconciled"** history. No per-transaction *cleared*
+concept; on a mismatch the app just shows the difference (owner decisions). New `reconciliations`
+table; no transaction/balance change (a recorded compare). Resolves the PRD §9 reconcile open
+question (FEAT-010). **120 tests pass**, typecheck + web build + format green; record + match +
+mismatch + history + negative-balance HTTP-smoked. **Next up:** the **analysis** area
+(`#11`–`#14`), now that the core loop + transfers + recurring produce real data to analyze.
+Deferred gate item unchanged: browser **Playwright e2e** (add in CI). Prior block: **`#9`
+recurring — ✅ Done**, 106 tests.
 
 ---
 
@@ -106,7 +107,7 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | 7b | **Reallocation** (envelope↔envelope) | slice | Med | Med | #3 · ✅ SPIKE-04 · 7a | **✅ Done** | Built & gate-green (82 tests + HTTP smoke); `envelope_transfers` table + two-source `v_envelope_balances`; into-archived blocked, drain/negative allowed; [ADR-0004](adr/ADR-0004-transfer-modeling.md)·[feature](features/transfers.md)·[UX](ux/transfers.md) |
 | 8 | **Refunds** (negative allocation within a split) | slice | Med | Med | #3 | **✅ Done** | Built & gate-green (93 tests + HTTP smoke); per-row **Refund** toggle, signed-total invariant (no schema change); [feature](features/refunds.md)·[UX](ux/refunds.md). Resolved the "negative rows?" open Q |
 | 9 | **Recurring transactions** | slice | Med | Low | #3 | **✅ Done** | Built & gate-green (106 tests + HTTP smoke); rule + split + schedule, idempotent **Post due** generator; [feature](features/recurring.md)·[UX](ux/recurring.md) |
-| 10 | **Reconcile to bank** (manual balance compare) | slice | Med | Low | #1 | Planned | Open Q: cleared/statement concept vs. plain compare |
+| 10 | **Reconcile to bank** (manual balance compare) | slice | Med | Low | #1 | **✅ Done** | Built & gate-green (120 tests + HTTP smoke); plain compare + recorded history; resolved the cleared-vs-compare open Q (plain compare); [feature](features/reconcile.md)·[UX](ux/reconcile.md) |
 | 11 | **Analysis — spend by envelope over time** (monthly/annual rollups) | slice | Med | Low | real data from #3 | Planned | Replaces the `18 Monthly` tab, generated not hand-keyed |
 | 12 | **Analysis — budget vs. actual** | slice | Med | Med | envelope **monthly targets** capability | Planned | Needs per-envelope targets (open Q) |
 | 13 | **Analysis — cash-flow forecast** (pay-period projection) | slice | Med | Med | #3 · #9 | Planned | Most modeling-heavy; the `Budget` tab's forward look |
@@ -146,11 +147,14 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | 2026-06-14 | **`#7b` Done** (gate-green) — completes `#7`/ADR-0004; `envelope_transfers` table + **two-source** `v_envelope_balances` in `05_DATA_MODEL`; `POST /envelope-transfers` in `06_API_CONTRACT`; EnvelopeTransfer entity in `04_DOMAIN_MODEL` | Built envelope-reallocation across domain→API→UI (82 tests + HTTP smoke); orthogonal to accounts, split model untouched | **Next: refunds `#8`**, recurring `#9`, reconcile `#10`, then analysis (`#11`–`#14`) |
 | 2026-06-14 | Owner confirmed #8 scope: **mixed-sign rows within a split** via a per-row **Refund** toggle. **`#8` Done** (gate-green); FEAT-008 `Implemented`; **no schema change** (split invariant already governs the signed total); allocation inputs gain `refund` in `06_API_CONTRACT`; PRD §9 negative-rows Q **resolved** | Found the heart invariant already admits mixed signs — only the boundary blocked it; opened it + added the editor toggle (93 tests + HTTP smoke) | **Next: recurring `#9`**, reconcile `#10`, then analysis (`#11`–`#14`) |
 | 2026-06-14 | Owner confirmed #9 scope: **weekly/biweekly/monthly**, explicit **Post due**, rule **carries its own split**. **`#9` Done** (gate-green); FEAT-009 `Implemented`; `recurring_transactions` + `recurring_lines` tables + `transactions.recurring_id` in `05_DATA_MODEL`; recurring endpoints in `06_API_CONTRACT`; RecurringTransaction entity in `04_DOMAIN_MODEL` | Built rule + idempotent generator across domain→API→UI (106 tests + HTTP smoke); pure schedule core with monthly anchor-day clamp | **Next: reconcile `#10`**, then analysis (`#11`–`#14`) |
+| 2026-06-15 | Owner confirmed #10 scope: **plain compare + recorded history** (not a cleared/statement workflow); on mismatch **show the difference** (no auto-adjustment). **`#10` Done** (gate-green); FEAT-010 `Implemented`; `reconciliations` table in `05_DATA_MODEL`; reconcile endpoints in `06_API_CONTRACT`; Reconciliation entity in `04_DOMAIN_MODEL`; PRD §9 reconcile Q **resolved** | Built record+compare across domain→API→UI (120 tests + HTTP smoke); a recorded compare, no ledger/balance effect | **Next: the analysis area (`#11`–`#14`)** |
+| 2026-06-15 | **CORS + .env fix** (not a roadmap slice): the browser app couldn't reach the API (no CORS headers → "Failed to fetch"); added `@fastify/cors` allowlist (`CORS_ORIGINS`) + repo-root `.env` auto-load (dotenv / Vite `envDir`) | Found via running the app at `localhost:5173`; the browser→API path was never exercised by curl/inject smokes | Hardening follow-up: add **browser e2e** (would have caught this) |
 
 ## 6. Done / shipped
 
 | # | Item | Shipped | Notes |
 | - | ---- | ---- | ----- |
+| 10 | **`#10`** — reconcile to bank (manual compare) | 2026-06-15 | Plain compare + recorded history · `reconciliations` table · no balance effect; [FEAT-010](features/reconcile.md); 120 tests + HTTP smoke |
 | 9 | **`#9`** — recurring transactions | 2026-06-14 | Rule + split + schedule (weekly/biweekly/monthly) · idempotent **Post due** · `recurring_id` on generated txns; [FEAT-009](features/recurring.md); 106 tests + HTTP smoke |
 | 8 | **`#8`** — refunds (refund rows within a split) | 2026-06-14 | Per-row **Refund** toggle · signed-total invariant · no schema change; [FEAT-008](features/refunds.md); 93 tests + HTTP smoke |
 | 7b | **`#7b`** — envelope↔envelope reallocation | 2026-06-14 | `envelope_transfers` table · two-source `v_envelope_balances` · into-archived blocked/drain+negative allowed; [ADR-0004](adr/ADR-0004-transfer-modeling.md); 82 tests + HTTP smoke |

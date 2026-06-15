@@ -20,6 +20,7 @@ export interface DB {
   template_lines: TemplateLinesTable;
   recurring_transactions: RecurringTransactionsTable;
   recurring_lines: RecurringLinesTable;
+  reconciliations: ReconciliationsTable;
   v_account_balances: AccountBalancesView;
   v_envelope_balances: EnvelopeBalancesView;
 }
@@ -129,6 +130,17 @@ interface RecurringLinesTable {
   amount_cents: IntCents; // positive magnitude
   refund: ColumnType<boolean, boolean | undefined, boolean>;
   position: number;
+}
+
+/** Reconcile-to-bank record (FEAT-010): derived-vs-statement compare at a point in time. */
+interface ReconciliationsTable {
+  id: Generated<string>;
+  household_id: string;
+  account_id: string;
+  statement_balance_cents: IntCents;
+  derived_balance_cents: IntCents;
+  reconciled_on: DateOnly;
+  created_at: Generated<Date>;
 }
 
 interface AccountBalancesView {

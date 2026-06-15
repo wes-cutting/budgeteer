@@ -221,6 +221,23 @@ export async function migrateToLatest(db: Kysely<DB>): Promise<void> {
     db,
   );
 
+  // Reconcile-to-bank (FEAT-010): a recorded compare of the derived balance vs. the real
+  // statement balance. Manual; no per-transaction cleared concept in V1.
+  await sql`
+    create table if not exists reconciliations (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references households(id),
+      account_id uuid not null references accounts(id),
+      statement_balance_cents bigint not null,
+      derived_balance_cents bigint not null,
+      reconciled_on date not null,
+      created_at timestamptz not null default now()
+    )
+  `.execute(db);
+  await sql`create index if not exists reconciliations_account_idx on reconciliations (account_id)`.execute(
+    db,
+  );
+
   await sql`
     insert into households (id, name)
     values (${DEFAULT_HOUSEHOLD_ID}::uuid, 'Default household')

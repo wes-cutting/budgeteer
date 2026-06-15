@@ -161,6 +161,21 @@ export interface PostDueResult {
   rules: { recurringId: string; posted: number; error?: string }[];
 }
 
+export interface ReconciliationView {
+  id: string;
+  accountId: string;
+  statementBalanceCents: number;
+  derivedBalanceCents: number;
+  differenceCents: number; // statement − derived
+  matched: boolean;
+  reconciledOn: string;
+}
+
+export interface CreateReconciliationInput {
+  statementBalance: string;
+  reconciledOn?: string;
+}
+
 /** Thrown on a non-2xx response, carrying the server's user-facing message. */
 export class ApiError extends Error {}
 
@@ -192,6 +207,11 @@ export interface Api {
   createRecurring(input: CreateRecurringInput): Promise<RecurringView>;
   deleteRecurring(id: string): Promise<void>;
   postDueRecurring(): Promise<PostDueResult>;
+  listReconciliations(accountId: string): Promise<ReconciliationView[]>;
+  createReconciliation(
+    accountId: string,
+    input: CreateReconciliationInput,
+  ): Promise<ReconciliationView>;
 }
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -330,5 +350,20 @@ export const httpApi: Api = {
   async postDueRecurring() {
     return (await request<{ result: PostDueResult }>("/recurring/post-due", { method: "POST" }))
       .result;
+  },
+  async listReconciliations(accountId) {
+    return (
+      await request<{ reconciliations: ReconciliationView[] }>(
+        `/accounts/${accountId}/reconciliations`,
+      )
+    ).reconciliations;
+  },
+  async createReconciliation(accountId, input) {
+    return (
+      await request<{ reconciliation: ReconciliationView }>(
+        `/accounts/${accountId}/reconciliations`,
+        { method: "POST", body: JSON.stringify(input) },
+      )
+    ).reconciliation;
   },
 };

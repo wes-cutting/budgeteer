@@ -4,6 +4,7 @@ import {
   ApiError,
   type EnvelopeTransferView,
   type EnvelopeView,
+  type ReconciliationView,
   type RecurringFrequency,
   type RecurringView,
   type TemplateView,
@@ -51,6 +52,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
   const txns: TransactionView[] = [];
   const envelopeTransfers: EnvelopeTransferView[] = [];
   const recurrings: RecurringView[] = [];
+  const reconciliations: ReconciliationView[] = [];
   const templates: TemplateView[] = [];
   const today = () => new Date().toISOString().slice(0, 10);
   let seq = 0;
@@ -334,6 +336,31 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       }
       recompute();
       return { posted, rules };
+    },
+    async listReconciliations(accountId) {
+      return reconciliations
+        .filter((r) => r.accountId === accountId)
+        .slice()
+        .sort((a, b) => (a.reconciledOn < b.reconciledOn ? 1 : -1))
+        .map((r) => ({ ...r }));
+    },
+    async createReconciliation(accountId, { statementBalance, reconciledOn }) {
+      const account = accounts.find((a) => a.id === accountId);
+      if (!account) throw new ApiError("Account not found.");
+      recompute();
+      const derived = account.balanceCents;
+      const statement = parseCents(statementBalance) ?? 0;
+      const rec: ReconciliationView = {
+        id: newId("rec"),
+        accountId,
+        statementBalanceCents: statement,
+        derivedBalanceCents: derived,
+        differenceCents: statement - derived,
+        matched: statement - derived === 0,
+        reconciledOn: reconciledOn ?? "2026-06-15",
+      };
+      reconciliations.push(rec);
+      return { ...rec };
     },
     async listTemplates() {
       return templates.map((t) => ({ ...t, lines: t.lines.map((l) => ({ ...l })) }));

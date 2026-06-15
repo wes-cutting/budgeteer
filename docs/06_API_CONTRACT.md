@@ -141,6 +141,19 @@ budgeted money between two envelopes with **no** account movement; envelope bala
   Errors: `400` (amount ≤ 0, same envelope, **archived destination**, bad date); `404` (envelope
   missing). Draining **from** an archived envelope is allowed; envelopes may go **negative**.
 
+### Reconcile to bank (FEAT-010)
+
+`ReconciliationView = { id, accountId, statementBalanceCents, derivedBalanceCents (snapshot),
+differenceCents (= statement − derived), matched, reconciledOn }`. A recorded **compare** — it
+creates no transaction and changes no balance; the difference is **derived**, never stored.
+
+- **`POST /accounts/:accountId/reconciliations`** `{ statementBalance: string, reconciledOn?:
+  "YYYY-MM-DD" }` → `201 { reconciliation }`. `statementBalance` may be **negative** (credit
+  accounts) — parsed with `parseMoney`, not a positive-magnitude. Errors: `400` (unparseable
+  amount, bad date); `404` (account missing).
+- **`GET /accounts/:accountId/reconciliations`** → `200 { reconciliations: ReconciliationView[] }`
+  (newest first); `404` if the account is missing.
+
 ### Recurring transactions (FEAT-009)
 
 `RecurringView = { id, accountId, accountName, direction, amountCents (positive magnitude),

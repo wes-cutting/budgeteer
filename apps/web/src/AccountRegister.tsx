@@ -10,6 +10,7 @@ import {
 import { formatCents } from "./format";
 import { AddTransactionForm } from "./AddTransactionForm";
 import { TransferForm } from "./TransferForm";
+import { ReconcilePanel } from "./ReconcilePanel";
 import { InlineAllocationEditor } from "./InlineAllocationEditor";
 
 interface Props {
@@ -115,6 +116,8 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
         accounts={accounts}
         onTransferred={() => void load()}
       />
+
+      <ReconcilePanel api={api} accountId={accountId} derivedBalanceCents={balanceCents ?? 0} />
 
       <section aria-labelledby="register-heading">
         <h2 id="register-heading">Transactions</h2>
