@@ -4,10 +4,42 @@ import {
   ApiError,
   type EnvelopeTransferView,
   type EnvelopeView,
+  type RecurringFrequency,
+  type RecurringView,
   type TemplateView,
   type TransactionView,
 } from "../api";
 import { parseCents } from "../format";
+
+// Minimal date stepping mirroring @budgeteer/domain recurring.ts (the fake doesn't import the
+// domain package); enough for component tests of the Recurring page.
+const daysInMonth = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+function nextOcc(cur: string, freq: RecurringFrequency, anchorDay: number): string {
+  const [y, m, d] = cur.split("-").map(Number) as [number, number, number];
+  if (freq === "weekly" || freq === "biweekly") {
+    const dt = new Date(Date.UTC(y, m - 1, d) + (freq === "weekly" ? 7 : 14) * 86400000);
+    return dt.toISOString().slice(0, 10);
+  }
+  let nm = m + 1;
+  let ny = y;
+  if (nm > 12) {
+    nm = 1;
+    ny += 1;
+  }
+  const day = Math.min(anchorDay, daysInMonth(ny, nm));
+  return `${ny}-${String(nm).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+function dueDates(cursor: string, today: string, freq: RecurringFrequency, anchorDay: number) {
+  const dates: string[] = [];
+  let cur = cursor;
+  let guard = 0;
+  while (cur <= today && guard < 600) {
+    dates.push(cur);
+    cur = nextOcc(cur, freq, anchorDay);
+    guard += 1;
+  }
+  return { dates, nextCursor: cur };
+}
 
 /**
  * An in-memory fake of the API for component tests — mirrors the server's derived balances and
@@ -18,7 +50,9 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
   const envelopes: EnvelopeView[] = [];
   const txns: TransactionView[] = [];
   const envelopeTransfers: EnvelopeTransferView[] = [];
+  const recurrings: RecurringView[] = [];
   const templates: TemplateView[] = [];
+  const today = () => new Date().toISOString().slice(0, 10);
   let seq = 0;
   const newId = (p: string) => `${p}${seq++}`;
   const envName = (id: string) => envelopes.find((e) => e.id === id)?.name ?? "?";
@@ -80,6 +114,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       unallocatedCents: 0,
       transferId: transfer?.id ?? null,
       transferCounterpartName: transfer?.counterpartName ?? null,
+      recurringId: null,
     };
   }
 
@@ -227,6 +262,78 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
     async listNeedsAllocation() {
       recompute();
       return txns.filter((t) => t.kind !== "transfer" && t.unallocatedCents !== 0).map(clone);
+    },
+    async listRecurring() {
+      const t = today();
+      return recurrings.map((r) => ({
+        ...r,
+        dueCount: dueDates(r.nextOccurrenceOn, t, r.frequency, Number(r.anchorOn.slice(8, 10)))
+          .dates.length,
+        lines: r.lines.map((l) => ({ ...l })),
+      }));
+    },
+    async createRecurring({ accountId, kind, amount, payee, memo, frequency, anchorOn, lines }) {
+      const account = accounts.find((a) => a.id === accountId);
+      if (!account) throw new ApiError("Account not found.");
+      if (lines.length === 0) throw new ApiError("Add at least one split line.");
+      const rule: RecurringView = {
+        id: newId("rec"),
+        accountId,
+        accountName: account.name,
+        direction: kind,
+        amountCents: parseCents(amount) ?? 0,
+        payee: payee ?? null,
+        memo: memo ?? null,
+        frequency,
+        anchorOn,
+        nextOccurrenceOn: anchorOn,
+        dueCount: 0,
+        lines: lines.map((l) => ({
+          id: newId("rl"),
+          envelopeId: l.envelopeId,
+          envelopeName: envName(l.envelopeId),
+          amountCents: parseCents(l.amount) ?? 0,
+          refund: l.refund ?? false,
+        })),
+      };
+      recurrings.push(rule);
+      return { ...rule, lines: rule.lines.map((l) => ({ ...l })) };
+    },
+    async deleteRecurring(id) {
+      const i = recurrings.findIndex((r) => r.id === id);
+      if (i < 0) throw new ApiError("Recurring rule not found.");
+      recurrings.splice(i, 1);
+    },
+    async postDueRecurring() {
+      const t = today();
+      let posted = 0;
+      const rules: { recurringId: string; posted: number; error?: string }[] = [];
+      for (const r of recurrings) {
+        const account = accounts.find((a) => a.id === r.accountId);
+        const due = dueDates(r.nextOccurrenceOn, t, r.frequency, Number(r.anchorOn.slice(8, 10)));
+        if (due.dates.length === 0 || !account) continue;
+        const sign = r.direction === "deposit" ? 1 : -1;
+        for (const date of due.dates) {
+          const txn = makeTxn(
+            account,
+            "normal",
+            r.amountCents * sign,
+            r.payee,
+            r.lines.map((l) => ({
+              envelopeId: l.envelopeId,
+              amountCents: l.amountCents * (l.refund ? -sign : sign),
+            })),
+            date,
+          );
+          txn.recurringId = r.id;
+          txns.push(txn);
+        }
+        r.nextOccurrenceOn = due.nextCursor;
+        posted += due.dates.length;
+        rules.push({ recurringId: r.id, posted: due.dates.length });
+      }
+      recompute();
+      return { posted, rules };
     },
     async listTemplates() {
       return templates.map((t) => ({ ...t, lines: t.lines.map((l) => ({ ...l })) }));

@@ -29,6 +29,7 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 | **Allocation (split)** | A portion of a transaction assigned to **one** envelope. A transaction fans out to one-or-many allocations. |
 | **Transfer** | A double-entry move of money between two **accounts**: a `transfers` parent linking two `kind: transfer` transaction legs (`−X` source, `+X` destination). The legs sum to zero; they carry no allocations (ADR-0004). |
 | **Envelope transfer** | A re-budget of money between two **envelopes** with no account movement (a dedicated `envelope_transfers` row). Extends envelope-balance derivation (ADR-0004 (B)). |
+| **Recurring rule** | A scheduled template transaction (account + direction + fixed amount + split + frequency) with a `next occurrence` cursor; **Post due** generates concrete transactions and advances the cursor (FEAT-009). |
 | **Unallocated** | The part of a transaction not yet assigned to any envelope (`amount − Σ allocations`). May be non-zero ("enter now, split later"). |
 | **Account balance** | **Derived:** Σ of the account's transaction amounts. |
 | **Envelope balance** | **Derived:** Σ of the allocation amounts landing in that envelope. |
@@ -87,6 +88,19 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
   - Affects **only** envelope balances (the source decreases, the destination increases by the
     same magnitude — budgeted total conserved); **no** account/transaction is created.
   - **Negative** envelope balances are permitted (consistent with normal over-spending).
+
+### RecurringTransaction
+- **Purpose:** a scheduled template that generates real transactions on a cadence (FEAT-009).
+- **Key attributes:** `id`, `householdId`, `accountId`, `direction` (`deposit | withdrawal`), `amountCents` (positive magnitude), `payee?`, `memo?`, `frequency` (`weekly | biweekly | monthly`), `anchorOn` (date), `nextOccurrenceOn` (cursor), `createdAt`; plus ordered **lines** (`envelopeId`, positive `amountCents`, `refund`).
+- **Invariants:**
+  - Has ≥ 1 line; the lines form a valid split for the (signed) amount (same invariant as a
+    manual transaction — over-allocation / net-flip rejected at creation).
+  - **Monthly** occurrences land on the **anchor day-of-month**, clamped to short months
+    (31 → Feb 28/29 → 31); weekly/biweekly add 7/14 days.
+  - **Post due** is **idempotent**: it generates one transaction per occurrence on/before today
+    (each with the rule's split, `recurring_id` set) and advances `nextOccurrenceOn` past today,
+    atomically per rule. Deleting a rule **keeps** generated transactions (their `recurringId`
+    is nulled).
 
 ### Allocation
 - **Purpose:** assign a slice of a transaction to an envelope (the account↔envelope bridge).

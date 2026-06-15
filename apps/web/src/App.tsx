@@ -4,12 +4,14 @@ import { Dashboard } from "./Dashboard";
 import { AccountRegister } from "./AccountRegister";
 import { NeedsAllocation } from "./NeedsAllocation";
 import { TemplatesView } from "./TemplatesView";
+import { RecurringView } from "./RecurringView";
 
 type View =
   | { name: "dashboard" }
   | { name: "account"; accountId: string; accountName: string }
   | { name: "needs" }
-  | { name: "templates" };
+  | { name: "templates" }
+  | { name: "recurring" };
 
 export function App({ api }: { api: Api }) {
   const [view, setView] = useState<View>({ name: "dashboard" });
@@ -31,6 +33,9 @@ export function App({ api }: { api: Api }) {
   if (view.name === "templates") {
     return <TemplatesView api={api} onBack={() => setView({ name: "dashboard" })} />;
   }
+  if (view.name === "recurring") {
+    return <RecurringView api={api} onBack={() => setView({ name: "dashboard" })} />;
+  }
   return (
     <Dashboard
       api={api}
@@ -39,6 +44,7 @@ export function App({ api }: { api: Api }) {
       }
       onOpenNeeds={() => setView({ name: "needs" })}
       onOpenTemplates={() => setView({ name: "templates" })}
+      onOpenRecurring={() => setView({ name: "recurring" })}
     />
   );
 }

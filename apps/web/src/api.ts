@@ -41,6 +41,7 @@ export interface TransactionView {
   unallocatedCents: number;
   transferId: string | null;
   transferCounterpartName: string | null;
+  recurringId: string | null;
 }
 
 export interface TransferLegView {
@@ -119,6 +120,47 @@ export interface TemplateView {
   lines: TemplateLineView[];
 }
 
+export type RecurringFrequency = "weekly" | "biweekly" | "monthly";
+
+export interface RecurringLineView {
+  id: string;
+  envelopeId: string;
+  envelopeName: string;
+  amountCents: number;
+  refund: boolean;
+}
+
+export interface RecurringView {
+  id: string;
+  accountId: string;
+  accountName: string;
+  direction: "deposit" | "withdrawal";
+  amountCents: number;
+  payee: string | null;
+  memo: string | null;
+  frequency: RecurringFrequency;
+  anchorOn: string;
+  nextOccurrenceOn: string;
+  dueCount: number;
+  lines: RecurringLineView[];
+}
+
+export interface CreateRecurringInput {
+  accountId: string;
+  kind: "deposit" | "withdrawal";
+  amount: string;
+  payee?: string;
+  memo?: string;
+  frequency: RecurringFrequency;
+  anchorOn: string;
+  lines: AllocationDraft[];
+}
+
+export interface PostDueResult {
+  posted: number;
+  rules: { recurringId: string; posted: number; error?: string }[];
+}
+
 /** Thrown on a non-2xx response, carrying the server's user-facing message. */
 export class ApiError extends Error {}
 
@@ -146,6 +188,10 @@ export interface Api {
     input: { name: string; lines: AllocationDraft[] },
   ): Promise<TemplateView>;
   deleteTemplate(id: string): Promise<void>;
+  listRecurring(): Promise<RecurringView[]>;
+  createRecurring(input: CreateRecurringInput): Promise<RecurringView>;
+  deleteRecurring(id: string): Promise<void>;
+  postDueRecurring(): Promise<PostDueResult>;
 }
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -266,5 +312,23 @@ export const httpApi: Api = {
   },
   async deleteTemplate(id) {
     await request<unknown>(`/templates/${id}`, { method: "DELETE" });
+  },
+  async listRecurring() {
+    return (await request<{ recurring: RecurringView[] }>("/recurring")).recurring;
+  },
+  async createRecurring(input) {
+    return (
+      await request<{ recurring: RecurringView }>("/recurring", {
+        method: "POST",
+        body: JSON.stringify(input),
+      })
+    ).recurring;
+  },
+  async deleteRecurring(id) {
+    await request<unknown>(`/recurring/${id}`, { method: "DELETE" });
+  },
+  async postDueRecurring() {
+    return (await request<{ result: PostDueResult }>("/recurring/post-due", { method: "POST" }))
+      .result;
   },
 };

@@ -18,11 +18,13 @@ export function Dashboard({
   onOpenAccount,
   onOpenNeeds,
   onOpenTemplates,
+  onOpenRecurring,
 }: {
   api: Api;
   onOpenAccount?: (account: AccountView) => void;
   onOpenNeeds?: () => void;
   onOpenTemplates?: () => void;
+  onOpenRecurring?: () => void;
 }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
@@ -77,6 +79,9 @@ export function Dashboard({
         </button>
         <button type="button" onClick={() => onOpenTemplates?.()}>
           Templates
+        </button>
+        <button type="button" onClick={() => onOpenRecurring?.()}>
+          Recurring
         </button>
       </header>
 

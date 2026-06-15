@@ -5,3 +5,4 @@ export * from "./envelope";
 export * from "./transaction";
 export * from "./allocation";
 export * from "./transfer";
+export * from "./recurring";

@@ -180,6 +180,47 @@ export async function migrateToLatest(db: Kysely<DB>): Promise<void> {
     db,
   );
 
+  // Recurring transactions (FEAT-009): a rule + its split lines; a "Post due" generator writes
+  // concrete transactions and advances next_occurrence_on.
+  await sql`
+    create table if not exists recurring_transactions (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references households(id),
+      account_id uuid not null references accounts(id),
+      direction text not null check (direction in ('deposit','withdrawal')),
+      amount_cents bigint not null check (amount_cents > 0),
+      payee text,
+      memo text,
+      frequency text not null check (frequency in ('weekly','biweekly','monthly')),
+      anchor_on date not null,
+      next_occurrence_on date not null,
+      created_at timestamptz not null default now()
+    )
+  `.execute(db);
+  await sql`create index if not exists recurring_household_idx on recurring_transactions (household_id)`.execute(
+    db,
+  );
+  await sql`
+    create table if not exists recurring_lines (
+      id uuid primary key default gen_random_uuid(),
+      recurring_id uuid not null references recurring_transactions(id) on delete cascade,
+      envelope_id uuid not null references envelopes(id),
+      amount_cents bigint not null check (amount_cents > 0),
+      refund boolean not null default false,
+      position integer not null
+    )
+  `.execute(db);
+  await sql`create index if not exists recurring_lines_recurring_idx on recurring_lines (recurring_id)`.execute(
+    db,
+  );
+  // Traceability link from a generated transaction back to its rule (kept on rule delete).
+  await sql`alter table transactions add column if not exists recurring_id uuid references recurring_transactions(id) on delete set null`.execute(
+    db,
+  );
+  await sql`create index if not exists transactions_recurring_idx on transactions (recurring_id)`.execute(
+    db,
+  );
+
   await sql`
     insert into households (id, name)
     values (${DEFAULT_HOUSEHOLD_ID}::uuid, 'Default household')
