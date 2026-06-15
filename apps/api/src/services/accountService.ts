@@ -3,6 +3,7 @@ import { type AccountKind, nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
 import { todayStr, toISO } from "../util/dates";
+import { asDuplicateName } from "./dbErrors";
 import { DuplicateNameError, NotFoundError } from "./errors";
 
 export interface AccountView {
@@ -49,75 +50,79 @@ export function makeAccountService(db: Kysely<DB>) {
       kind: AccountKind;
       startingBalanceCents: number;
     }): Promise<AccountView> {
-      const id = await db.transaction().execute(async (trx) => {
-        const names = await trx
-          .selectFrom("accounts")
-          .select("name")
-          .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
-          .execute();
-        if (
-          nameExists(
-            names.map((n) => n.name),
-            input.name,
-          )
-        ) {
-          throw new DuplicateNameError("An account with that name already exists.");
-        }
-        const account = await trx
-          .insertInto("accounts")
-          .values({
-            household_id: DEFAULT_HOUSEHOLD_ID,
-            name: input.name,
-            kind: input.kind,
-            archived_at: null,
-          })
-          .returning("id")
-          .executeTakeFirstOrThrow();
-        await trx
-          .insertInto("transactions")
-          .values({
-            household_id: DEFAULT_HOUSEHOLD_ID,
-            account_id: account.id,
-            amount_cents: input.startingBalanceCents,
-            kind: "opening",
-            occurred_on: todayStr(),
-            payee: null,
-            memo: "Opening balance",
-          })
-          .execute();
-        return account.id;
-      });
+      const id = await asDuplicateName("An account with that name already exists.", () =>
+        db.transaction().execute(async (trx) => {
+          const names = await trx
+            .selectFrom("accounts")
+            .select("name")
+            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .execute();
+          if (
+            nameExists(
+              names.map((n) => n.name),
+              input.name,
+            )
+          ) {
+            throw new DuplicateNameError("An account with that name already exists.");
+          }
+          const account = await trx
+            .insertInto("accounts")
+            .values({
+              household_id: DEFAULT_HOUSEHOLD_ID,
+              name: input.name,
+              kind: input.kind,
+              archived_at: null,
+            })
+            .returning("id")
+            .executeTakeFirstOrThrow();
+          await trx
+            .insertInto("transactions")
+            .values({
+              household_id: DEFAULT_HOUSEHOLD_ID,
+              account_id: account.id,
+              amount_cents: input.startingBalanceCents,
+              kind: "opening",
+              occurred_on: todayStr(),
+              payee: null,
+              memo: "Opening balance",
+            })
+            .execute();
+          return account.id;
+        }),
+      );
       const row = await selectView(db).where("a.id", "=", id).executeTakeFirstOrThrow();
       return toView(row);
     },
 
     async rename(id: string, name: string): Promise<AccountView> {
-      return db.transaction().execute(async (trx) => {
-        const current = await trx
-          .selectFrom("accounts")
-          .select("id")
-          .where("id", "=", id)
-          .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
-          .executeTakeFirst();
-        if (!current) throw new NotFoundError("account");
-        const others = await trx
-          .selectFrom("accounts")
-          .select("name")
-          .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
-          .where("id", "<>", id)
-          .execute();
-        if (
-          nameExists(
-            others.map((n) => n.name),
-            name,
-          )
-        ) {
-          throw new DuplicateNameError("An account with that name already exists.");
-        }
-        await trx.updateTable("accounts").set({ name }).where("id", "=", id).execute();
-        const row = await selectView(trx).where("a.id", "=", id).executeTakeFirstOrThrow();
-        return toView(row);
-      });
+      return asDuplicateName("An account with that name already exists.", () =>
+        db.transaction().execute(async (trx) => {
+          const current = await trx
+            .selectFrom("accounts")
+            .select("id")
+            .where("id", "=", id)
+            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .executeTakeFirst();
+          if (!current) throw new NotFoundError("account");
+          const others = await trx
+            .selectFrom("accounts")
+            .select("name")
+            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .where("id", "<>", id)
+            .execute();
+          if (
+            nameExists(
+              others.map((n) => n.name),
+              name,
+            )
+          ) {
+            throw new DuplicateNameError("An account with that name already exists.");
+          }
+          await trx.updateTable("accounts").set({ name }).where("id", "=", id).execute();
+          const row = await selectView(trx).where("a.id", "=", id).executeTakeFirstOrThrow();
+          return toView(row);
+        }),
+      );
     },
   };
 }

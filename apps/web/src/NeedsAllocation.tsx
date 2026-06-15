@@ -39,6 +39,7 @@ export function NeedsAllocation({ api, onBack }: Props) {
 
   useEffect(() => {
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function saveAllocations(txn: TransactionView, allocations: AllocationDraft[]) {

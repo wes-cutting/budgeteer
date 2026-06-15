@@ -3,6 +3,7 @@ import { type EnvelopeKind, nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
 import { toISO } from "../util/dates";
+import { asDuplicateName } from "./dbErrors";
 import { DuplicateNameError, NotFoundError } from "./errors";
 
 export interface EnvelopeView {
@@ -44,63 +45,67 @@ export function makeEnvelopeService(db: Kysely<DB>) {
     },
 
     async create(input: { name: string; kind: EnvelopeKind }): Promise<EnvelopeView> {
-      const id = await db.transaction().execute(async (trx) => {
-        const names = await trx
-          .selectFrom("envelopes")
-          .select("name")
-          .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
-          .execute();
-        if (
-          nameExists(
-            names.map((n) => n.name),
-            input.name,
-          )
-        ) {
-          throw new DuplicateNameError("An envelope with that name already exists.");
-        }
-        const envelope = await trx
-          .insertInto("envelopes")
-          .values({
-            household_id: DEFAULT_HOUSEHOLD_ID,
-            name: input.name,
-            kind: input.kind,
-            archived_at: null,
-          })
-          .returning("id")
-          .executeTakeFirstOrThrow();
-        return envelope.id;
-      });
+      const id = await asDuplicateName("An envelope with that name already exists.", () =>
+        db.transaction().execute(async (trx) => {
+          const names = await trx
+            .selectFrom("envelopes")
+            .select("name")
+            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .execute();
+          if (
+            nameExists(
+              names.map((n) => n.name),
+              input.name,
+            )
+          ) {
+            throw new DuplicateNameError("An envelope with that name already exists.");
+          }
+          const envelope = await trx
+            .insertInto("envelopes")
+            .values({
+              household_id: DEFAULT_HOUSEHOLD_ID,
+              name: input.name,
+              kind: input.kind,
+              archived_at: null,
+            })
+            .returning("id")
+            .executeTakeFirstOrThrow();
+          return envelope.id;
+        }),
+      );
       const row = await selectView(db).where("e.id", "=", id).executeTakeFirstOrThrow();
       return toView(row);
     },
 
     async rename(id: string, name: string): Promise<EnvelopeView> {
-      return db.transaction().execute(async (trx) => {
-        const current = await trx
-          .selectFrom("envelopes")
-          .select("id")
-          .where("id", "=", id)
-          .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
-          .executeTakeFirst();
-        if (!current) throw new NotFoundError("envelope");
-        const others = await trx
-          .selectFrom("envelopes")
-          .select("name")
-          .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
-          .where("id", "<>", id)
-          .execute();
-        if (
-          nameExists(
-            others.map((n) => n.name),
-            name,
-          )
-        ) {
-          throw new DuplicateNameError("An envelope with that name already exists.");
-        }
-        await trx.updateTable("envelopes").set({ name }).where("id", "=", id).execute();
-        const row = await selectView(trx).where("e.id", "=", id).executeTakeFirstOrThrow();
-        return toView(row);
-      });
+      return asDuplicateName("An envelope with that name already exists.", () =>
+        db.transaction().execute(async (trx) => {
+          const current = await trx
+            .selectFrom("envelopes")
+            .select("id")
+            .where("id", "=", id)
+            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .executeTakeFirst();
+          if (!current) throw new NotFoundError("envelope");
+          const others = await trx
+            .selectFrom("envelopes")
+            .select("name")
+            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .where("id", "<>", id)
+            .execute();
+          if (
+            nameExists(
+              others.map((n) => n.name),
+              name,
+            )
+          ) {
+            throw new DuplicateNameError("An envelope with that name already exists.");
+          }
+          await trx.updateTable("envelopes").set({ name }).where("id", "=", id).execute();
+          const row = await selectView(trx).where("e.id", "=", id).executeTakeFirstOrThrow();
+          return toView(row);
+        }),
+      );
     },
 
     /** Soft-delete (archive) or restore an envelope; history/balance is preserved either way. */

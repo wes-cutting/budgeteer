@@ -109,7 +109,7 @@ export function AllocationEditor({
       return [...cur, { envelopeId: "", amount: "", refund: false }];
     });
   }
-  function useRemaining(index: number) {
+  function fillRemaining(index: number) {
     const current = tryParseMoney(rows[index]?.amount ?? "") ?? 0;
     setRow(index, { amount: formatMoney(current + remainingCents) });
   }
@@ -269,7 +269,7 @@ export function AllocationEditor({
                 />{" "}
                 Refund
               </label>
-              <button type="button" onClick={() => useRemaining(i)}>
+              <button type="button" onClick={() => fillRemaining(i)}>
                 use remaining
               </button>
               <button

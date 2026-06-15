@@ -100,12 +100,13 @@ startup — the app fails loudly on invalid config. See [`.env.example`](.env.ex
 | Command | What it does |
 | ------- | ------------ |
 | `npm run typecheck` | `tsc --noEmit` across all workspaces |
+| `npm run lint` | ESLint (flat config; `@typescript-eslint` + `react-hooks`), zero-warning gate |
 | `npm test` | Run the full Vitest suite once |
 | `npm run test:watch` | Vitest in watch mode |
 | `npm run format` | Prettier check (`format:write` to fix) |
 | `npm run build --workspace apps/web` | Production build of the web app |
 
-The project follows a **gate-green** rule: typecheck, tests, format, and build must all pass
+The project follows a **gate-green** rule: typecheck, lint, tests, format, and build must all pass
 before any change is considered done ([ENGINEERING_STANDARDS](docs/ENGINEERING_STANDARDS.md)).
 
 ## Testing

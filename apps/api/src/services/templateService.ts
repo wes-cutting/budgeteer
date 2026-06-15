@@ -3,6 +3,7 @@ import { nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
 import { groupBy } from "../util/groupBy";
+import { asDuplicateName } from "./dbErrors";
 import { DuplicateNameError, NotFoundError } from "./errors";
 import { assertEnvelopesUsable } from "./envelopeGuards";
 
@@ -105,33 +106,35 @@ export function makeTemplateService(db: Kysely<DB>) {
     },
 
     async create(input: { name: string; lines: TemplateLineInput[] }): Promise<TemplateView> {
-      const id = await db.transaction().execute(async (trx) => {
-        const names = await trx
-          .selectFrom("templates")
-          .select("name")
-          .where("household_id", "=", HH)
-          .execute();
-        if (
-          nameExists(
-            names.map((n) => n.name),
-            input.name,
-          )
-        ) {
-          throw new DuplicateNameError("A template with that name already exists.");
-        }
-        await assertEnvelopesUsable(
-          trx,
-          HH,
-          input.lines.map((l) => l.envelopeId),
-        );
-        const tpl = await trx
-          .insertInto("templates")
-          .values({ household_id: HH, name: input.name })
-          .returning("id")
-          .executeTakeFirstOrThrow();
-        await insertLines(trx, tpl.id, input.lines);
-        return tpl.id;
-      });
+      const id = await asDuplicateName("A template with that name already exists.", () =>
+        db.transaction().execute(async (trx) => {
+          const names = await trx
+            .selectFrom("templates")
+            .select("name")
+            .where("household_id", "=", HH)
+            .execute();
+          if (
+            nameExists(
+              names.map((n) => n.name),
+              input.name,
+            )
+          ) {
+            throw new DuplicateNameError("A template with that name already exists.");
+          }
+          await assertEnvelopesUsable(
+            trx,
+            HH,
+            input.lines.map((l) => l.envelopeId),
+          );
+          const tpl = await trx
+            .insertInto("templates")
+            .values({ household_id: HH, name: input.name })
+            .returning("id")
+            .executeTakeFirstOrThrow();
+          await insertLines(trx, tpl.id, input.lines);
+          return tpl.id;
+        }),
+      );
       return getView(db, id);
     },
 
@@ -139,38 +142,44 @@ export function makeTemplateService(db: Kysely<DB>) {
       id: string,
       input: { name: string; lines: TemplateLineInput[] },
     ): Promise<TemplateView> {
-      return db.transaction().execute(async (trx) => {
-        const current = await trx
-          .selectFrom("templates")
-          .select("id")
-          .where("id", "=", id)
-          .where("household_id", "=", HH)
-          .executeTakeFirst();
-        if (!current) throw new NotFoundError("template");
-        const others = await trx
-          .selectFrom("templates")
-          .select("name")
-          .where("household_id", "=", HH)
-          .where("id", "<>", id)
-          .execute();
-        if (
-          nameExists(
-            others.map((n) => n.name),
-            input.name,
-          )
-        ) {
-          throw new DuplicateNameError("A template with that name already exists.");
-        }
-        await assertEnvelopesUsable(
-          trx,
-          HH,
-          input.lines.map((l) => l.envelopeId),
-        );
-        await trx.updateTable("templates").set({ name: input.name }).where("id", "=", id).execute();
-        await trx.deleteFrom("template_lines").where("template_id", "=", id).execute();
-        await insertLines(trx, id, input.lines);
-        return getView(trx, id);
-      });
+      return asDuplicateName("A template with that name already exists.", () =>
+        db.transaction().execute(async (trx) => {
+          const current = await trx
+            .selectFrom("templates")
+            .select("id")
+            .where("id", "=", id)
+            .where("household_id", "=", HH)
+            .executeTakeFirst();
+          if (!current) throw new NotFoundError("template");
+          const others = await trx
+            .selectFrom("templates")
+            .select("name")
+            .where("household_id", "=", HH)
+            .where("id", "<>", id)
+            .execute();
+          if (
+            nameExists(
+              others.map((n) => n.name),
+              input.name,
+            )
+          ) {
+            throw new DuplicateNameError("A template with that name already exists.");
+          }
+          await assertEnvelopesUsable(
+            trx,
+            HH,
+            input.lines.map((l) => l.envelopeId),
+          );
+          await trx
+            .updateTable("templates")
+            .set({ name: input.name })
+            .where("id", "=", id)
+            .execute();
+          await trx.deleteFrom("template_lines").where("template_id", "=", id).execute();
+          await insertLines(trx, id, input.lines);
+          return getView(trx, id);
+        }),
+      );
     },
 
     async remove(id: string): Promise<void> {

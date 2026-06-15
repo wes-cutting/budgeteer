@@ -38,6 +38,7 @@ export function TemplatesView({ api, onBack }: Props) {
   }
   useEffect(() => {
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalCents = (t: TemplateView) => t.lines.reduce((s, l) => s + l.amountCents, 0);

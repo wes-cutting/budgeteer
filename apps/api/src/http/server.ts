@@ -116,6 +116,10 @@ function parseTemplateLines(
   return lines;
 }
 
+/** Route param shapes — supplied as Fastify route generics so `req.params` is typed (no casts). */
+type IdParams = { Params: { id: string } };
+type AccountIdParams = { Params: { accountId: string } };
+
 export function buildServer(
   db: Kysely<DB>,
   opts: { logger?: boolean; corsOrigins?: string[] } = {},
@@ -188,12 +192,12 @@ export function buildServer(
     }
   });
 
-  app.patch("/accounts/:id", async (req, reply) => {
+  app.patch<IdParams>("/accounts/:id", async (req, reply) => {
     const parsed = renameBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const nameCheck = validateAccountName(parsed.data.name);
     if (!nameCheck.ok) return fail(reply, 400, nameCheck.reason);
-    const { id } = req.params as { id: string };
+    const { id } = req.params;
     try {
       const account = await accounts.rename(id, nameCheck.name);
       return { account };
@@ -222,12 +226,12 @@ export function buildServer(
     }
   });
 
-  app.patch("/envelopes/:id", async (req, reply) => {
+  app.patch<IdParams>("/envelopes/:id", async (req, reply) => {
     const parsed = renameBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const nameCheck = validateEnvelopeName(parsed.data.name);
     if (!nameCheck.ok) return fail(reply, 400, nameCheck.reason);
-    const { id } = req.params as { id: string };
+    const { id } = req.params;
     try {
       const envelope = await envelopes.rename(id, nameCheck.name);
       return { envelope };
@@ -238,8 +242,8 @@ export function buildServer(
     }
   });
 
-  app.post("/envelopes/:id/archive", async (req, reply) => {
-    const { id } = req.params as { id: string };
+  app.post<IdParams>("/envelopes/:id/archive", async (req, reply) => {
+    const { id } = req.params;
     try {
       return { envelope: await envelopes.setArchived(id, true) };
     } catch (e) {
@@ -248,8 +252,8 @@ export function buildServer(
     }
   });
 
-  app.post("/envelopes/:id/unarchive", async (req, reply) => {
-    const { id } = req.params as { id: string };
+  app.post<IdParams>("/envelopes/:id/unarchive", async (req, reply) => {
+    const { id } = req.params;
     try {
       return { envelope: await envelopes.setArchived(id, false) };
     } catch (e) {
@@ -263,8 +267,8 @@ export function buildServer(
     transactions: await transactions.needsAllocation(),
   }));
 
-  app.get("/accounts/:accountId/transactions", async (req, reply) => {
-    const { accountId } = req.params as { accountId: string };
+  app.get<AccountIdParams>("/accounts/:accountId/transactions", async (req, reply) => {
+    const { accountId } = req.params;
     try {
       return { transactions: await transactions.listByAccount(accountId) };
     } catch (e) {
@@ -273,7 +277,7 @@ export function buildServer(
     }
   });
 
-  app.post("/accounts/:accountId/transactions", async (req, reply) => {
+  app.post<AccountIdParams>("/accounts/:accountId/transactions", async (req, reply) => {
     const parsed = createTransactionBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const magnitude = parsePositiveMagnitude(parsed.data.amount);
@@ -286,7 +290,7 @@ export function buildServer(
       if (m === null) return fail(reply, 400, "Each allocation amount must be greater than 0.");
       allocations.push({ envelopeId: a.envelopeId, magnitudeCents: m, refund: a.refund ?? false });
     }
-    const { accountId } = req.params as { accountId: string };
+    const { accountId } = req.params;
     try {
       const transaction = await transactions.create(accountId, {
         direction: parsed.data.kind,
@@ -304,7 +308,7 @@ export function buildServer(
     }
   });
 
-  app.put("/transactions/:id/allocations", async (req, reply) => {
+  app.put<IdParams>("/transactions/:id/allocations", async (req, reply) => {
     const parsed = setAllocationsBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const allocations: { envelopeId: string; magnitudeCents: number; refund: boolean }[] = [];
@@ -313,7 +317,7 @@ export function buildServer(
       if (m === null) return fail(reply, 400, "Each allocation amount must be greater than 0.");
       allocations.push({ envelopeId: a.envelopeId, magnitudeCents: m, refund: a.refund ?? false });
     }
-    const { id } = req.params as { id: string };
+    const { id } = req.params;
     try {
       const transaction = await transactions.replaceAllocations(id, allocations);
       return { transaction };
@@ -325,8 +329,8 @@ export function buildServer(
   });
 
   // --- Reconcile to bank (FEAT-010, manual balance compare) ---
-  app.get("/accounts/:accountId/reconciliations", async (req, reply) => {
-    const { accountId } = req.params as { accountId: string };
+  app.get<AccountIdParams>("/accounts/:accountId/reconciliations", async (req, reply) => {
+    const { accountId } = req.params;
     try {
       return { reconciliations: await reconcile.listByAccount(accountId) };
     } catch (e) {
@@ -335,7 +339,7 @@ export function buildServer(
     }
   });
 
-  app.post("/accounts/:accountId/reconciliations", async (req, reply) => {
+  app.post<AccountIdParams>("/accounts/:accountId/reconciliations", async (req, reply) => {
     const parsed = createReconciliationBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     let statementBalanceCents: number;
@@ -346,7 +350,7 @@ export function buildServer(
     }
     const reconciledOn = parsed.data.reconciledOn ?? todayStr();
     if (!DATE_RE.test(reconciledOn)) return fail(reply, 400, "Date must be YYYY-MM-DD.");
-    const { accountId } = req.params as { accountId: string };
+    const { accountId } = req.params;
     try {
       const reconciliation = await reconcile.create(accountId, {
         statementBalanceCents,
@@ -444,8 +448,8 @@ export function buildServer(
     }
   });
 
-  app.delete("/recurring/:id", async (req, reply) => {
-    const { id } = req.params as { id: string };
+  app.delete<IdParams>("/recurring/:id", async (req, reply) => {
+    const { id } = req.params;
     try {
       await recurring.remove(id);
       return reply.code(204).send();
@@ -479,7 +483,7 @@ export function buildServer(
     }
   });
 
-  app.put("/templates/:id", async (req, reply) => {
+  app.put<IdParams>("/templates/:id", async (req, reply) => {
     const parsed = upsertTemplateBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const nameCheck = validateName(parsed.data.name, "Template");
@@ -488,7 +492,7 @@ export function buildServer(
       return fail(reply, 400, "A template needs at least one line.");
     const lines = parseTemplateLines(parsed.data.lines);
     if (lines === null) return fail(reply, 400, "Each line amount must be greater than 0.");
-    const { id } = req.params as { id: string };
+    const { id } = req.params;
     try {
       const template = await templates.update(id, { name: nameCheck.name, lines });
       return { template };
@@ -500,8 +504,8 @@ export function buildServer(
     }
   });
 
-  app.delete("/templates/:id", async (req, reply) => {
-    const { id } = req.params as { id: string };
+  app.delete<IdParams>("/templates/:id", async (req, reply) => {
+    const { id } = req.params;
     try {
       await templates.remove(id);
       return reply.code(204).send();
