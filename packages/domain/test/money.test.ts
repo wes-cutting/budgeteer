@@ -1,5 +1,14 @@
 import { describe, expect, test } from "vitest";
-import { addMoney, cents, formatMoney, negate, parseMoney, sumMoney } from "../src/money";
+import {
+  addMoney,
+  cents,
+  formatMoney,
+  negate,
+  parseMoney,
+  splitEvenly,
+  sumMoney,
+  tryParseMoney,
+} from "../src/money";
 
 describe("money — integer minor units (ADR-0003)", () => {
   test("parse/format round-trips at the boundary", () => {
@@ -23,8 +32,27 @@ describe("money — integer minor units (ADR-0003)", () => {
     expect(() => cents(33.5)).toThrow(/whole cents/);
   });
 
+  test("tryParseMoney parses valid money and returns null for invalid (shared regex)", () => {
+    expect(tryParseMoney("12.34")).toBe(1234);
+    expect(tryParseMoney("-5")).toBe(-500);
+    expect(tryParseMoney("0.07")).toBe(7);
+    // Same rejections as parseMoney, without throwing — for live/typing-in-progress input.
+    for (const bad of ["1,234", "abc", "", "12.345", "$5"]) {
+      expect(tryParseMoney(bad)).toBeNull();
+    }
+  });
+
   test("add and negate stay integer-exact", () => {
     expect(addMoney(parseMoney("19.99"), parseMoney("0.01"))).toBe(2000);
     expect(negate(parseMoney("12.34"))).toBe(-1234);
+  });
+
+  test("splitEvenly distributes the leftover so parts sum EXACTLY", () => {
+    expect(splitEvenly(100, 3)).toEqual([34, 33, 33]);
+    expect(splitEvenly(100, 3).reduce((a, b) => a + b, 0)).toBe(100);
+    expect(splitEvenly(120000, 7).reduce((a, b) => a + b, 0)).toBe(120000);
+    expect(splitEvenly(-21400, 3).reduce((a, b) => a + b, 0)).toBe(-21400);
+    expect(splitEvenly(0, 3)).toEqual([0, 0, 0]);
+    expect(splitEvenly(50, 0)).toEqual([]);
   });
 });

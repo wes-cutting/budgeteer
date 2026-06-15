@@ -8,7 +8,8 @@ import {
   type RecurringFrequency,
   type RecurringView as Rule,
 } from "./api";
-import { formatCents, parseCents } from "./format";
+import { tryParseMoney } from "@budgeteer/domain";
+import { formatCents } from "./format";
 import { AllocationEditor } from "./AllocationEditor";
 
 const FREQUENCIES: RecurringFrequency[] = ["weekly", "biweekly", "monthly"];
@@ -50,7 +51,7 @@ export function RecurringView({ api, onBack }: { api: Api; onBack: () => void })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const magnitudeCents = parseCents(amount) ?? 0;
+  const magnitudeCents = tryParseMoney(amount) ?? 0;
 
   async function createRule(lines: AllocationDraft[]) {
     setError(null);

@@ -1,6 +1,7 @@
 import { type KeyboardEvent, useState } from "react";
 import { type AllocationDraft } from "./api";
-import { centsToInput, formatCents, parseCents, splitEvenly } from "./format";
+import { formatMoney, splitEvenly, tryParseMoney } from "@budgeteer/domain";
+import { formatCents } from "./format";
 
 interface EnvelopeOption {
   id: string;
@@ -67,11 +68,11 @@ export function AllocationEditor({
   function allocationsToSave(): AllocationDraft[] {
     if (mode === "single") {
       return singleEnvelopeId
-        ? [{ envelopeId: singleEnvelopeId, amount: centsToInput(magnitudeCents) }]
+        ? [{ envelopeId: singleEnvelopeId, amount: formatMoney(magnitudeCents) }]
         : [];
     }
     return rows
-      .filter((r) => r.envelopeId !== "" && (parseCents(r.amount) ?? 0) > 0)
+      .filter((r) => r.envelopeId !== "" && (tryParseMoney(r.amount) ?? 0) > 0)
       .map((r) =>
         // `refund` is an exception flag — include it only when set (normal rows stay {envelopeId, amount}).
         r.refund
@@ -82,14 +83,15 @@ export function AllocationEditor({
 
   // Net toward the amount: a normal row adds its magnitude, a refund row subtracts it (FEAT-008).
   const netCents = allocationsToSave().reduce(
-    (sum, a) => sum + (parseCents(a.amount) ?? 0) * (a.refund ? -1 : 1),
+    (sum, a) => sum + (tryParseMoney(a.amount) ?? 0) * (a.refund ? -1 : 1),
     0,
   );
   const remainingCents = magnitudeCents - netCents;
   const over = remainingCents < 0; // net exceeds the amount
   const under = netCents < 0; // refunds exceed spend → would flip direction
   const anyInvalidAmount =
-    mode === "split" && rows.some((r) => r.amount.trim() !== "" && parseCents(r.amount) === null);
+    mode === "split" &&
+    rows.some((r) => r.amount.trim() !== "" && tryParseMoney(r.amount) === null);
   const canSave =
     !submitting &&
     magnitudeCents > 0 &&
@@ -108,8 +110,8 @@ export function AllocationEditor({
     });
   }
   function useRemaining(index: number) {
-    const current = parseCents(rows[index]?.amount ?? "") ?? 0;
-    setRow(index, { amount: centsToInput(current + remainingCents) });
+    const current = tryParseMoney(rows[index]?.amount ?? "") ?? 0;
+    setRow(index, { amount: formatMoney(current + remainingCents) });
   }
   function onAmountKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
@@ -128,8 +130,8 @@ export function AllocationEditor({
       cur.map((r, i) => {
         const k = eligible.indexOf(i);
         if (k === -1) return r;
-        const current = parseCents(r.amount) ?? 0;
-        return { ...r, amount: centsToInput(current + (parts[k] ?? 0)) };
+        const current = tryParseMoney(r.amount) ?? 0;
+        return { ...r, amount: formatMoney(current + (parts[k] ?? 0)) };
       }),
     );
   }
@@ -140,7 +142,7 @@ export function AllocationEditor({
     setRows(
       tpl.lines.map((l) => ({
         envelopeId: l.envelopeId,
-        amount: centsToInput(l.amountCents),
+        amount: formatMoney(l.amountCents),
         refund: false,
       })),
     );

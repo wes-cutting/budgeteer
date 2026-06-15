@@ -6,7 +6,8 @@ import {
   type EnvelopeView,
   type TemplateView,
 } from "./api";
-import { centsToInput, formatCents, parseCents } from "./format";
+import { formatMoney, tryParseMoney } from "@budgeteer/domain";
+import { formatCents } from "./format";
 
 interface Props {
   api: Api;
@@ -45,7 +46,7 @@ export function TemplatesView({ api, onBack }: Props) {
     event.preventDefault();
     setError(null);
     const drafts: AllocationDraft[] = lines
-      .filter((l) => l.envelopeId !== "" && (parseCents(l.amount) ?? 0) > 0)
+      .filter((l) => l.envelopeId !== "" && (tryParseMoney(l.amount) ?? 0) > 0)
       .map((l) => ({ envelopeId: l.envelopeId, amount: l.amount }));
     try {
       await api.createTemplate({ name, lines: drafts });
@@ -74,7 +75,7 @@ export function TemplatesView({ api, onBack }: Props) {
         name: renameValue,
         lines: template.lines.map((l) => ({
           envelopeId: l.envelopeId,
-          amount: centsToInput(l.amountCents),
+          amount: formatMoney(l.amountCents),
         })),
       });
       setRenamingId(null);

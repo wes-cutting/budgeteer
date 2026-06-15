@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { type Api, ApiError, type ReconciliationView } from "./api";
-import { formatCents, parseCents } from "./format";
+import { tryParseMoney } from "@budgeteer/domain";
+import { formatCents } from "./format";
 
 /** Reconcile to bank (FEAT-010): compare Budgeteer's derived balance to the real bank balance. */
 export function ReconcilePanel({
@@ -31,7 +32,7 @@ export function ReconcilePanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId]);
 
-  const statementCents = statement.trim() === "" ? null : parseCents(statement);
+  const statementCents = statement.trim() === "" ? null : tryParseMoney(statement);
   const differenceCents = statementCents === null ? null : statementCents - derivedBalanceCents;
 
   async function onSubmit(event: FormEvent) {

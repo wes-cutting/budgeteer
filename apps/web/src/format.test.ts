@@ -1,21 +1,14 @@
 import { describe, expect, test } from "vitest";
-import { centsToInput, formatCents, parseCents, splitEvenly } from "./format";
+import { formatCents } from "./format";
 
-describe("format helpers", () => {
-  test("splitEvenly distributes the leftover so parts sum EXACTLY", () => {
-    expect(splitEvenly(100, 3)).toEqual([34, 33, 33]);
-    expect(splitEvenly(100, 3).reduce((a, b) => a + b, 0)).toBe(100);
-    expect(splitEvenly(120000, 7).reduce((a, b) => a + b, 0)).toBe(120000);
-    expect(splitEvenly(-21400, 3).reduce((a, b) => a + b, 0)).toBe(-21400);
-    expect(splitEvenly(0, 3)).toEqual([0, 0, 0]);
-    expect(splitEvenly(50, 0)).toEqual([]);
-  });
-
-  test("money parse/format round-trips", () => {
-    expect(parseCents("12.34")).toBe(1234);
-    expect(parseCents("1,234")).toBeNull();
-    expect(centsToInput(140000)).toBe("1400.00");
+// Penny-exact parse (tryParseMoney), plain-decimal form (formatMoney), and even splitting
+// (splitEvenly) are tested once in @budgeteer/domain. This covers only the web's display
+// formatter (currency symbol + locale grouping).
+describe("formatCents — display money", () => {
+  test("adds the currency symbol and thousands separators", () => {
     expect(formatCents(214000)).toBe("$2,140.00");
     expect(formatCents(-41200)).toBe("-$412.00");
+    expect(formatCents(7)).toBe("$0.07");
+    expect(formatCents(0)).toBe("$0.00");
   });
 });

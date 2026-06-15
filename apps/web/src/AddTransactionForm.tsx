@@ -6,7 +6,7 @@ import {
   type EnvelopeView,
   type TemplateView,
 } from "./api";
-import { parseCents } from "./format";
+import { tryParseMoney } from "@budgeteer/domain";
 import { AllocationEditor } from "./AllocationEditor";
 
 interface Props {
@@ -33,7 +33,7 @@ export function AddTransactionForm({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const magnitudeCents = parseCents(amount) ?? 0;
+  const magnitudeCents = tryParseMoney(amount) ?? 0;
 
   async function save(allocations: AllocationDraft[]) {
     setError(null);

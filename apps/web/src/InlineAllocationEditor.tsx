@@ -4,7 +4,7 @@ import {
   type TemplateView,
   type TransactionView,
 } from "./api";
-import { centsToInput } from "./format";
+import { formatMoney } from "@budgeteer/domain";
 import { AllocationEditor } from "./AllocationEditor";
 
 interface Props {
@@ -55,7 +55,7 @@ export function InlineAllocationEditor({
           templates={templates}
           initial={txn.allocations.map((a) => ({
             envelopeId: a.envelopeId,
-            amount: centsToInput(Math.abs(a.amountCents)),
+            amount: formatMoney(Math.abs(a.amountCents)),
             // A row whose sign opposes the transaction's direction is a refund (FEAT-008).
             refund: txn.amountCents < 0 ? a.amountCents > 0 : a.amountCents < 0,
           }))}

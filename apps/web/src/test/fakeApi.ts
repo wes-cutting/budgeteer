@@ -1,3 +1,4 @@
+import { anchorDayOf, dueOccurrences, tryParseMoney } from "@budgeteer/domain";
 import {
   type AccountView,
   type Api,
@@ -5,42 +6,10 @@ import {
   type EnvelopeTransferView,
   type EnvelopeView,
   type ReconciliationView,
-  type RecurringFrequency,
   type RecurringView,
   type TemplateView,
   type TransactionView,
 } from "../api";
-import { parseCents } from "../format";
-
-// Minimal date stepping mirroring @budgeteer/domain recurring.ts (the fake doesn't import the
-// domain package); enough for component tests of the Recurring page.
-const daysInMonth = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
-function nextOcc(cur: string, freq: RecurringFrequency, anchorDay: number): string {
-  const [y, m, d] = cur.split("-").map(Number) as [number, number, number];
-  if (freq === "weekly" || freq === "biweekly") {
-    const dt = new Date(Date.UTC(y, m - 1, d) + (freq === "weekly" ? 7 : 14) * 86400000);
-    return dt.toISOString().slice(0, 10);
-  }
-  let nm = m + 1;
-  let ny = y;
-  if (nm > 12) {
-    nm = 1;
-    ny += 1;
-  }
-  const day = Math.min(anchorDay, daysInMonth(ny, nm));
-  return `${ny}-${String(nm).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-function dueDates(cursor: string, today: string, freq: RecurringFrequency, anchorDay: number) {
-  const dates: string[] = [];
-  let cur = cursor;
-  let guard = 0;
-  while (cur <= today && guard < 600) {
-    dates.push(cur);
-    cur = nextOcc(cur, freq, anchorDay);
-    guard += 1;
-  }
-  return { dates, nextCursor: cur };
-}
 
 /**
  * An in-memory fake of the API for component tests — mirrors the server's derived balances and
@@ -134,7 +103,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
         archivedAt: null,
       };
       accounts.push(account);
-      txns.push(makeTxn(account, "opening", parseCents(startingBalance) ?? 0, null, []));
+      txns.push(makeTxn(account, "opening", tryParseMoney(startingBalance) ?? 0, null, []));
       recompute();
       return { ...account };
     },
@@ -173,10 +142,10 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       const account = accounts.find((a) => a.id === accountId);
       if (!account) throw new ApiError("Account not found.");
       const sign = input.kind === "deposit" ? 1 : -1;
-      const amount = (parseCents(input.amount) ?? 0) * sign;
+      const amount = (tryParseMoney(input.amount) ?? 0) * sign;
       const allocations = input.allocations.map((d) => ({
         envelopeId: d.envelopeId,
-        amountCents: (parseCents(d.amount) ?? 0) * (d.refund ? -sign : sign),
+        amountCents: (tryParseMoney(d.amount) ?? 0) * (d.refund ? -sign : sign),
       }));
       const txn = makeTxn(
         account,
@@ -195,7 +164,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       const to = accounts.find((a) => a.id === toAccountId);
       if (!from || !to) throw new ApiError("Account not found.");
       if (from.id === to.id) throw new ApiError("Choose two different accounts.");
-      const magnitude = parseCents(amount) ?? 0;
+      const magnitude = tryParseMoney(amount) ?? 0;
       if (magnitude <= 0) throw new ApiError("Enter an amount greater than 0.");
       const id = newId("xfer");
       const on = occurredOn ?? "2026-06-13";
@@ -234,7 +203,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       if (!from || !to) throw new ApiError("Envelope not found.");
       if (from.id === to.id) throw new ApiError("Choose two different envelopes.");
       if (to.archivedAt !== null) throw new ApiError("That envelope is archived.");
-      const magnitude = parseCents(amount) ?? 0;
+      const magnitude = tryParseMoney(amount) ?? 0;
       if (magnitude <= 0) throw new ApiError("Enter an amount greater than 0.");
       const et: EnvelopeTransferView = {
         id: newId("etr"),
@@ -256,7 +225,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
         id: newId("al"),
         envelopeId: d.envelopeId,
         envelopeName: envName(d.envelopeId),
-        amountCents: (parseCents(d.amount) ?? 0) * (d.refund ? -sign : sign),
+        amountCents: (tryParseMoney(d.amount) ?? 0) * (d.refund ? -sign : sign),
       }));
       recompute();
       return clone(txn);
@@ -269,8 +238,8 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       const t = today();
       return recurrings.map((r) => ({
         ...r,
-        dueCount: dueDates(r.nextOccurrenceOn, t, r.frequency, Number(r.anchorOn.slice(8, 10)))
-          .dates.length,
+        dueCount: dueOccurrences(r.nextOccurrenceOn, t, r.frequency, anchorDayOf(r.anchorOn)).dates
+          .length,
         lines: r.lines.map((l) => ({ ...l })),
       }));
     },
@@ -283,7 +252,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
         accountId,
         accountName: account.name,
         direction: kind,
-        amountCents: parseCents(amount) ?? 0,
+        amountCents: tryParseMoney(amount) ?? 0,
         payee: payee ?? null,
         memo: memo ?? null,
         frequency,
@@ -294,7 +263,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
           id: newId("rl"),
           envelopeId: l.envelopeId,
           envelopeName: envName(l.envelopeId),
-          amountCents: parseCents(l.amount) ?? 0,
+          amountCents: tryParseMoney(l.amount) ?? 0,
           refund: l.refund ?? false,
         })),
       };
@@ -312,7 +281,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       const rules: { recurringId: string; posted: number; error?: string }[] = [];
       for (const r of recurrings) {
         const account = accounts.find((a) => a.id === r.accountId);
-        const due = dueDates(r.nextOccurrenceOn, t, r.frequency, Number(r.anchorOn.slice(8, 10)));
+        const due = dueOccurrences(r.nextOccurrenceOn, t, r.frequency, anchorDayOf(r.anchorOn));
         if (due.dates.length === 0 || !account) continue;
         const sign = r.direction === "deposit" ? 1 : -1;
         for (const date of due.dates) {
@@ -349,7 +318,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       if (!account) throw new ApiError("Account not found.");
       recompute();
       const derived = account.balanceCents;
-      const statement = parseCents(statementBalance) ?? 0;
+      const statement = tryParseMoney(statementBalance) ?? 0;
       const rec: ReconciliationView = {
         id: newId("rec"),
         accountId,
@@ -376,7 +345,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
           id: newId("tl"),
           envelopeId: l.envelopeId,
           envelopeName: envName(l.envelopeId),
-          amountCents: parseCents(l.amount) ?? 0,
+          amountCents: tryParseMoney(l.amount) ?? 0,
         })),
       };
       templates.push(tpl);
@@ -390,7 +359,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
         id: newId("tl"),
         envelopeId: l.envelopeId,
         envelopeName: envName(l.envelopeId),
-        amountCents: parseCents(l.amount) ?? 0,
+        amountCents: tryParseMoney(l.amount) ?? 0,
       }));
       return { ...tpl, lines: tpl.lines.map((l) => ({ ...l })) };
     },
