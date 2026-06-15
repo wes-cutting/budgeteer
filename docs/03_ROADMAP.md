@@ -12,22 +12,20 @@ Sequencing model: docs/00_WAYS_OF_WORKING.md §7.
 | Status        | Living         |
 | Owner         | Wesley Cutting |
 | Last updated  | 2026-06-15     |
-| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) · [`reviews/2026-06-15-repo-review.md`](reviews/2026-06-15-repo-review.md) · [`status-reports/2026-06-15-eh1.md`](status-reports/2026-06-15-eh1.md) |
+| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) · [`reviews/2026-06-15-repo-review.md`](reviews/2026-06-15-repo-review.md) · [`status-reports/2026-06-15-eh1.md`](status-reports/2026-06-15-eh1.md) · [`status-reports/2026-06-15-eh2.md`](status-reports/2026-06-15-eh2.md) |
 
-**Current focus:** **`EH1` share the domain in the web — ✅ `Done` (gate-green).** The web no
-longer reimplements penny-exact money logic: added **`tryParseMoney`** (non-throwing parser; the
-single home for the `DECIMAL_RE` regex, so the UI's live-tally parser and the loud boundary parser
-can't drift) and moved **`splitEvenly`** into `@budgeteer/domain`; widened `formatMoney` to accept
-integer-cents `number` (pure read). `apps/web` now declares + imports `@budgeteer/domain`
-(`tryParseMoney`/`formatMoney`/`splitEvenly`, plus `dueOccurrences`/`anchorDayOf` for the fakeApi
-date mirror). The web keeps **only** `formatCents` — the `$`/locale **display** formatter, a
-genuine presentation concern (the review's "delete format.ts" was refined: display ≠ domain).
-**121 tests pass** (was 120: +2 domain, −1 web), typecheck + web build + format green; Vite dev +
-prod both consume the raw-TS workspace package, app shell smoked in-browser. **Next up — `EH2`**
-extract API service plumbing (`dates`, `groupBy`, household constant) → **`EH3`** map DB unique→409
-+ typed params → **`EH4`** ESLint in the gate → **`EH5`** minimal browser e2e → **`EH6`** hygiene;
-**then** the **analysis** area (`#11`–`#14`), then **hardening** (`#15`–`#16`). Prior blocks:
-**`#10` reconcile — ✅ Done**, 120 tests; **`#9` recurring — ✅ Done**, 106 tests.
+**Current focus:** **`EH2` extract API service plumbing — ✅ `Done` (gate-green).** The 8 services
+no longer each re-derive the same plumbing: new **`util/dates.ts`** (`todayStr`/`toISO`/`toDateStr`)
+replaces 5 copies of the date converters (+ a dead `todayStr` in the transaction service); new
+**`util/groupBy.ts`** (generic, order-preserving) replaces the "bucket children by parent id" loop
+in the transaction (×2), template, and recurring services; and **`DEFAULT_HOUSEHOLD_ID`** moved
+from `db/migrate.ts` to a neutral **`constants.ts`** (all 8 services + the migrator now import it
+there, breaking the constant↔migration coupling). **No behavior change — 121 tests pass**, typecheck
++ format green (the 52 API integration tests cover every refactored path). **Next up — `EH3`** map DB
+unique-violation → 409 + typed route params → **`EH4`** ESLint in the gate → **`EH5`** minimal
+browser e2e → **`EH6`** hygiene; **then** the **analysis** area (`#11`–`#14`), then **hardening**
+(`#15`–`#16`). Prior blocks: **`EH1` share-domain — ✅ Done**, 121 tests; **`#10` reconcile — ✅
+Done**, 120 tests.
 
 ---
 
@@ -125,7 +123,7 @@ order**, then `#11`+. No live bugs — these are coverage + drift-prevention.
 | # | Item | Kind | Pri | Status | Notes |
 | - | ---- | ---- | --- | ------ | ----- |
 | EH1 | **Share the domain in the web** — import money/format/date from `@budgeteer/domain`; delete the `format.ts` reimpl + `fakeApi` date mirror | refactor | P1 | **✅ Done** | Added `tryParseMoney` (single `DECIMAL_RE` home) + moved `splitEvenly` to domain; widened `formatMoney`; web declares the dep + imports it; kept only the `$`-display `formatCents` (presentation). 121 tests; Vite dev+build consume the workspace TS. [status report](status-reports/2026-06-15-eh1.md) |
-| EH2 | **Extract API service plumbing** — shared `dates` util + generic `groupBy`; move `DEFAULT_HOUSEHOLD_ID` out of `db/migrate.ts` into a constants/config module | refactor | P2 | Planned | `toDateStr`/`toISO` ×7, Map-by-parent ×3, household-const coupling |
+| EH2 | **Extract API service plumbing** — shared `dates` util + generic `groupBy`; move `DEFAULT_HOUSEHOLD_ID` out of `db/migrate.ts` into a constants/config module | refactor | P2 | **✅ Done** | New `util/dates.ts` + `util/groupBy.ts` + top-level `constants.ts`; date converters deduped (5→1, dropped a dead `todayStr`), Map-by-parent loop replaced (×4 incl. transfer legs), household const decoupled from the migrator (9 importers). No behavior change; 121 tests. [status report](status-reports/2026-06-15-eh2.md) |
 | EH3 | **Map DB unique-violation → 409** + typed route params | fix | P2 | Planned | The DB unique index is the real guard; its violation currently 500s. Replace `req.params as {…}` casts |
 | EH4 | **Add ESLint to the gate** (`@typescript-eslint` + `react-hooks`); remove now-dead `eslint-disable` comments | tooling | P3 | Planned | No linter runs today; existing disables are inert |
 | EH5 | **Browser e2e (Playwright)** — minimal now (dashboard loads vs. real API + 1 journey); **full journeys land in `#16`** | hardening | P1 | Planned | The CORS bug slipped past curl/inject smokes + fake-API tests; front-load this class of risk |
@@ -169,6 +167,7 @@ order**, then `#11`+. No live bugs — these are coverage + drift-prevention.
 | 2026-06-15 | **CORS + .env fix** (not a roadmap slice): the browser app couldn't reach the API (no CORS headers → "Failed to fetch"); added `@fastify/cors` allowlist (`CORS_ORIGINS`) + repo-root `.env` auto-load (dotenv / Vite `envDir`) | Found via running the app at `localhost:5173`; the browser→API path was never exercised by curl/inject smokes | Hardening follow-up: add **browser e2e** (would have caught this) |
 | 2026-06-15 | **Repo-wide review** captured ([reviews/2026-06-15-repo-review.md](reviews/2026-06-15-repo-review.md)); added **Engineering-health items `EH1`–`EH6`**, sequenced **before the analysis area** | No live bugs; themes = browser-path coverage gap + duplication drift | New order: **EH1→EH6 → analysis `#11`–`#14` → hardening `#15`–`#16`** (full e2e/a11y); no-auth folds into `#19` |
 | 2026-06-15 | **`EH1` Done** (gate-green); web now imports money/date from `@budgeteer/domain`. Added `tryParseMoney` (single `DECIMAL_RE` home) + moved `splitEvenly` to domain; widened `formatMoney(value: number)`; `apps/web` declares the dep; `fakeApi` uses `dueOccurrences`/`anchorDayOf`. Refined the review's "delete format.ts": kept `formatCents` (the `$`/locale **display** formatter) as a presentation concern | The duplicated penny-exact parse regex (`MONEY_RE ≡ DECIMAL_RE`) + `splitEvenly` + the date mirror were a second source of truth; analysis (`#11`+) would build more atop it | **Next: `EH2`** (extract API service plumbing). 121 tests (+1 net) |
+| 2026-06-15 | **`EH2` Done** (gate-green); API service plumbing extracted. New `util/dates.ts` (`todayStr`/`toISO`/`toDateStr`), `util/groupBy.ts` (generic, order-preserving), and top-level `constants.ts` for `DEFAULT_HOUSEHOLD_ID` (moved out of `db/migrate.ts`). Deduped the date converters (5→1, removed a dead `todayStr`), the bucket-by-parent loop (×4), and the household-constant↔migration coupling (9 importers) | Repeated service plumbing flagged by the review; analysis (`#11`+) adds more read services that would re-copy it | **Next: `EH3`** (map DB unique→409 + typed route params). 121 tests (no behavior change) |
 
 ## 6. Done / shipped
 

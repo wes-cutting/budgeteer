@@ -1,8 +1,6 @@
 import { type Kysely, sql } from "kysely";
+import { DEFAULT_HOUSEHOLD_ID } from "../constants";
 import type { DB } from "./schema";
-
-/** V1 single implicit household (design-toward multi-household; no auth/RLS yet — ADR-0002). */
-export const DEFAULT_HOUSEHOLD_ID = "00000000-0000-0000-0000-000000000001";
 
 /**
  * Forward-only schema creation realizing docs/05_DATA_MODEL.md. Idempotent (IF NOT EXISTS),

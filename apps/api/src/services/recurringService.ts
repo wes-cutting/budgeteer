@@ -7,7 +7,9 @@ import {
   validateAllocations,
 } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../db/migrate";
+import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import { todayStr, toDateStr } from "../util/dates";
+import { groupBy } from "../util/groupBy";
 import { NotFoundError, ValidationError } from "./errors";
 import { assertEnvelopesUsable } from "./envelopeGuards";
 
@@ -57,13 +59,6 @@ export interface PostDueResult {
 }
 
 const HH = DEFAULT_HOUSEHOLD_ID;
-const todayStr = (): string => new Date().toISOString().slice(0, 10);
-const toDateStr = (v: unknown): string =>
-  typeof v === "string"
-    ? v.slice(0, 10)
-    : v instanceof Date
-      ? v.toISOString().slice(0, 10)
-      : String(v);
 
 /** Signed allocation amount: a normal line follows the direction; a refund line flips it. */
 const signed = (mag: number, refund: boolean, dirSign: 1 | -1): number =>
@@ -74,8 +69,7 @@ export function makeRecurringService(db: Kysely<DB>) {
     exec: Kysely<DB>,
     ruleIds: string[],
   ): Promise<Map<string, RecurringLineView[]>> {
-    const byRule = new Map<string, RecurringLineView[]>();
-    if (ruleIds.length === 0) return byRule;
+    if (ruleIds.length === 0) return new Map<string, RecurringLineView[]>();
     const rows = await exec
       .selectFrom("recurring_lines as rl")
       .innerJoin("envelopes as e", "e.id", "rl.envelope_id")
@@ -90,18 +84,17 @@ export function makeRecurringService(db: Kysely<DB>) {
       .where("rl.recurring_id", "in", ruleIds)
       .orderBy("rl.position")
       .execute();
-    for (const r of rows) {
-      const list = byRule.get(r.recurring_id) ?? [];
-      list.push({
+    return groupBy(
+      rows,
+      (r) => r.recurring_id,
+      (r): RecurringLineView => ({
         id: r.id,
         envelopeId: r.envelope_id,
         envelopeName: r.envelope_name,
         amountCents: Number(r.amount_cents),
         refund: Boolean(r.refund),
-      });
-      byRule.set(r.recurring_id, list);
-    }
-    return byRule;
+      }),
+    );
   }
 
   function toView(

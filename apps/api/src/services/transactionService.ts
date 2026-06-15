@@ -1,7 +1,9 @@
 import type { Kysely } from "kysely";
 import { cents, validateAllocations } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../db/migrate";
+import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import { toDateStr } from "../util/dates";
+import { groupBy } from "../util/groupBy";
 import { NotFoundError, ValidationError } from "./errors";
 import { assertEnvelopesUsable } from "./envelopeGuards";
 
@@ -69,12 +71,6 @@ const toViewKind = (k: string): TransactionView["kind"] =>
   VIEW_KINDS.has(k) ? (k as TransactionView["kind"]) : "normal";
 
 const HH = DEFAULT_HOUSEHOLD_ID;
-const todayStr = (): string => new Date().toISOString().slice(0, 10);
-function toDateStr(v: unknown): string {
-  if (typeof v === "string") return v.slice(0, 10);
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
-  return String(v);
-}
 
 export function makeTransactionService(db: Kysely<DB>) {
   function selectTxns(exec: Kysely<DB>) {
@@ -111,17 +107,16 @@ export function makeTransactionService(db: Kysely<DB>) {
           .where("al.transaction_id", "in", ids)
           .execute()
       : [];
-    const byTxn = new Map<string, AllocationView[]>();
-    for (const a of allocRows) {
-      const list = byTxn.get(a.transaction_id) ?? [];
-      list.push({
+    const byTxn = groupBy(
+      allocRows,
+      (a) => a.transaction_id,
+      (a): AllocationView => ({
         id: a.id,
         envelopeId: a.envelope_id,
         envelopeName: a.envelope_name,
         amountCents: Number(a.amount_cents),
-      });
-      byTxn.set(a.transaction_id, list);
-    }
+      }),
+    );
 
     // For transfer legs, look up the OTHER leg's account name so the register can read
     // "Transfer to/from <account>" (ADR-0004). Keyed by transfer_id.
@@ -136,12 +131,11 @@ export function makeTransactionService(db: Kysely<DB>) {
         .select(["t.id", "t.transfer_id", "a.name as account_name"])
         .where("t.transfer_id", "in", transferIds)
         .execute();
-      const byTransfer = new Map<string, { id: string; accountName: string }[]>();
-      for (const r of legRows) {
-        const list = byTransfer.get(r.transfer_id as string) ?? [];
-        list.push({ id: r.id, accountName: r.account_name });
-        byTransfer.set(r.transfer_id as string, list);
-      }
+      const byTransfer = groupBy(
+        legRows,
+        (r) => r.transfer_id as string,
+        (r) => ({ id: r.id, accountName: r.account_name }),
+      );
       for (const t of txns) {
         if (!t.transfer_id) continue;
         const other = (byTransfer.get(t.transfer_id) ?? []).find((l) => l.id !== t.id);

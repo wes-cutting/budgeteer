@@ -1,7 +1,8 @@
 import type { Kysely } from "kysely";
 import { reconciliationDelta } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../db/migrate";
+import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import { toDateStr } from "../util/dates";
 import { NotFoundError } from "./errors";
 
 export interface ReconciliationView {
@@ -20,12 +21,6 @@ export interface CreateReconciliationInput {
 }
 
 const HH = DEFAULT_HOUSEHOLD_ID;
-const toDateStr = (v: unknown): string =>
-  typeof v === "string"
-    ? v.slice(0, 10)
-    : v instanceof Date
-      ? v.toISOString().slice(0, 10)
-      : String(v);
 
 function toView(r: {
   id: string;

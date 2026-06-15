@@ -1,7 +1,8 @@
 import type { Kysely } from "kysely";
 import { nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../db/migrate";
+import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import { groupBy } from "../util/groupBy";
 import { DuplicateNameError, NotFoundError } from "./errors";
 import { assertEnvelopesUsable } from "./envelopeGuards";
 
@@ -47,17 +48,16 @@ export function makeTemplateService(db: Kysely<DB>) {
           .orderBy("tl.position")
           .execute()
       : [];
-    const byTemplate = new Map<string, TemplateLineView[]>();
-    for (const l of lineRows) {
-      const list = byTemplate.get(l.template_id) ?? [];
-      list.push({
+    const byTemplate = groupBy(
+      lineRows,
+      (l) => l.template_id,
+      (l): TemplateLineView => ({
         id: l.id,
         envelopeId: l.envelope_id,
         envelopeName: l.envelope_name,
         amountCents: Number(l.amount_cents),
-      });
-      byTemplate.set(l.template_id, list);
-    }
+      }),
+    );
     return templates.map((t) => ({ id: t.id, name: t.name, lines: byTemplate.get(t.id) ?? [] }));
   }
 

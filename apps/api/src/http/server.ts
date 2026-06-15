@@ -12,6 +12,7 @@ import {
   validateName,
 } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
+import { todayStr } from "../util/dates";
 import { makeAccountService } from "../services/accountService";
 import { makeEnvelopeService } from "../services/envelopeService";
 import { makeTransactionService } from "../services/transactionService";
@@ -87,7 +88,6 @@ const upsertTemplateBody = z.object({
 });
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const todayStr = (): string => new Date().toISOString().slice(0, 10);
 
 function fail(reply: FastifyReply, status: number, message: string) {
   return reply.code(status).send({ error: { message } });

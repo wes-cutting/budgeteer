@@ -1,7 +1,8 @@
 import type { Kysely } from "kysely";
 import { type AccountKind, nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../db/migrate";
+import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import { todayStr, toISO } from "../util/dates";
 import { DuplicateNameError, NotFoundError } from "./errors";
 
 export interface AccountView {
@@ -11,10 +12,6 @@ export interface AccountView {
   balanceCents: number;
   archivedAt: string | null;
 }
-
-const today = (): string => new Date().toISOString().slice(0, 10);
-const toISO = (d: Date | string | null): string | null =>
-  d == null ? null : d instanceof Date ? d.toISOString() : new Date(d).toISOString();
 
 export function makeAccountService(db: Kysely<DB>) {
   const selectView = (qb: Kysely<DB>) =>
@@ -83,7 +80,7 @@ export function makeAccountService(db: Kysely<DB>) {
             account_id: account.id,
             amount_cents: input.startingBalanceCents,
             kind: "opening",
-            occurred_on: today(),
+            occurred_on: todayStr(),
             payee: null,
             memo: "Opening balance",
           })

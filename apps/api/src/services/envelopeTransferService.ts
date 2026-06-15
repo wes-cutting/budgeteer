@@ -1,7 +1,8 @@
 import type { Kysely } from "kysely";
 import { cents, validateEnvelopeTransfer } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../db/migrate";
+import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import { toDateStr } from "../util/dates";
 import { NotFoundError, ValidationError } from "./errors";
 
 export interface EnvelopeTransferEndpointView {
@@ -27,12 +28,6 @@ export interface CreateEnvelopeTransferInput {
 }
 
 const HH = DEFAULT_HOUSEHOLD_ID;
-const toDateStr = (v: unknown): string =>
-  typeof v === "string"
-    ? v.slice(0, 10)
-    : v instanceof Date
-      ? v.toISOString().slice(0, 10)
-      : String(v);
 
 export function makeEnvelopeTransferService(db: Kysely<DB>) {
   async function getView(exec: Kysely<DB>, id: string): Promise<EnvelopeTransferView> {

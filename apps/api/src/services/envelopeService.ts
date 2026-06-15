@@ -1,7 +1,8 @@
 import type { Kysely } from "kysely";
 import { type EnvelopeKind, nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../db/migrate";
+import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import { toISO } from "../util/dates";
 import { DuplicateNameError, NotFoundError } from "./errors";
 
 export interface EnvelopeView {
@@ -11,9 +12,6 @@ export interface EnvelopeView {
   balanceCents: number;
   archivedAt: string | null;
 }
-
-const toISO = (d: Date | string | null): string | null =>
-  d == null ? null : d instanceof Date ? d.toISOString() : new Date(d).toISOString();
 
 export function makeEnvelopeService(db: Kysely<DB>) {
   const selectView = (qb: Kysely<DB>) =>
