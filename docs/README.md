@@ -54,6 +54,7 @@ file when its stage arrives.
 | `ux/` | One UX spec per user-facing capability (flows + screen states). | [`UX-SPEC-TEMPLATE.md`](../templates/UX-SPEC-TEMPLATE.md) |
 | `spikes/` | One report per investigation (**these come first**). | [`SPIKE-REPORT-TEMPLATE.md`](../templates/SPIKE-REPORT-TEMPLATE.md) |
 | `status-reports/` | Periodic snapshots for clean hand-offs between sessions. | [`STATUS-REPORT-TEMPLATE.md`](../templates/STATUS-REPORT-TEMPLATE.md) |
+| [`reviews/`](reviews/) | Point-in-time, repo-wide code reviews; findings tracked as roadmap items. | — |
 
 ## Target `docs/` tree (once a project is underway)
 

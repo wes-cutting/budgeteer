@@ -12,7 +12,7 @@ Sequencing model: docs/00_WAYS_OF_WORKING.md §7.
 | Status        | Living         |
 | Owner         | Wesley Cutting |
 | Last updated  | 2026-06-14     |
-| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) |
+| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) · [`reviews/2026-06-15-repo-review.md`](reviews/2026-06-15-repo-review.md) |
 
 **Current focus:** **`#10` reconcile to bank — ✅ `Done` (gate-green).** A **plain balance
 compare**: enter your real bank balance on an account's register, see the live signed difference
@@ -21,10 +21,13 @@ compare**: enter your real bank balance on an account's register, see the live s
 concept; on a mismatch the app just shows the difference (owner decisions). New `reconciliations`
 table; no transaction/balance change (a recorded compare). Resolves the PRD §9 reconcile open
 question (FEAT-010). **120 tests pass**, typecheck + web build + format green; record + match +
-mismatch + history + negative-balance HTTP-smoked. **Next up:** the **analysis** area
-(`#11`–`#14`), now that the core loop + transfers + recurring produce real data to analyze.
-Deferred gate item unchanged: browser **Playwright e2e** (add in CI). Prior block: **`#9`
-recurring — ✅ Done**, 106 tests.
+mismatch + history + negative-balance HTTP-smoked. **Next up — a short engineering-health paydown
+before analysis** (from the [2026-06-15 review](reviews/2026-06-15-repo-review.md)):
+**`EH1`** share the domain in web → **`EH2`** extract API service plumbing → **`EH3`** map DB
+unique→409 + typed params → **`EH4`** ESLint in the gate → **`EH5`** minimal browser e2e →
+**`EH6`** hygiene; **then** the **analysis** area (`#11`–`#14`), then **hardening** (`#15`–`#16`,
+expanded with full e2e + a11y). Rationale: analysis adds more web formatting + read services, so
+the dedup/extraction is cheapest **now**. Prior block: **`#9` recurring — ✅ Done**, 106 tests.
 
 ---
 
@@ -113,12 +116,27 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | 13 | **Analysis — cash-flow forecast** (pay-period projection) | slice | Med | Med | #3 · #9 | Planned | Most modeling-heavy; the `Budget` tab's forward look |
 | 14 | **Analysis — debt & credit trends** (payoff % · utilization) | slice | Med | Med | cards-as-accounts + debt modeling | Planned | Larger area — likely spawns its own feature specs |
 
+### Engineering health (from the [2026-06-15 review](reviews/2026-06-15-repo-review.md))
+
+Cross-cutting cleanups, **sequenced before the analysis area** (`#11`): analysis adds more web
+money-formatting + read services, so the dedup/extraction is cheapest now. Do **EH1 → EH6 in
+order**, then `#11`+. No live bugs — these are coverage + drift-prevention.
+
+| # | Item | Kind | Pri | Status | Notes |
+| - | ---- | ---- | --- | ------ | ----- |
+| EH1 | **Share the domain in the web** — import money/format/date from `@budgeteer/domain`; delete the `format.ts` reimpl + `fakeApi` date mirror | refactor | P1 | Planned | Removes a 2nd source of truth for penny-exact money (drift risk). Make the package Vite-consumable |
+| EH2 | **Extract API service plumbing** — shared `dates` util + generic `groupBy`; move `DEFAULT_HOUSEHOLD_ID` out of `db/migrate.ts` into a constants/config module | refactor | P2 | Planned | `toDateStr`/`toISO` ×7, Map-by-parent ×3, household-const coupling |
+| EH3 | **Map DB unique-violation → 409** + typed route params | fix | P2 | Planned | The DB unique index is the real guard; its violation currently 500s. Replace `req.params as {…}` casts |
+| EH4 | **Add ESLint to the gate** (`@typescript-eslint` + `react-hooks`); remove now-dead `eslint-disable` comments | tooling | P3 | Planned | No linter runs today; existing disables are inert |
+| EH5 | **Browser e2e (Playwright)** — minimal now (dashboard loads vs. real API + 1 journey); **full journeys land in `#16`** | hardening | P1 | Planned | The CORS bug slipped past curl/inject smokes + fake-API tests; front-load this class of risk |
+| EH6 | **Repo hygiene** — discard the absorbed `spikes/04-transfer-modeling/`; record accepted notes (bigint→Number; normalize-vs-btrim) | chore | P3 | Planned | Kit: discard spike code once findings are absorbed |
+
 ### Hardening
 
 | # | Item | Kind | Value | Risk | Trigger (when) | Status | Links |
 | - | ---- | ---- | ----- | ---- | -------------- | ------ | ----- |
 | 15 | **Backup / export** of the local store | hardening | Med | Med | real daily data exists | Planned | `07_NFR` |
-| 16 | **a11y pass** (WCAG 2.2 AA) + perf/NFR budgets | hardening | Med | Low | UI surfaces exist | Planned | `07_NFR` *(a11y is also per-slice in the DoD; this is a consolidated pass)* |
+| 16 | **a11y pass** (WCAG 2.2 AA) + perf/NFR budgets + **full browser-e2e journeys** ([EH5](reviews/2026-06-15-repo-review.md)) + **ESLint in CI** ([EH4](reviews/2026-06-15-repo-review.md)) | hardening | Med | Low | UI surfaces exist | Planned | `07_NFR` *(a11y is also per-slice in the DoD; this is a consolidated pass; e2e/eslint started early as EH5/EH4)* |
 
 ### Deferred — post-V1
 
@@ -126,7 +144,7 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | - | ---- | ---- | ------------ | ------ |
 | 17 | **SPIKE-03 — data-profiling:** does the 12-yr `Budget.xlsx` reconcile/extract cleanly from its in-cell formula strings? | spike | History migration is out of V1; this is the proper spike for the extraction that "got too messy" | Deferred |
 | 18 | **Historical import** | slice | Gated by SPIKE-03 | Deferred |
-| 19 | **Multi-user / household scoping** (auth · owner/household isolation) | epic | Future direction; a §11 scale-up trigger → full ceremony (tenancy ADR + threat model + property tests) | Deferred |
+| 19 | **Multi-user / household scoping** (auth · owner/household isolation) | epic | Future direction; a §11 scale-up trigger → full ceremony (tenancy ADR + threat model + property tests). **Absorbs the review's "no authentication" finding** ([2026-06-15 review](reviews/2026-06-15-repo-review.md)) | Deferred |
 | 20 | **CSV/statement import**, later **live bank API** | slice | Manual is V1; each needs its own integration spike | Deferred |
 
 ## 5. Re-sequencing log
@@ -149,6 +167,7 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | 2026-06-14 | Owner confirmed #9 scope: **weekly/biweekly/monthly**, explicit **Post due**, rule **carries its own split**. **`#9` Done** (gate-green); FEAT-009 `Implemented`; `recurring_transactions` + `recurring_lines` tables + `transactions.recurring_id` in `05_DATA_MODEL`; recurring endpoints in `06_API_CONTRACT`; RecurringTransaction entity in `04_DOMAIN_MODEL` | Built rule + idempotent generator across domain→API→UI (106 tests + HTTP smoke); pure schedule core with monthly anchor-day clamp | **Next: reconcile `#10`**, then analysis (`#11`–`#14`) |
 | 2026-06-15 | Owner confirmed #10 scope: **plain compare + recorded history** (not a cleared/statement workflow); on mismatch **show the difference** (no auto-adjustment). **`#10` Done** (gate-green); FEAT-010 `Implemented`; `reconciliations` table in `05_DATA_MODEL`; reconcile endpoints in `06_API_CONTRACT`; Reconciliation entity in `04_DOMAIN_MODEL`; PRD §9 reconcile Q **resolved** | Built record+compare across domain→API→UI (120 tests + HTTP smoke); a recorded compare, no ledger/balance effect | **Next: the analysis area (`#11`–`#14`)** |
 | 2026-06-15 | **CORS + .env fix** (not a roadmap slice): the browser app couldn't reach the API (no CORS headers → "Failed to fetch"); added `@fastify/cors` allowlist (`CORS_ORIGINS`) + repo-root `.env` auto-load (dotenv / Vite `envDir`) | Found via running the app at `localhost:5173`; the browser→API path was never exercised by curl/inject smokes | Hardening follow-up: add **browser e2e** (would have caught this) |
+| 2026-06-15 | **Repo-wide review** captured ([reviews/2026-06-15-repo-review.md](reviews/2026-06-15-repo-review.md)); added **Engineering-health items `EH1`–`EH6`**, sequenced **before the analysis area** | No live bugs; themes = browser-path coverage gap + duplication drift | New order: **EH1→EH6 → analysis `#11`–`#14` → hardening `#15`–`#16`** (full e2e/a11y); no-auth folds into `#19` |
 
 ## 6. Done / shipped
 
