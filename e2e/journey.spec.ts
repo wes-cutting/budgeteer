@@ -61,4 +61,21 @@ test("dashboard loads against the real API, then account → envelope → alloca
   await page.getByRole("button", { name: "← Dashboard" }).click();
   const envelopeRow = envelopeList.getByRole("listitem").filter({ hasText: ENVELOPE });
   await expect(envelopeRow).toContainText("$500.00");
+
+  // 6. Budget vs. actual (FEAT-012): set a monthly target via the inline editor — a real
+  //    cross-origin PUT /envelopes/:id/target. This guards the CORS allow-methods fix:
+  //    @fastify/cors defaults the preflight to GET,HEAD,POST, which silently blocks browser
+  //    PUT/PATCH/DELETE (the class of bug the prior POST-only journey could not catch).
+  await page.getByRole("button", { name: "Budget", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Analysis — budget vs. actual", level: 1 }),
+  ).toBeVisible();
+  const budgetRow = page.getByRole("row").filter({ hasText: ENVELOPE });
+  await budgetRow.getByLabel(`Monthly target for ${ENVELOPE}`).fill("200.00");
+  await budgetRow.getByRole("button", { name: "Save" }).click();
+  // The PUT round-tripped: the target persisted and, since the deposit FUNDED (not spent) the
+  // envelope, spend is $0 and the full target remains — and a Clear control now exists.
+  await expect(budgetRow).toContainText("$0.00"); // spent (outflow only — funding excluded)
+  await expect(budgetRow).toContainText("$200.00"); // remaining = target − spent
+  await expect(budgetRow.getByRole("button", { name: "Clear" })).toBeVisible();
 });

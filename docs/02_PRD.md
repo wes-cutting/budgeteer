@@ -138,7 +138,7 @@ Ordered by value/uncertainty for sequencing (the roadmap is the plan of record):
 | -------- | ----- | ------ |
 | ~~Money representation — integer minor units vs. decimal?~~ | Wesley + agent | **DECIDED: integer minor units** → formalize in a money ADR next round |
 | ~~Fixed seed vs. user-managed envelopes?~~ | Wesley | **DECIDED: user-managed CRUD + archive** (sinking-fund lifecycle; soft-delete preserves history) |
-| Do envelopes carry a **monthly budget target** in V1 (needed for budget-vs-actual)? | Wesley | open → analysis area |
+| ~~Do envelopes carry a **monthly budget target** in V1 (needed for budget-vs-actual)?~~ | Wesley | **resolved: yes — one recurring monthly target per envelope** (#12/FEAT-012; a single amount, not effective-dated; actual = outflow spend, refunds netted) |
 | ~~Template definition — fixed-dollar, percentage, or both?~~ | Wesley | **resolved: fixed dollar amounts** (Slice 2); percentage/both deferred |
 | ~~Does "reconcile to bank" need a cleared/statement concept, or just a balance compare?~~ | Wesley | **resolved: plain balance compare** (#10/FEAT-010) with recorded history; per-transaction cleared workflow deferred |
 | ~~Should a transaction's allocation also support **negative** rows (for refunds within a split)?~~ | Wesley + agent | **resolved: yes** — per-row **Refund** flag (#8/FEAT-008); the split invariant governs the signed total (mixed-sign rows allowed; net-flip/over-allocation rejected) |

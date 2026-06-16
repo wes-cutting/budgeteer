@@ -197,6 +197,30 @@ export interface EnvelopeSpendRollup {
   grandTotal: number;
 }
 
+// --- Analysis: budget vs. actual (FEAT-012) ---
+
+export interface EnvelopeTargetView {
+  envelopeId: string;
+  monthlyTargetCents: number;
+}
+
+export interface BudgetVsActualRow {
+  envelopeId: string;
+  envelopeName: string;
+  archived: boolean;
+  targetCents: number | null; // null = no target set
+  spentCents: number; // net spend (outflow) this month; ≥ 0 normally
+  remainingCents: number | null; // target − spent; null when no target
+}
+
+export interface BudgetVsActualReport {
+  month: string; // "YYYY-MM"
+  rows: BudgetVsActualRow[];
+  totalTargetCents: number;
+  totalSpentCents: number;
+  totalRemainingCents: number;
+}
+
 /** Thrown on a non-2xx response, carrying the server's user-facing message. */
 export class ApiError extends Error {}
 
@@ -234,6 +258,9 @@ export interface Api {
     input: CreateReconciliationInput,
   ): Promise<ReconciliationView>;
   getEnvelopeSpend(grain: SpendGrain): Promise<EnvelopeSpendRollup>;
+  getBudgetVsActual(month: string): Promise<BudgetVsActualReport>;
+  setEnvelopeTarget(envelopeId: string, amount: string): Promise<EnvelopeTargetView>;
+  clearEnvelopeTarget(envelopeId: string): Promise<void>;
 }
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -392,5 +419,21 @@ export const httpApi: Api = {
     return (
       await request<{ rollup: EnvelopeSpendRollup }>(`/analysis/envelope-spend?grain=${grain}`)
     ).rollup;
+  },
+  async getBudgetVsActual(month) {
+    return (
+      await request<{ report: BudgetVsActualReport }>(`/analysis/budget-vs-actual?month=${month}`)
+    ).report;
+  },
+  async setEnvelopeTarget(envelopeId, amount) {
+    return (
+      await request<{ target: EnvelopeTargetView }>(`/envelopes/${envelopeId}/target`, {
+        method: "PUT",
+        body: JSON.stringify({ amount }),
+      })
+    ).target;
+  },
+  async clearEnvelopeTarget(envelopeId) {
+    await request<unknown>(`/envelopes/${envelopeId}/target`, { method: "DELETE" });
   },
 };

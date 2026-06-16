@@ -21,6 +21,7 @@ export interface DB {
   recurring_transactions: RecurringTransactionsTable;
   recurring_lines: RecurringLinesTable;
   reconciliations: ReconciliationsTable;
+  envelope_targets: EnvelopeTargetsTable;
   v_account_balances: AccountBalancesView;
   v_envelope_balances: EnvelopeBalancesView;
 }
@@ -141,6 +142,16 @@ interface ReconciliationsTable {
   derived_balance_cents: IntCents;
   reconciled_on: DateOnly;
   created_at: Generated<Date>;
+}
+
+/** Per-envelope recurring monthly budget target (FEAT-012): one row per envelope, no row = no target. */
+interface EnvelopeTargetsTable {
+  id: Generated<string>;
+  household_id: string;
+  envelope_id: string;
+  monthly_target_cents: IntCents; // positive magnitude (planned monthly spend)
+  created_at: Generated<Date>;
+  updated_at: ColumnType<Date, Date | undefined, Date>;
 }
 
 interface AccountBalancesView {

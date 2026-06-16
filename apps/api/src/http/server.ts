@@ -22,6 +22,7 @@ import { makeRecurringService } from "../services/recurringService";
 import { makeReconcileService } from "../services/reconcileService";
 import { makeTemplateService } from "../services/templateService";
 import { makeAnalysisService } from "../services/analysisService";
+import { makeTargetService } from "../services/targetService";
 import { DuplicateNameError, NotFoundError, ValidationError } from "../services/errors";
 
 const createAccountBody = z.object({
@@ -34,6 +35,7 @@ const createEnvelopeBody = z.object({
   kind: z.string().default("standard"),
 });
 const renameBody = z.object({ name: z.string() });
+const setTargetBody = z.object({ amount: z.string() });
 
 const allocationInput = z.object({
   envelopeId: z.string().min(1),
@@ -89,6 +91,7 @@ const upsertTemplateBody = z.object({
 });
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 function fail(reply: FastifyReply, status: number, message: string) {
   return reply.code(status).send({ error: { message } });
@@ -121,6 +124,7 @@ function parseTemplateLines(
 type IdParams = { Params: { id: string } };
 type AccountIdParams = { Params: { accountId: string } };
 type SpendQuery = { Querystring: { grain?: string } };
+type MonthQuery = { Querystring: { month?: string } };
 
 export function buildServer(
   db: Kysely<DB>,
@@ -131,8 +135,12 @@ export function buildServer(
   // Browsers call this API cross-origin (web on :5173, API on :3001), so it must send CORS
   // headers or the browser blocks every response ("Failed to fetch"). Allowlist only — the
   // configured origins, never `*` (SECURITY.md). Default covers the Vite dev origin.
+  // `methods` must list every verb the API uses: @fastify/cors otherwise defaults the preflight's
+  // Access-Control-Allow-Methods to GET,HEAD,POST, which silently blocks cross-origin PUT/PATCH/
+  // DELETE (rename, edit-split, template/recurring delete, budget targets) in the browser.
   void app.register(cors, {
     origin: opts.corsOrigins ?? ["http://localhost:5173", "http://127.0.0.1:5173"],
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
   });
 
   // Tolerate an empty body on application/json requests (e.g. a bodyless DELETE) rather than
@@ -157,6 +165,7 @@ export function buildServer(
   const reconcile = makeReconcileService(db);
   const templates = makeTemplateService(db);
   const analysis = makeAnalysisService(db);
+  const targets = makeTargetService(db);
 
   app.setErrorHandler((err, _req, reply) => {
     const e = err as Error & { statusCode?: number };
@@ -470,6 +479,40 @@ export function buildServer(
     if (grain !== "month" && grain !== "year")
       return fail(reply, 400, "grain must be 'month' or 'year'.");
     return { rollup: await analysis.envelopeSpend(grain) };
+  });
+
+  // --- Analysis: budget vs. actual (FEAT-012) ---
+  app.get<MonthQuery>("/analysis/budget-vs-actual", async (req, reply) => {
+    const month = req.query.month ?? todayStr().slice(0, 7);
+    if (!MONTH_RE.test(month)) return fail(reply, 400, "month must be 'YYYY-MM'.");
+    return { report: await analysis.budgetVsActual(month) };
+  });
+
+  // Set / clear an envelope's recurring monthly budget target (the "budget" half of FEAT-012).
+  app.put<IdParams>("/envelopes/:id/target", async (req, reply) => {
+    const parsed = setTargetBody.safeParse(req.body);
+    if (!parsed.success) return fail(reply, 400, "Invalid request body.");
+    const magnitude = parsePositiveMagnitude(parsed.data.amount);
+    if (magnitude === null) return fail(reply, 400, "Enter a target greater than 0.");
+    const { id } = req.params;
+    try {
+      const target = await targets.set(id, magnitude);
+      return { target };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Envelope not found.");
+      throw e;
+    }
+  });
+
+  app.delete<IdParams>("/envelopes/:id/target", async (req, reply) => {
+    const { id } = req.params;
+    try {
+      await targets.clear(id);
+      return reply.code(204).send();
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Envelope not found.");
+      throw e;
+    }
   });
 
   // --- Allocation templates (FEAT-004) ---

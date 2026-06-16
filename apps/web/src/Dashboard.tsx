@@ -20,6 +20,7 @@ export function Dashboard({
   onOpenTemplates,
   onOpenRecurring,
   onOpenAnalysis,
+  onOpenBudget,
 }: {
   api: Api;
   onOpenAccount?: (account: AccountView) => void;
@@ -27,6 +28,7 @@ export function Dashboard({
   onOpenTemplates?: () => void;
   onOpenRecurring?: () => void;
   onOpenAnalysis?: () => void;
+  onOpenBudget?: () => void;
 }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
@@ -87,6 +89,9 @@ export function Dashboard({
         </button>
         <button type="button" onClick={() => onOpenAnalysis?.()}>
           Analysis
+        </button>
+        <button type="button" onClick={() => onOpenBudget?.()}>
+          Budget
         </button>
       </header>
 

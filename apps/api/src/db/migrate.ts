@@ -236,6 +236,27 @@ export async function migrateToLatest(db: Kysely<DB>): Promise<void> {
     db,
   );
 
+  // Per-envelope recurring monthly budget target (FEAT-012): one row per envelope (no row = no
+  // target). The "budget" side of budget-vs-actual; the "actual" is a read-only aggregate over
+  // allocations. Mutable config (not a ledger row), so it carries an updated_at.
+  await sql`
+    create table if not exists envelope_targets (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references households(id),
+      envelope_id uuid not null references envelopes(id),
+      monthly_target_cents bigint not null check (monthly_target_cents > 0),
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `.execute(db);
+  await sql`
+    create unique index if not exists envelope_targets_envelope_uniq
+      on envelope_targets (envelope_id)
+  `.execute(db);
+  await sql`create index if not exists envelope_targets_household_idx on envelope_targets (household_id)`.execute(
+    db,
+  );
+
   await sql`
     insert into households (id, name)
     values (${DEFAULT_HOUSEHOLD_ID}::uuid, 'Default household')

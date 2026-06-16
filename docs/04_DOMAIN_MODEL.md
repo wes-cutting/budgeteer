@@ -31,6 +31,8 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 | **Envelope transfer** | A re-budget of money between two **envelopes** with no account movement (a dedicated `envelope_transfers` row). Extends envelope-balance derivation (ADR-0004 (B)). |
 | **Recurring rule** | A scheduled template transaction (account + direction + fixed amount + split + frequency) with a `next occurrence` cursor; **Post due** generates concrete transactions and advances the cursor (FEAT-009). |
 | **Reconciliation** | A recorded compare of an account's derived balance against the real bank **statement** balance at a point in time (FEAT-010). `difference = statement − derived`. Manual; no per-transaction *cleared* concept in V1. |
+| **Envelope target** | A per-envelope **recurring monthly budget** — what you plan to spend from the envelope each month (FEAT-012). A single amount (not effective-dated); optional (no target ⇒ none). |
+| **Actual spend (outflow)** | For budget-vs-actual: an envelope's **net spend** in a month = `−Σ allocation.amountCents` over allocations on **withdrawal** transactions (`amountCents < 0`). Excludes funding deposits; **nets refund rows** down. **Remaining** = `target − actual`. (FEAT-012.) |
 | **Unallocated** | The part of a transaction not yet assigned to any envelope (`amount − Σ allocations`). May be non-zero ("enter now, split later"). |
 | **Account balance** | **Derived:** Σ of the account's transaction amounts. |
 | **Envelope balance** | **Derived:** Σ of the allocation amounts landing in that envelope. |
@@ -114,6 +116,17 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
     account's derived balance later changes.
   - V1 has **no per-transaction cleared/statement state** (deferred).
 
+### EnvelopeTarget
+- **Purpose:** the **budget** side of budget-vs-actual (FEAT-012) — a per-envelope recurring monthly
+  spending target.
+- **Key attributes:** `envelopeId`, `householdId`, `monthlyTargetCents` (positive magnitude), `createdAt`, `updatedAt`.
+- **Invariants:**
+  - **At most one** target per envelope (no target ⇒ the envelope is un-budgeted).
+  - `monthlyTargetCents > 0` (a budget of 0 is expressed as **no target**, not a zero row).
+  - It is **mutable config**, not a ledger row — setting replaces, clearing removes; it has **no**
+    balance/ledger effect.
+  - A **single recurring** monthly amount (not per-month / effective-dated in V1 — FEAT-012 §11).
+
 ### Allocation
 - **Purpose:** assign a slice of a transaction to an envelope (the account↔envelope bridge).
 - **Key attributes:** `id`, `transactionId`, `envelopeId`, `amountCents` (signed).
@@ -175,6 +188,10 @@ allocated` indefinitely; the app surfaces these via a **needs-allocation** indic
 - **Transaction.unallocated** = `amountCents − Σ its allocations`.
 - **Needs-allocation set** = transactions where `unallocated ≠ 0`, **excluding `transfer`
   legs** (relocated money is already budgeted — ADR-0004).
+- **Budget-vs-actual** (FEAT-012, derived for a month): an envelope's **actual spend** =
+  `−Σ allocation.amountCents` over allocations on **withdrawal** transactions in the month (outflow
+  only — funding deposits excluded, refund rows netted down); **remaining** = `monthlyTarget −
+  actual`. The target is **stored** (config); the actual and remaining are **derived**.
 
 > **Opening balance = an opening Transaction.** Creating an account with a starting balance
 > creates the account **and** a `kind = opening` transaction for that amount (initially

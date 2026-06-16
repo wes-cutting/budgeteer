@@ -10,7 +10,7 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
 | Status       | Implemented (Foundation slice) |
 | Owner        | Wesley Cutting                 |
 | Style        | HTTP / JSON (REST-ish)         |
-| Last updated | 2026-06-15                     |
+| Last updated | 2026-06-16                     |
 
 ## 1. Conventions
 
@@ -25,7 +25,11 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
 - **CORS:** the browser app calls this API **cross-origin** (web on `:5173`, API on `:3001`),
   so the API sends CORS headers via `@fastify/cors`. The allowed origins are an **allowlist**
   (env `CORS_ORIGINS`, comma-separated; defaults to the Vite dev origins) — **never `*`**
-  (SECURITY.md). Without this, browsers block every response with "Failed to fetch".
+  (SECURITY.md). Without this, browsers block every response with "Failed to fetch". The
+  **allowed methods** are declared explicitly (`GET,HEAD,POST,PUT,PATCH,DELETE`): `@fastify/cors`
+  otherwise defaults the preflight to `GET,HEAD,POST`, which silently blocks every cross-origin
+  `PUT`/`PATCH`/`DELETE` in the browser (fixed with FEAT-012, which added the first browser write
+  verbs that weren't covered by the prior POST-only e2e).
 - **Authz:** **none yet** — V1 is a single implicit household (`DEFAULT_HOUSEHOLD_ID`). When
   multi-household lands it becomes **default-deny, household-scoped at the resource level**
   (ADR-0002, SECURITY.md). Every resource already carries `householdId` server-side.
@@ -203,6 +207,28 @@ activity appear. Read-only — no new table or view (a derived aggregate query, 
 
 - **`GET /analysis/envelope-spend?grain=month|year`** (default `month`) → `200 { rollup }`.
   Errors: `400` (grain not `month`/`year`). Household-scoped server-side.
+
+### Analysis: budget vs. actual (FEAT-012)
+
+`BudgetVsActualReport = { month: "YYYY-MM", rows: BudgetVsActualRow[], totalTargetCents,
+totalSpentCents, totalRemainingCents }`;
+`BudgetVsActualRow = { envelopeId, envelopeName, archived, targetCents: number|null,
+spentCents, remainingCents: number|null }`. For one month, each envelope's **monthly target** (the
+budget) vs. its **actual spend** (the **outflow only**), with `remaining = target − spent`. "Actual
+spend" is **net spend on withdrawal transactions** — `−Σ allocation.amountCents` over allocations
+whose transaction has `amount_cents < 0`, bucketed by `to_char(occurred_on,'YYYY-MM')`: this
+**excludes funding deposits** and **nets refund rows** (FEAT-008) down. `targetCents`/`remainingCents`
+are `null` when no target is set. Rows cover every **active** envelope plus any **archived** one with
+a target or spend that month, ordered by name. Targets are stored (`envelope_targets`); the actual is
+a derived aggregate — no balance-view change. Household-scoped server-side.
+
+- **`GET /analysis/budget-vs-actual?month=YYYY-MM`** (default = the current month) → `200 { report }`.
+  Errors: `400` (month not `YYYY-MM`).
+- **`PUT /envelopes/:id/target`** `{ amount: string }` → `200 { target }` where
+  `EnvelopeTargetView = { envelopeId, monthlyTargetCents }`. Sets/replaces the recurring monthly
+  target (a **positive** magnitude). Errors: `400` (amount ≤ 0 / unparseable); `404` (envelope missing).
+- **`DELETE /envelopes/:id/target`** → `204`. Clears the target; **idempotent** (clearing an absent
+  target is a no-op). `404` if the envelope is missing. A bodyless request needs no `content-type`.
 
 ## 4. Internal contracts (non-network)
 

@@ -27,6 +27,31 @@ export interface EnvelopeSpendRollup {
   grandTotal: number;
 }
 
+export interface BudgetVsActualRow {
+  envelopeId: string;
+  envelopeName: string;
+  archived: boolean;
+  /** The envelope's monthly target (positive cents), or null when no target is set. */
+  targetCents: number | null;
+  /** Net spend (outflow) in the month: −Σ allocations on withdrawal transactions; ≥ 0 normally. */
+  spentCents: number;
+  /** `target − spent` (positive = under budget / money left); null when no target. */
+  remainingCents: number | null;
+}
+
+export interface BudgetVsActualReport {
+  /** The period compared, "YYYY-MM". */
+  month: string;
+  /** Envelopes that are active OR have a target OR had spend this month, ordered by name. */
+  rows: BudgetVsActualRow[];
+  /** Σ targets over rows that have one. */
+  totalTargetCents: number;
+  /** Σ spend over all rows (includes spend on un-budgeted envelopes). */
+  totalSpentCents: number;
+  /** Σ remaining over budgeted rows (= totalTarget − spend on budgeted envelopes). */
+  totalRemainingCents: number;
+}
+
 const HH = DEFAULT_HOUSEHOLD_ID;
 
 export function makeAnalysisService(db: Kysely<DB>) {
@@ -97,6 +122,83 @@ export function makeAnalysisService(db: Kysely<DB>) {
       const periodTotals = periods.map((p) => periodTotal.get(p) ?? 0);
       const grandTotal = periodTotals.reduce((a, b) => a + b, 0);
       return { grain, periods, rows: outRows, periodTotals, grandTotal };
+    },
+
+    /**
+     * Budget vs. actual for one month (FEAT-012): each envelope's monthly **target** (the budget)
+     * against its **actual spend** (the outflow) that month, with the remaining budget.
+     *
+     * "Actual spend" is the owner's chosen basis (spend-only/outflow): `−Σ allocation.amount_cents`
+     * over allocations whose **transaction is a withdrawal** (`amount_cents < 0`). This excludes
+     * funding deposits by construction and **nets refund rows** (a refund is a `+` allocation on a
+     * withdrawal — FEAT-008) against spend, so it reads as "what I net-spent from this envelope".
+     * Envelope↔envelope reallocations carry no allocations, so they're excluded (as in #11).
+     *
+     * `remaining = target − spent` (positive = under budget). Rows cover every **active** envelope
+     * plus any archived envelope that has a target or spend this month, ordered by name. Read-only;
+     * money stays integer cents (summed in SQL, narrowed at the boundary). `month` is "YYYY-MM",
+     * validated at the boundary.
+     */
+    async budgetVsActual(month: string): Promise<BudgetVsActualReport> {
+      const spendRows = await db
+        .selectFrom("allocations as al")
+        .innerJoin("transactions as t", "t.id", "al.transaction_id")
+        .where("t.household_id", "=", HH)
+        .where(sql<boolean>`t.amount_cents < 0`) // outflow transactions only — funding excluded
+        .where(sql<boolean>`to_char(t.occurred_on, 'YYYY-MM') = ${month}`)
+        .select([
+          "al.envelope_id as envelope_id",
+          sql<string>`sum(al.amount_cents)`.as("net_cents"),
+        ])
+        .groupBy("al.envelope_id")
+        .execute();
+
+      const targetRows = await db
+        .selectFrom("envelope_targets")
+        .where("household_id", "=", HH)
+        .select(["envelope_id", "monthly_target_cents"])
+        .execute();
+
+      const envRows = await db
+        .selectFrom("envelopes")
+        .where("household_id", "=", HH)
+        .select(["id", "name", "archived_at"])
+        .orderBy("name")
+        .execute();
+
+      // Net spend is −(Σ signed allocations on withdrawal txns); refunds (+ rows) net it down.
+      const spentByEnv = new Map(spendRows.map((r) => [r.envelope_id, -Number(r.net_cents ?? 0)]));
+      const targetByEnv = new Map(
+        targetRows.map((r) => [r.envelope_id, Number(r.monthly_target_cents)]),
+      );
+
+      let totalTargetCents = 0;
+      let totalSpentCents = 0;
+      let totalRemainingCents = 0;
+      const rows: BudgetVsActualRow[] = [];
+      for (const e of envRows) {
+        const hasTarget = targetByEnv.has(e.id);
+        const hasSpend = spentByEnv.has(e.id);
+        if (e.archived_at !== null && !hasTarget && !hasSpend) continue;
+        const targetCents = hasTarget ? (targetByEnv.get(e.id) as number) : null;
+        const spentCents = spentByEnv.get(e.id) ?? 0;
+        const remainingCents = targetCents === null ? null : targetCents - spentCents;
+        if (targetCents !== null) {
+          totalTargetCents += targetCents;
+          totalRemainingCents += remainingCents as number;
+        }
+        totalSpentCents += spentCents;
+        rows.push({
+          envelopeId: e.id,
+          envelopeName: e.name,
+          archived: e.archived_at !== null,
+          targetCents,
+          spentCents,
+          remainingCents,
+        });
+      }
+
+      return { month, rows, totalTargetCents, totalSpentCents, totalRemainingCents };
     },
   };
 }

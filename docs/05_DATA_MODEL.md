@@ -182,6 +182,20 @@ seeded household** in V1 (no auth/RLS yet).
 - **Keys/Indexes:** PK `id`; index `(account_id)`. `difference = statement − derived` is
   **derived**, never stored. A record only — no transaction, no balance effect.
 
+### envelope_targets → `EnvelopeTarget` (FEAT-012)
+| Field | Type | Null | Notes |
+| ----- | ---- | ---- | ----- |
+| id | uuid | no | PK |
+| household_id | uuid | no | FK → households(id), **restrict** |
+| envelope_id | uuid | no | FK → envelopes(id), **restrict**; **unique** (one target per envelope) |
+| monthly_target_cents | bigint | no | positive magnitude (`check (monthly_target_cents > 0)`); the recurring monthly budget |
+| created_at | timestamptz | no | default `now()` |
+| updated_at | timestamptz | no | default `now()`; set on update (mutable **config**, not a ledger row) |
+- **Keys/Indexes:** PK `id`; **unique** `(envelope_id)`; index `(household_id)`.
+- **Semantics:** **no row = no target.** A single **recurring** monthly amount per envelope (not
+  effective-dated — FEAT-012 §11). Set/replaced via `PUT /envelopes/:id/target`, removed via
+  `DELETE`. The **actual** side (spend) is **derived**, never stored (see §5).
+
 ## 3. Relationships & integrity
 
 - `accounts/envelopes/transactions.household_id → households` — **restrict** (the single V1
@@ -229,7 +243,13 @@ created as migrations alongside the tables.
 > envelopes` (net signed allocation flow per envelope, bucketed by `to_char(transactions.occurred_on,
 > 'YYYY-MM' | 'YYYY')`, household-scoped), so there is **no table, no view, and no migration**.
 > Reallocations (`envelope_transfers`) are deliberately **not** read by this query; archived envelopes
-> are included.
+> are included. **`#12`** (analysis, budget-vs-actual; FEAT-012) adds **one** table —
+> `envelope_targets` (idempotent `create table if not exists` + a unique index on `envelope_id`) — the
+> per-envelope recurring monthly budget. The **actual** half adds **no** schema: it is a read-only
+> aggregate of **outflow** spend (`−Σ allocations on transactions with `amount_cents < 0``, bucketed
+> by `to_char(occurred_on,'YYYY-MM')`), a **sibling** of the FEAT-011 query. No balance view changes
+> (targets do not affect derived balances). Migrator stays idempotent so the dev/test PGlite path
+> keeps doubling as it.
 
 ## 5. Seed / fixtures
 

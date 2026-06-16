@@ -23,6 +23,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
   const recurrings: RecurringView[] = [];
   const reconciliations: ReconciliationView[] = [];
   const templates: TemplateView[] = [];
+  const targets = new Map<string, number>(); // envelopeId → monthly target cents (FEAT-012)
   const today = () => new Date().toISOString().slice(0, 10);
   let seq = 0;
   const newId = (p: string) => `${p}${seq++}`;
@@ -402,6 +403,49 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       );
       const grandTotal = periodTotals.reduce((a, b) => a + b, 0);
       return { grain, periods, rows, periodTotals, grandTotal };
+    },
+    async getBudgetVsActual(month) {
+      // Mirror the server: actual = net spend (outflow) = −Σ allocations on WITHDRAWAL txns that
+      // month (funding deposits excluded; refund rows net it down). Reallocations aren't allocations.
+      const netSpend = new Map<string, number>();
+      for (const t of txns) {
+        if (t.amountCents >= 0) continue; // outflow transactions only
+        if (t.occurredOn.slice(0, 7) !== month) continue;
+        for (const al of t.allocations) {
+          netSpend.set(al.envelopeId, (netSpend.get(al.envelopeId) ?? 0) + al.amountCents);
+        }
+      }
+      const rows = envelopes
+        .filter((e) => e.archivedAt === null || targets.has(e.id) || netSpend.has(e.id))
+        .map((e) => {
+          const targetCents = targets.get(e.id) ?? null;
+          const spentCents = -(netSpend.get(e.id) ?? 0);
+          const remainingCents = targetCents === null ? null : targetCents - spentCents;
+          return {
+            envelopeId: e.id,
+            envelopeName: e.name,
+            archived: e.archivedAt !== null,
+            targetCents,
+            spentCents,
+            remainingCents,
+          };
+        })
+        .sort((a, b) => a.envelopeName.localeCompare(b.envelopeName));
+      const totalTargetCents = rows.reduce((s, r) => s + (r.targetCents ?? 0), 0);
+      const totalSpentCents = rows.reduce((s, r) => s + r.spentCents, 0);
+      const totalRemainingCents = rows.reduce((s, r) => s + (r.remainingCents ?? 0), 0);
+      return { month, rows, totalTargetCents, totalSpentCents, totalRemainingCents };
+    },
+    async setEnvelopeTarget(envelopeId, amount) {
+      if (!envelopes.some((e) => e.id === envelopeId)) throw new ApiError("Envelope not found.");
+      const cents = tryParseMoney(amount) ?? 0;
+      if (cents <= 0) throw new ApiError("Enter a target greater than 0.");
+      targets.set(envelopeId, cents);
+      return { envelopeId, monthlyTargetCents: cents };
+    },
+    async clearEnvelopeTarget(envelopeId) {
+      if (!envelopes.some((e) => e.id === envelopeId)) throw new ApiError("Envelope not found.");
+      targets.delete(envelopeId);
     },
     ...overrides,
   };
