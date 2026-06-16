@@ -255,6 +255,37 @@ or view.** Money is **integer cents**. Household-scoped server-side.
   to **true**. Errors: `400` (`horizonDays` non-integer / out of range); `404` (account missing / not
   in the household).
 
+### Analysis: credit utilization (FEAT-014a)
+
+`CreditUtilizationReport = { accounts: CreditAccountUtilization[], totalOwedCents, totalLimitCents,
+utilizationBps: number|null }`;
+`CreditAccountUtilization = { accountId, accountName, archived, limitCents: number|null, owedCents,
+availableCents: number|null, utilizationBps: number|null, trend: UtilizationPoint[] }`;
+`UtilizationPoint = { period: "YYYY-MM", owedCents, utilizationBps: number|null }`. For every
+**credit** account (`kind='credit'`): how much is **owed** against its **credit limit**. "Owed" is
+the derived balance interpreted as a liability — a credit account's balance (`v_account_balances`)
+is ≤ 0 when in debt, so **`owedCents = −balanceCents`** (positive = debt; ≤ 0 = a credit balance).
+**Utilization** is reported in integer **basis points** (`round(max(0, owed) / limit × 10000)`;
+`3000` = 30.0%) — the numerator floored at 0 (overpayment reads 0%), the top **not** clamped
+(over-limit > 10000 is meaningful). `availableCents = limit − owed`. The **trend** cumulates each
+month's net flow into the period-end owed balance and its utilization (the current limit applied to
+every period — limits are **not** effective-dated in V1). The **roll-up** sums `owed` (floored at 0
+per account) and `limit` over accounts **with** a limit; accounts without a limit appear with `null`
+utilization and are excluded from the roll-up. Credit accounts are shown when active, or (archived)
+only if they still carry a limit or a non-zero balance; ordered by name. The math is a **pure domain
+function** (`creditUtilization`); the service feeds it I/O. The only new table is `credit_limits`
+(the stored limit); owed/utilization are **derived**. Money is **integer cents**. Household-scoped
+server-side.
+
+- **`GET /analysis/credit-utilization`** → `200 { report }`. (No query params.)
+- **`PUT /accounts/:id/credit-limit`** `{ amount: string }` → `200 { creditLimit }` where
+  `CreditLimitView = { accountId, creditLimitCents }`. Sets/replaces the credit limit (a **positive**
+  magnitude). Errors: `400` (amount ≤ 0 / unparseable, **or** the account is not `kind='credit'`);
+  `404` (account missing / not in the household).
+- **`DELETE /accounts/:id/credit-limit`** → `204`. Clears the limit; **idempotent** (clearing an
+  absent limit is a no-op). Errors: `400` (account not `kind='credit'`); `404` (account missing). A
+  bodyless request needs no `content-type`.
+
 ## 4. Internal contracts (non-network)
 
 - **Domain core** (`@budgeteer/domain`, pure, no I/O): `parseMoney`/`formatMoney`/`sumMoney`

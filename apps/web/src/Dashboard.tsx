@@ -22,6 +22,7 @@ export function Dashboard({
   onOpenAnalysis,
   onOpenBudget,
   onOpenForecast,
+  onOpenCredit,
 }: {
   api: Api;
   onOpenAccount?: (account: AccountView) => void;
@@ -31,6 +32,7 @@ export function Dashboard({
   onOpenAnalysis?: () => void;
   onOpenBudget?: () => void;
   onOpenForecast?: () => void;
+  onOpenCredit?: () => void;
 }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
@@ -97,6 +99,9 @@ export function Dashboard({
         </button>
         <button type="button" onClick={() => onOpenForecast?.()}>
           Forecast
+        </button>
+        <button type="button" onClick={() => onOpenCredit?.()}>
+          Credit
         </button>
       </header>
 

@@ -251,6 +251,37 @@ export interface CashFlowForecast {
   firstNegativeDate: string | null; // first date balance < 0, or null
 }
 
+// --- Analysis: credit utilization (FEAT-014a) ---
+
+export interface CreditLimitView {
+  accountId: string;
+  creditLimitCents: number;
+}
+
+export interface UtilizationPoint {
+  period: string; // "YYYY-MM"
+  owedCents: number; // −(cumulative balance through this period); ≤ 0 = no debt
+  utilizationBps: number | null; // owed/limit in basis points; null when no limit
+}
+
+export interface CreditAccountUtilization {
+  accountId: string;
+  accountName: string;
+  archived: boolean;
+  limitCents: number | null;
+  owedCents: number; // −balance (positive = debt; ≤ 0 = credit balance)
+  availableCents: number | null; // limit − owed; null when no limit
+  utilizationBps: number | null; // current utilization in basis points; null when no limit
+  trend: UtilizationPoint[]; // ascending; one point per period with activity
+}
+
+export interface CreditUtilizationReport {
+  accounts: CreditAccountUtilization[];
+  totalOwedCents: number;
+  totalLimitCents: number;
+  utilizationBps: number | null; // aggregate over limited accounts; null when none
+}
+
 /** Thrown on a non-2xx response, carrying the server's user-facing message. */
 export class ApiError extends Error {}
 
@@ -292,6 +323,9 @@ export interface Api {
   getCashFlowForecast(accountId: string, opts?: ForecastOptions): Promise<CashFlowForecast>;
   setEnvelopeTarget(envelopeId: string, amount: string): Promise<EnvelopeTargetView>;
   clearEnvelopeTarget(envelopeId: string): Promise<void>;
+  getCreditUtilization(): Promise<CreditUtilizationReport>;
+  setCreditLimit(accountId: string, amount: string): Promise<CreditLimitView>;
+  clearCreditLimit(accountId: string): Promise<void>;
 }
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -474,5 +508,20 @@ export const httpApi: Api = {
   },
   async clearEnvelopeTarget(envelopeId) {
     await request<unknown>(`/envelopes/${envelopeId}/target`, { method: "DELETE" });
+  },
+  async getCreditUtilization() {
+    return (await request<{ report: CreditUtilizationReport }>("/analysis/credit-utilization"))
+      .report;
+  },
+  async setCreditLimit(accountId, amount) {
+    return (
+      await request<{ creditLimit: CreditLimitView }>(`/accounts/${accountId}/credit-limit`, {
+        method: "PUT",
+        body: JSON.stringify({ amount }),
+      })
+    ).creditLimit;
+  },
+  async clearCreditLimit(accountId) {
+    await request<unknown>(`/accounts/${accountId}/credit-limit`, { method: "DELETE" });
   },
 };

@@ -22,6 +22,7 @@ export interface DB {
   recurring_lines: RecurringLinesTable;
   reconciliations: ReconciliationsTable;
   envelope_targets: EnvelopeTargetsTable;
+  credit_limits: CreditLimitsTable;
   v_account_balances: AccountBalancesView;
   v_envelope_balances: EnvelopeBalancesView;
 }
@@ -150,6 +151,16 @@ interface EnvelopeTargetsTable {
   household_id: string;
   envelope_id: string;
   monthly_target_cents: IntCents; // positive magnitude (planned monthly spend)
+  created_at: Generated<Date>;
+  updated_at: ColumnType<Date, Date | undefined, Date>;
+}
+
+/** Per-credit-account credit limit (FEAT-014a): one row per credit account, no row = no limit. */
+interface CreditLimitsTable {
+  id: Generated<string>;
+  household_id: string;
+  account_id: string;
+  credit_limit_cents: IntCents; // positive magnitude (the card's limit)
   created_at: Generated<Date>;
   updated_at: ColumnType<Date, Date | undefined, Date>;
 }

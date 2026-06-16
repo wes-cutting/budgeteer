@@ -1,8 +1,10 @@
 import {
+  type CreditAccountInput,
   type ForecastRule,
   type ForecastTarget,
   anchorDayOf,
   cashFlowForecast,
+  creditUtilization,
   dueOccurrences,
   tryParseMoney,
 } from "@budgeteer/domain";
@@ -31,6 +33,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
   const reconciliations: ReconciliationView[] = [];
   const templates: TemplateView[] = [];
   const targets = new Map<string, number>(); // envelopeId → monthly target cents (FEAT-012)
+  const creditLimits = new Map<string, number>(); // accountId → credit limit cents (FEAT-014a)
   const today = () => new Date().toISOString().slice(0, 10);
   let seq = 0;
   const newId = (p: string) => `${p}${seq++}`;
@@ -499,6 +502,54 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
         },
       );
       return { accountId: account.id, accountName: account.name, ...forecast };
+    },
+    async getCreditUtilization() {
+      // Mirror the server: per credit account, owed = −balance and a monthly net-flow trend, run
+      // through the SAME pure domain function. Archived dormant credit accounts (no limit, settled)
+      // are hidden; accounts are ordered by name.
+      recompute();
+      const inputs: CreditAccountInput[] = accounts
+        .filter((a) => a.kind === "credit")
+        .filter((a) => a.archivedAt === null || creditLimits.has(a.id) || a.balanceCents !== 0)
+        .slice()
+        .sort((x, y) => x.name.localeCompare(y.name))
+        .map((a) => {
+          const byMonth = new Map<string, number>();
+          for (const t of txns) {
+            if (t.accountId !== a.id) continue;
+            const period = t.occurredOn.slice(0, 7);
+            byMonth.set(period, (byMonth.get(period) ?? 0) + t.amountCents);
+          }
+          const flows = [...byMonth.entries()]
+            .sort(([p1], [p2]) => p1.localeCompare(p2))
+            .map(([period, netCents]) => ({ period, netCents }));
+          return {
+            accountId: a.id,
+            accountName: a.name,
+            archived: a.archivedAt !== null,
+            balanceCents: a.balanceCents,
+            limitCents: creditLimits.get(a.id) ?? null,
+            flows,
+          };
+        });
+      return creditUtilization(inputs);
+    },
+    async setCreditLimit(accountId, amount) {
+      const account = accounts.find((a) => a.id === accountId);
+      if (!account) throw new ApiError("Account not found.");
+      if (account.kind !== "credit")
+        throw new ApiError("A credit limit applies only to credit accounts.");
+      const cents = tryParseMoney(amount) ?? 0;
+      if (cents <= 0) throw new ApiError("Enter a limit greater than 0.");
+      creditLimits.set(accountId, cents);
+      return { accountId, creditLimitCents: cents };
+    },
+    async clearCreditLimit(accountId) {
+      const account = accounts.find((a) => a.id === accountId);
+      if (!account) throw new ApiError("Account not found.");
+      if (account.kind !== "credit")
+        throw new ApiError("A credit limit applies only to credit accounts.");
+      creditLimits.delete(accountId);
     },
     ...overrides,
   };

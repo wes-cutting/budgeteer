@@ -257,6 +257,28 @@ export async function migrateToLatest(db: Kysely<DB>): Promise<void> {
     db,
   );
 
+  // Per-credit-account credit limit (FEAT-014a): one row per account (no row = no limit). The
+  // reference number for credit utilization (owed/limit); the "owed" side is the derived balance
+  // (v_account_balances), never stored. Mutable config (not a ledger row), so it carries updated_at.
+  // Only meaningful for kind='credit' accounts — enforced at the service boundary, not the schema.
+  await sql`
+    create table if not exists credit_limits (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references households(id),
+      account_id uuid not null references accounts(id),
+      credit_limit_cents bigint not null check (credit_limit_cents > 0),
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `.execute(db);
+  await sql`
+    create unique index if not exists credit_limits_account_uniq
+      on credit_limits (account_id)
+  `.execute(db);
+  await sql`create index if not exists credit_limits_household_idx on credit_limits (household_id)`.execute(
+    db,
+  );
+
   await sql`
     insert into households (id, name)
     values (${DEFAULT_HOUSEHOLD_ID}::uuid, 'Default household')

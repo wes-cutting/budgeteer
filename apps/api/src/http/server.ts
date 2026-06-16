@@ -26,6 +26,7 @@ import { makeReconcileService } from "../services/reconcileService";
 import { makeTemplateService } from "../services/templateService";
 import { makeAnalysisService } from "../services/analysisService";
 import { makeTargetService } from "../services/targetService";
+import { makeCreditLimitService } from "../services/creditLimitService";
 import { DuplicateNameError, NotFoundError, ValidationError } from "../services/errors";
 
 const createAccountBody = z.object({
@@ -39,6 +40,7 @@ const createEnvelopeBody = z.object({
 });
 const renameBody = z.object({ name: z.string() });
 const setTargetBody = z.object({ amount: z.string() });
+const setCreditLimitBody = z.object({ amount: z.string() });
 
 const allocationInput = z.object({
   envelopeId: z.string().min(1),
@@ -172,6 +174,7 @@ export function buildServer(
   const templates = makeTemplateService(db);
   const analysis = makeAnalysisService(db);
   const targets = makeTargetService(db);
+  const creditLimits = makeCreditLimitService(db);
 
   app.setErrorHandler((err, _req, reply) => {
     const e = err as Error & { statusCode?: number };
@@ -519,6 +522,40 @@ export function buildServer(
       };
     } catch (e) {
       if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
+      throw e;
+    }
+  });
+
+  // --- Analysis: credit utilization (FEAT-014a) ---
+  app.get("/analysis/credit-utilization", async () => ({
+    report: await analysis.creditUtilization(),
+  }));
+
+  // Set / clear a credit account's limit (the reference number for FEAT-014a utilization).
+  app.put<IdParams>("/accounts/:id/credit-limit", async (req, reply) => {
+    const parsed = setCreditLimitBody.safeParse(req.body);
+    if (!parsed.success) return fail(reply, 400, "Invalid request body.");
+    const magnitude = parsePositiveMagnitude(parsed.data.amount);
+    if (magnitude === null) return fail(reply, 400, "Enter a limit greater than 0.");
+    const { id } = req.params;
+    try {
+      const creditLimit = await creditLimits.set(id, magnitude);
+      return { creditLimit };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
+      if (e instanceof ValidationError) return fail(reply, 400, e.message);
+      throw e;
+    }
+  });
+
+  app.delete<IdParams>("/accounts/:id/credit-limit", async (req, reply) => {
+    const { id } = req.params;
+    try {
+      await creditLimits.clear(id);
+      return reply.code(204).send();
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
+      if (e instanceof ValidationError) return fail(reply, 400, e.message);
       throw e;
     }
   });

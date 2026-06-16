@@ -11,3 +11,8 @@ export function formatCents(cents: number): string {
   const remainder = (abs % 100).toString().padStart(2, "0");
   return `${negative ? "-" : ""}$${dollars}.${remainder}`;
 }
+
+/** Format basis points for display, e.g. 3000 -> "30.0%", 12000 -> "120.0%" (FEAT-014a). */
+export function formatBps(bps: number): string {
+  return `${(bps / 100).toFixed(1)}%`;
+}

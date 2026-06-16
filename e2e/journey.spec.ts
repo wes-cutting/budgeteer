@@ -7,6 +7,7 @@ const stamp = Date.now();
 const ACCOUNT = `E2E Checking ${stamp}`;
 const ENVELOPE = `E2E Groceries ${stamp}`;
 const PAYEE = `E2E Paycheck ${stamp}`;
+const CARD = `E2E Card ${stamp}`;
 
 test("dashboard loads against the real API, then account → envelope → allocate a deposit", async ({
   page,
@@ -91,4 +92,26 @@ test("dashboard loads against the real API, then account → envelope → alloca
   await page.getByLabel("Account").selectOption({ label: ACCOUNT });
   await expect(page.getByText("$500.00").first()).toBeVisible(); // derived starting balance
   await expect(page.getByText("Expected discretionary spend").first()).toBeVisible();
+
+  // 8. Credit utilization (FEAT-014a): add a credit account already owing $300 (a negative opening
+  //    balance), then set its limit inline on the Credit view — another cross-origin PUT
+  //    (/accounts/:id/credit-limit). The derived owed balance ÷ the just-set limit must read 30.0%,
+  //    proving the credit-limit store → utilization read wires through end to end (data → API → UI).
+  await page.getByRole("button", { name: "← Dashboard" }).click();
+  const cardForm = page.getByRole("form", { name: "Add account" });
+  await cardForm.getByLabel("Name", { exact: true }).fill(CARD);
+  await cardForm.getByLabel("Kind").selectOption("credit");
+  await cardForm.getByLabel("Starting balance").fill("-300.00");
+  await cardForm.getByRole("button", { name: "Add account" }).click();
+  await expect(page.getByRole("button", { name: CARD })).toBeVisible();
+
+  await page.getByRole("button", { name: "Credit", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Analysis — credit utilization", level: 1 }),
+  ).toBeVisible();
+  const cardLimitForm = page.getByRole("form", { name: `Credit limit for ${CARD}` });
+  await cardLimitForm.getByLabel(`Credit limit for ${CARD}`).fill("1000.00");
+  await cardLimitForm.getByRole("button", { name: "Save" }).click();
+  // 300 owed ÷ 1,000 limit = 30.0% — shown as text, never colour/bar alone.
+  await expect(page.getByText("30.0%").first()).toBeVisible();
 });

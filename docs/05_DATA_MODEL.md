@@ -11,7 +11,7 @@ migrations in the same change. Money = BIGINT integer cents (ADR-0003).
 | Status       | Accepted                                |
 | Owner        | Wesley Cutting                          |
 | Datastore    | PostgreSQL (per [`ADR-0002`](adr/ADR-0002-datastore.md)) |
-| Last updated | 2026-06-13                              |
+| Last updated | 2026-06-16                              |
 
 ## 1. Overview
 
@@ -196,6 +196,23 @@ seeded household** in V1 (no auth/RLS yet).
   effective-dated — FEAT-012 §11). Set/replaced via `PUT /envelopes/:id/target`, removed via
   `DELETE`. The **actual** side (spend) is **derived**, never stored (see §5).
 
+### credit_limits → `CreditLimit` (FEAT-014a)
+| Field | Type | Null | Notes |
+| ----- | ---- | ---- | ----- |
+| id | uuid | no | PK |
+| household_id | uuid | no | FK → households(id), **restrict** |
+| account_id | uuid | no | FK → accounts(id), **restrict**; **unique** (one limit per account) |
+| credit_limit_cents | bigint | no | positive magnitude (`check (credit_limit_cents > 0)`); the card's credit limit |
+| created_at | timestamptz | no | default `now()` |
+| updated_at | timestamptz | no | default `now()`; set on update (mutable **config**, not a ledger row) |
+- **Keys/Indexes:** PK `id`; **unique** `(account_id)`; index `(household_id)`.
+- **Semantics:** **no row = no limit.** The reference number for credit **utilization** (owed/limit).
+  Set/replaced via `PUT /accounts/:id/credit-limit`, removed via `DELETE`. Only meaningful for
+  `kind='credit'` accounts — enforced at the **service** boundary (a limit on a non-credit account →
+  `400`), not as a DB constraint. The **owed** side (= −derived balance) and utilization are
+  **derived**, never stored (see §5). Installment-loan payoff (original principal) is the deferred
+  sibling #14b.
+
 ## 3. Relationships & integrity
 
 - `accounts/envelopes/transactions.household_id → households` — **restrict** (the single V1
@@ -249,7 +266,13 @@ created as migrations alongside the tables.
 > aggregate of **outflow** spend (`−Σ allocations on transactions with `amount_cents < 0``, bucketed
 > by `to_char(occurred_on,'YYYY-MM')`), a **sibling** of the FEAT-011 query. No balance view changes
 > (targets do not affect derived balances). Migrator stays idempotent so the dev/test PGlite path
-> keeps doubling as it.
+> keeps doubling as it. **`#14a`** (analysis, credit utilization; FEAT-014a) adds **one** table —
+> `credit_limits` (idempotent `create table if not exists` + a unique index on `account_id`) — the
+> per-credit-account credit limit. The **owed/utilization** half adds **no** schema: it is a
+> read-only aggregate of the derived balance (`owed = −v_account_balances.balance_cents`) plus a
+> per-account monthly net-flow query (`sum(amount_cents)` bucketed by `to_char(occurred_on,'YYYY-MM')`,
+> cumulated into the period-end balance for the trend). No balance-view change (a limit does not affect
+> derived balances). Migrator stays idempotent.
 
 ## 5. Seed / fixtures
 

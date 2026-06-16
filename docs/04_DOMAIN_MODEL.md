@@ -10,7 +10,7 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 | ------------ | -------------- |
 | Status       | Accepted       |
 | Owner        | Wesley Cutting |
-| Last updated | 2026-06-13     |
+| Last updated | 2026-06-16     |
 
 > Realizes [`02_PRD.md`](02_PRD.md); money per [`ADR-0003`](adr/ADR-0003-money-integer-minor-units.md);
 > validated-in-TS by [`SPIKE-02`](spikes/02-stack-feasibility.md). The **Foundation** slice
@@ -35,6 +35,9 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 | **Actual spend (outflow)** | For budget-vs-actual: an envelope's **net spend** in a month = `−Σ allocation.amountCents` over allocations on **withdrawal** transactions (`amountCents < 0`). Excludes funding deposits; **nets refund rows** down. **Remaining** = `target − actual`. (FEAT-012.) |
 | **Cash-flow forecast** | **Derived:** an account's projected **running cash balance** over a horizon — current balance + future **scheduled** recurring events (± magnitude) and, optionally, **expected discretionary spend** from targets, netted to avoid double-counting. Yields the **minimum balance + date** and **first-negative date** (FEAT-013). |
 | **Expected (discretionary) spend** | For the forecast: a month's `Σ max(0, target − actualThisMonth − scheduledThisMonth)` over target envelopes — the budgeted spend **not** already covered by a scheduled bill or already-posted actual. Spread even-daily across the month's in-window days (FEAT-013). |
+| **Credit limit** | A per-**credit-account** stored amount: the card's credit ceiling (FEAT-014a). A single positive amount (no row ⇒ no limit). Only meaningful for `kind='credit'` accounts. |
+| **Owed** | For a credit account: the liability reading of its balance — `owed = −balanceCents` (a credit account's balance is ≤ 0 when in debt). Positive = debt; ≤ 0 = a credit balance / overpayment. **Derived**, never stored (FEAT-014a). |
+| **Credit utilization** | **Derived:** for a credit account, `owed ÷ limit` (reported in **basis points**: `round(max(0, owed) / limit × 10000)`). Floored at 0% (overpayment), **not** clamped above 100% (over-limit is real). A **trend** applies it to each month's cumulative owed; a **portfolio roll-up** is `Σ owed ÷ Σ limit` over accounts with a limit (FEAT-014a). |
 | **Unallocated** | The part of a transaction not yet assigned to any envelope (`amount − Σ allocations`). May be non-zero ("enter now, split later"). |
 | **Account balance** | **Derived:** Σ of the account's transaction amounts. |
 | **Envelope balance** | **Derived:** Σ of the allocation amounts landing in that envelope. |
@@ -129,6 +132,18 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
     balance/ledger effect.
   - A **single recurring** monthly amount (not per-month / effective-dated in V1 — FEAT-012 §11).
 
+### CreditLimit
+- **Purpose:** the reference number for credit **utilization** (FEAT-014a) — a per-credit-account
+  credit limit (the "owed vs. **limit**" denominator).
+- **Key attributes:** `accountId`, `householdId`, `creditLimitCents` (positive magnitude), `createdAt`, `updatedAt`.
+- **Invariants:**
+  - **At most one** limit per account (no limit ⇒ utilization is unknown for that account).
+  - `creditLimitCents > 0` (a 0 limit is expressed as **no limit**, not a zero row).
+  - Only set on a `kind='credit'` account (enforced at the service boundary, → `400` otherwise).
+  - **Mutable config**, not a ledger row — setting replaces, clearing removes; **no** balance effect.
+  - **Not effective-dated** in V1 — the current limit is applied to every historical period of the
+    utilization trend (a definition here, not an ADR; effective-dated limits can layer on later).
+
 ### Allocation
 - **Purpose:** assign a slice of a transaction to an envelope (the account↔envelope bridge).
 - **Key attributes:** `id`, `transactionId`, `envelopeId`, `amountCents` (signed).
@@ -204,6 +219,13 @@ allocated` indefinitely; the app surfaces these via a **needs-allocation** indic
   schedule or the balance (proven by [SPIKE-05](spikes/05-cashflow-forecast.md)). The **minimum
   balance + date** and **first-negative date** are derived over the series. **Nothing is stored** —
   it is a pure projection over existing rules, targets, balances, and actuals.
+- **Credit utilization** (FEAT-014a, derived): for each **credit** account, `owed = −balanceCents`
+  against the **stored** `creditLimit` → `utilization = owed ÷ limit` (basis points; floored at 0,
+  unclamped above 100%); `available = limit − owed`; a monthly **trend** = the cumulative owed
+  balance per period (Σ the per-month net flows) with utilization at each period end (current limit
+  applied throughout); and a **portfolio roll-up** = `Σ owed ÷ Σ limit` over accounts with a limit.
+  Only the **limit** is stored (`credit_limits`); owed, utilization, available, the trend, and the
+  roll-up are all **derived**.
 
 > **Opening balance = an opening Transaction.** Creating an account with a starting balance
 > creates the account **and** a `kind = opening` transaction for that amount (initially
@@ -220,9 +242,12 @@ allocated` indefinitely; the app surfaces these via a **needs-allocation** indic
   (spine §8) — a future epic, designed toward, not built now.
 - **Validation at the boundary:** names trimmed + non-empty; money parsed from validated
   strings; invalid input fails loudly.
-- **Account `kind`** is descriptive in V1 (display/grouping). Liability-account sign
-  semantics (e.g. credit-card "balance owed") are deferred to the debt/credit area; V1
-  treats every account balance uniformly as the signed sum of its transactions.
+- **Account `kind`** is descriptive for the **ledger** (every account balance is uniformly the
+  signed sum of its transactions — no kind-specific storage). The **liability** reading lives in the
+  **analysis** layer, not the ledger: credit utilization (FEAT-014a) interprets a `kind='credit'`
+  account's balance as **owed = −balance** for the owed/limit ratio. The stored balance sign is
+  unchanged; only the analysis read flips it. Installment-loan payoff (original principal) is the
+  deferred sibling #14b.
 
 ## 7. Open questions
 
@@ -230,4 +255,4 @@ allocated` indefinitely; the app surfaces these via a **needs-allocation** indic
 | -------- | ----- | ------ |
 | Should envelope/account name uniqueness be case-insensitive *and* whitespace-normalized? | Wesley | open (lean: yes) |
 | Do we need an explicit "unarchive" in V1, or is archive one-way for now? | Wesley | open → archive slice (#6) |
-| Liability (credit-card) balance sign convention | Wesley | open → debt/credit area (#14) |
+| ~~Liability (credit-card) balance sign convention~~ | Wesley | **resolved (#14a): owed = −balance** at the analysis layer (the stored ledger sign is unchanged); credit utilization = owed ÷ limit. Installment-loan payoff (original principal) → #14b |

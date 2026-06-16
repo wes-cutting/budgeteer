@@ -1,10 +1,13 @@
 import { type Kysely, sql } from "kysely";
 import {
+  type CreditAccountInput,
+  type CreditUtilizationReport,
   type Forecast,
   type ForecastRule,
   type ForecastTarget,
   type RecurringFrequency,
   cashFlowForecast as computeForecast,
+  creditUtilization as computeCreditUtilization,
 } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
@@ -332,6 +335,88 @@ export function makeAnalysisService(db: Kysely<DB>) {
         },
       );
       return { accountId: account.id, accountName: account.name, ...forecast };
+    },
+
+    /**
+     * Credit utilization for every credit account (FEAT-014a): each account's owed balance against
+     * its stored limit (owed/limit), plus a month-by-month utilization trend, plus a portfolio
+     * roll-up over the accounts that have a limit. "Owed" is the derived balance read off
+     * `v_account_balances` (a credit account's balance ≤ 0 = debt; owed = −balance) — never stored.
+     *
+     * This read only **gathers** the inputs; the math (owed, utilization basis points, the cumulative
+     * trend, the roll-up) is the pure domain `creditUtilization`. Read-only — the only new table is
+     * the `credit_limits` config (written by creditLimitService). Money stays integer cents (summed in
+     * SQL, narrowed at the boundary). Credit accounts are shown when active, or (when archived) only
+     * if they still carry a limit or a non-zero balance; ordered by name.
+     */
+    async creditUtilization(): Promise<CreditUtilizationReport> {
+      const accountRows = await db
+        .selectFrom("accounts")
+        .select(["id", "name", "archived_at"])
+        .where("household_id", "=", HH)
+        .where("kind", "=", "credit")
+        .orderBy("name")
+        .execute();
+      if (accountRows.length === 0) return computeCreditUtilization([]);
+      const accountIds = accountRows.map((a) => a.id);
+
+      const balanceRows = await db
+        .selectFrom("v_account_balances")
+        .select(["account_id", "balance_cents"])
+        .where("account_id", "in", accountIds)
+        .execute();
+      const balanceByAccount = new Map(
+        balanceRows.map((r) => [r.account_id, Number(r.balance_cents ?? 0)]),
+      );
+
+      const limitRows = await db
+        .selectFrom("credit_limits")
+        .select(["account_id", "credit_limit_cents"])
+        .where("household_id", "=", HH)
+        .execute();
+      const limitByAccount = new Map(
+        limitRows.map((r) => [r.account_id, Number(r.credit_limit_cents)]),
+      );
+
+      // Per-account, per-month net balance flow (signed). Cumulating these (ascending) reconstructs
+      // the account's balance at each period end — the basis for the utilization trend.
+      const flowRows = await db
+        .selectFrom("transactions")
+        .where("household_id", "=", HH)
+        .where("account_id", "in", accountIds)
+        .select([
+          "account_id",
+          sql<string>`to_char(occurred_on, 'YYYY-MM')`.as("period"),
+          sql<string>`sum(amount_cents)`.as("net_cents"),
+        ])
+        .groupBy(["account_id", sql`to_char(occurred_on, 'YYYY-MM')`])
+        .orderBy("account_id")
+        .orderBy("period")
+        .execute();
+      const flowsByAccount = groupBy(
+        flowRows,
+        (r) => r.account_id,
+        (r) => ({ period: r.period, netCents: Number(r.net_cents ?? 0) }),
+      );
+
+      const inputs: CreditAccountInput[] = [];
+      for (const a of accountRows) {
+        const balanceCents = balanceByAccount.get(a.id) ?? 0;
+        const limitCents = limitByAccount.get(a.id) ?? null;
+        const archived = a.archived_at !== null;
+        // Hide archived credit accounts that are dormant (no limit, settled balance); keep all active.
+        if (archived && limitCents === null && balanceCents === 0) continue;
+        inputs.push({
+          accountId: a.id,
+          accountName: a.name,
+          archived,
+          balanceCents,
+          limitCents,
+          flows: flowsByAccount.get(a.id) ?? [],
+        });
+      }
+
+      return computeCreditUtilization(inputs);
     },
   };
 }
