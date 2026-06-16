@@ -101,29 +101,37 @@ startup — the app fails loudly on invalid config. See [`.env.example`](.env.ex
 | ------- | ------------ |
 | `npm run typecheck` | `tsc --noEmit` across all workspaces |
 | `npm run lint` | ESLint (flat config; `@typescript-eslint` + `react-hooks`), zero-warning gate |
-| `npm test` | Run the full Vitest suite once |
+| `npm test` | Run the full Vitest suite once (unit + integration + web component) |
 | `npm run test:watch` | Vitest in watch mode |
+| `npm run test:e2e` | Playwright browser e2e — boots the real API + web, drives Chromium |
 | `npm run format` | Prettier check (`format:write` to fix) |
 | `npm run build --workspace apps/web` | Production build of the web app |
 
-The project follows a **gate-green** rule: typecheck, lint, tests, format, and build must all pass
-before any change is considered done ([ENGINEERING_STANDARDS](docs/ENGINEERING_STANDARDS.md)).
+The project follows a **gate-green** rule: typecheck, lint, `npm test`, format, `npm run test:e2e`,
+and the web build must all pass before any change is considered done
+([ENGINEERING_STANDARDS](docs/ENGINEERING_STANDARDS.md)). `npm run test:e2e` is kept out of
+`npm test` so the inner Vitest loop stays fast; it runs as its own gate step (and needs Chromium —
+`npx playwright install chromium`, one time).
 
 ## Testing
 
-Three layers, all in Vitest ([TESTING_STRATEGY](docs/TESTING_STRATEGY.md)):
+Four layers ([TESTING_STRATEGY](docs/TESTING_STRATEGY.md)) — three in Vitest, plus a browser e2e
+in Playwright:
 
 - **Domain unit** — the pure core (money exactness, the split invariant, schedules, reconcile).
 - **API integration** — real HTTP via Fastify `inject` against a fresh in-process PGlite per test.
 - **Web component** — React Testing Library (jsdom) against an in-memory fake API.
+- **Browser e2e** — Playwright (Chromium) drives the **real** web app against the **real** API,
+  exercising the browser→API seam the other three layers can't (this is the layer that would have
+  caught the CORS bug). It boots both servers itself; the web is served from `:5173` because that
+  origin is the API's CORS allowlist default.
 
 ```bash
-npm test                              # everything
+npm test                              # the three Vitest layers
 npx vitest run --project node         # domain + API only
 npx vitest run --project web          # web components only
+npm run test:e2e                      # browser e2e (needs Chromium; see Scripts)
 ```
-
-A browser end-to-end layer (Playwright) is planned — see the roadmap's engineering-health track.
 
 ## Design principles
 

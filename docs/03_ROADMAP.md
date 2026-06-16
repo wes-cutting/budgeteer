@@ -12,20 +12,21 @@ Sequencing model: docs/00_WAYS_OF_WORKING.md §7.
 | Status        | Living         |
 | Owner         | Wesley Cutting |
 | Last updated  | 2026-06-15     |
-| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) · [`reviews/2026-06-15-repo-review.md`](reviews/2026-06-15-repo-review.md) · [`status-reports/2026-06-15-eh1.md`](status-reports/2026-06-15-eh1.md) · [`status-reports/2026-06-15-eh2.md`](status-reports/2026-06-15-eh2.md) · [`status-reports/2026-06-15-eh3.md`](status-reports/2026-06-15-eh3.md) · [`status-reports/2026-06-15-eh4.md`](status-reports/2026-06-15-eh4.md) |
+| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) · [`reviews/2026-06-15-repo-review.md`](reviews/2026-06-15-repo-review.md) · [`status-reports/2026-06-15-eh1.md`](status-reports/2026-06-15-eh1.md) · [`status-reports/2026-06-15-eh2.md`](status-reports/2026-06-15-eh2.md) · [`status-reports/2026-06-15-eh3.md`](status-reports/2026-06-15-eh3.md) · [`status-reports/2026-06-15-eh4.md`](status-reports/2026-06-15-eh4.md) · [`status-reports/2026-06-15-eh5.md`](status-reports/2026-06-15-eh5.md) |
 
-**Current focus:** **`EH4` ESLint in the gate — ✅ `Done` (gate-green).** ESLint 9 (flat config)
-now runs across all three workspaces: `@typescript-eslint` **recommended** (syntactic; strict `tsc`
-already carries the type-aware checks) + **`react-hooks`** (rules-of-hooks **error**, exhaustive-deps
-**warn**), as a **zero-warning gate** (`eslint . --max-warnings 0`). Wiring it up caught a real
-**rules-of-hooks error**: a non-hook helper named `useRemaining` (the `use` prefix made the plugin
-treat it as a hook) — renamed to `fillRemaining`. The previously-inert `eslint-disable` suppressions
-are now meaningful; added the same intentional suppression to the two other mount-load effects
-(`NeedsAllocation`, `TemplatesView`) for consistency. **125 tests pass**, lint + typecheck + format +
-web build all green. **Next up — `EH5`** minimal browser e2e (Playwright: dashboard loads vs. real
-API + one journey) → **`EH6`** hygiene; **then** the **analysis** area (`#11`–`#14`), then
-**hardening** (`#15`–`#16`). Prior blocks: **`EH3` unique→409 — ✅ Done**, 125 tests; **`EH2`
-service-plumbing — ✅ Done**, 121 tests.
+**Current focus:** **`EH5` browser e2e (Playwright) — ✅ `Done` (gate-green).** A minimal real
+browser→API test layer now exists: Playwright (Chromium-only) boots the **real** Fastify API and
+the **real** Vite-served web app and drives Chromium against them. One spec covers the
+**dashboard-loads-vs-real-API** check (the CORS class — the seam that shipped a bug because nothing
+exercised it) plus **one journey**: create an account → create an envelope → record a $500 deposit
+fully allocated to the envelope → the **derived** envelope balance shows `$500.00` back on the
+dashboard. It runs as a **separate `npm run test:e2e` gate step** (kept out of `npm test` so the
+Vitest inner loop stays fast); the web is served from `:5173` because that origin is the API's CORS
+allowlist default. **125 Vitest tests + 1 e2e pass**, lint + typecheck (incl. the e2e TS) + format +
+web build all green. **Next up — `EH6`** repo hygiene (discard the absorbed transfer-modeling spike;
+record the two accepted notes); **then** the **analysis** area (`#11`–`#14`), then **hardening**
+(`#15`–`#16`, which expands EH5 into full browser-e2e journeys + a11y). Prior blocks: **`EH4`
+ESLint-in-the-gate — ✅ Done**, 125 tests; **`EH3` unique→409 — ✅ Done**, 125 tests.
 
 ---
 
@@ -126,7 +127,7 @@ order**, then `#11`+. No live bugs — these are coverage + drift-prevention.
 | EH2 | **Extract API service plumbing** — shared `dates` util + generic `groupBy`; move `DEFAULT_HOUSEHOLD_ID` out of `db/migrate.ts` into a constants/config module | refactor | P2 | **✅ Done** | New `util/dates.ts` + `util/groupBy.ts` + top-level `constants.ts`; date converters deduped (5→1, dropped a dead `todayStr`), Map-by-parent loop replaced (×4 incl. transfer legs), household const decoupled from the migrator (9 importers). No behavior change; 121 tests. [status report](status-reports/2026-06-15-eh2.md) |
 | EH3 | **Map DB unique-violation → 409** + typed route params | fix | P2 | **✅ Done** | New `services/dbErrors.ts` (`isUniqueViolation`/`asDuplicateName`) maps SQLSTATE `23505` → `DuplicateNameError` (→409) at the service layer; wraps the 6 name-writing methods. All 12 `req.params as {…}` casts → Fastify route generics. 125 tests (+4, incl. real-PGlite violation). [status report](status-reports/2026-06-15-eh3.md) |
 | EH4 | **Add ESLint to the gate** (`@typescript-eslint` + `react-hooks`); remove now-dead `eslint-disable` comments | tooling | P3 | **✅ Done** | ESLint 9 flat config + `npm run lint` (zero-warning gate); caught & fixed a real rules-of-hooks error (`useRemaining`→`fillRemaining`); disables now meaningful + made consistent. 125 tests. [status report](status-reports/2026-06-15-eh4.md) |
-| EH5 | **Browser e2e (Playwright)** — minimal now (dashboard loads vs. real API + 1 journey); **full journeys land in `#16`** | hardening | P1 | Planned | The CORS bug slipped past curl/inject smokes + fake-API tests; front-load this class of risk |
+| EH5 | **Browser e2e (Playwright)** — minimal now (dashboard loads vs. real API + 1 journey); **full journeys land in `#16`** | hardening | P1 | **✅ Done** | Playwright (Chromium-only) drives the real web app vs. the real API: dashboard loads (the CORS-class check) + one journey (account → envelope → deposit allocated → derived envelope balance). New `test:e2e` gate step, kept out of `npm test`. 125 Vitest + **1 e2e**. [status report](status-reports/2026-06-15-eh5.md) |
 | EH6 | **Repo hygiene** — discard the absorbed `spikes/04-transfer-modeling/`; record accepted notes (bigint→Number; normalize-vs-btrim) | chore | P3 | Planned | Kit: discard spike code once findings are absorbed |
 
 ### Hardening
@@ -170,6 +171,7 @@ order**, then `#11`+. No live bugs — these are coverage + drift-prevention.
 | 2026-06-15 | **`EH2` Done** (gate-green); API service plumbing extracted. New `util/dates.ts` (`todayStr`/`toISO`/`toDateStr`), `util/groupBy.ts` (generic, order-preserving), and top-level `constants.ts` for `DEFAULT_HOUSEHOLD_ID` (moved out of `db/migrate.ts`). Deduped the date converters (5→1, removed a dead `todayStr`), the bucket-by-parent loop (×4), and the household-constant↔migration coupling (9 importers) | Repeated service plumbing flagged by the review; analysis (`#11`+) adds more read services that would re-copy it | **Next: `EH3`** (map DB unique→409 + typed route params). 121 tests (no behavior change) |
 | 2026-06-15 | **`EH3` Done** (gate-green); DB unique-violation now → 409 (was 500). New `services/dbErrors.ts` (`isUniqueViolation`/`asDuplicateName`) maps SQLSTATE `23505` → `DuplicateNameError` at the **service** layer (boundary rule: HTTP stays datastore-agnostic); wraps account/envelope/template create + rename/update. All 12 `req.params as {…}` casts replaced with Fastify route generics (`IdParams`/`AccountIdParams`) | The DB index is the real name guard (in-app check intercepts every *constructible* dup, so the index only fires under concurrency — and its failure was unhandled); casts were the last typed-assertion escape hatch | **Next: `EH4`** (ESLint in the gate). 125 tests (+4; backstop proven against real PGlite) |
 | 2026-06-15 | **`EH4` Done** (gate-green); ESLint 9 flat config added (`@typescript-eslint` recommended + `react-hooks`) with `npm run lint` as a **zero-warning gate**; README gate list + commands updated. Caught & fixed a real rules-of-hooks error (non-hook helper `useRemaining` → `fillRemaining`); made the mount-load `exhaustive-deps` suppressions consistent across all 5 sites | No linter ran before, so the react-hooks rules were unenforced and the existing `eslint-disable` comments were inert | **Next: `EH5`** (minimal browser e2e — Playwright). 125 tests (no behavior change; one rename) |
+| 2026-06-15 | **`EH5` Done** (gate-green); first **real browser→API** test layer. Added Playwright (Chromium-only): `playwright.config.ts` boots the real API + web (web on `:5173` to match the CORS allowlist) and Chromium drives one spec — dashboard-loads-vs-real-API + the account→envelope→deposit-allocated→derived-balance journey. New `npm run test:e2e` step (kept out of `npm test`); e2e TS folded into `typecheck`; ESLint/`.gitignore`/`.prettierignore` updated for the new surface | The CORS bug shipped because the three existing layers (domain unit · API `inject` · jsdom fake-API) never exercise a real browser→API round-trip ([2026-06-15 review](reviews/2026-06-15-repo-review.md) EH5 · [KIT_FEEDBACK](KIT_FEEDBACK.md) K3) | **Next: `EH6`** (repo hygiene — discard the absorbed transfer-modeling spike; record accepted notes). **125 Vitest + 1 e2e** |
 
 ## 6. Done / shipped
 

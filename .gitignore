@@ -51,6 +51,12 @@ coverage/
 .next/
 .cache/
 
+# Playwright e2e artifacts (browser binaries live in ~/.cache, not the repo)
+test-results/
+playwright-report/
+blob-report/
+.last-run.json
+
 # ============================================================================
 # LOGS & TMP
 # ============================================================================

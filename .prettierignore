@@ -1,6 +1,8 @@
 node_modules
 dist
 coverage
+test-results
+playwright-report
 spikes/02-stack-feasibility
 docs
 *.md

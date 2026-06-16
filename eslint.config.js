@@ -8,11 +8,20 @@ import tseslint from "typescript-eslint";
 // strict `tsc` in the gate already carries the type-aware checks. The React-hooks rules are the
 // motivating gap (EH4): they were suppressed in places but never actually enforced.
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/node_modules/**", "spikes/**"] },
+  {
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "spikes/**",
+      "playwright-report/**",
+      "test-results/**",
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["apps/api/**/*.ts", "packages/**/*.ts"],
+    // API/domain run on Node; the Playwright e2e + its config also run in the Node test runner.
+    files: ["apps/api/**/*.ts", "packages/**/*.ts", "e2e/**/*.ts", "playwright.config.ts"],
     languageOptions: { globals: globals.node },
   },
   {
