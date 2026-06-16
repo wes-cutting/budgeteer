@@ -1,7 +1,15 @@
 // Money — integer minor units (US cents), per ADR-0003. No floating point for any stored or
 // returned amount; parse/format only at the boundary. Validated in TS by SPIKE-02.
 
-/** A signed monetary amount in integer minor units (cents). Branded to prevent raw-number mixups. */
+/**
+ * A signed monetary amount in integer minor units (cents). Branded to prevent raw-number mixups.
+ *
+ * Accepted-as-is (review 2026-06-15, EH6): cents ride a JS `number`, which represents integers
+ * exactly only up to `Number.MAX_SAFE_INTEGER` (2^53−1 ≈ 9.0e15 cents ≈ **$90 trillion**). Postgres
+ * stores amounts as `bigint`, and the API narrows them back with `Number(...)` at the read boundary
+ * — exact within that ceiling, which is far beyond any V1 balance. Amounts past ~$90T are out of
+ * scope (would need bigint end-to-end).
+ */
 export type Cents = number & { readonly __brand: "Cents" };
 
 /** Construct Cents, enforcing the whole-integer invariant at the seam. */

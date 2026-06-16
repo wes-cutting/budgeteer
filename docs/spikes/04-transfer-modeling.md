@@ -142,8 +142,8 @@ Concretely proven (all exact, integer cents, no float drift):
 
 ## 6. Follow-ups
 
-- [ ] Owner confirms the decision + the two open Qs (negative envelope balances; one slice vs.
-      the `#7a`/`#7b` split).
-- [ ] Write `ADR-0004` and the `features/transfers.md` + `ux/transfers.md` specs.
-- [ ] Build `#7a` (account transfer) as a vertical slice; then `#7b` (envelope reallocation).
-- [ ] Discard `spikes/04-transfer-modeling/` once its findings are absorbed (throwaway).
+- [x] Owner confirms the decision + the two open Qs (negative envelope balances; one slice vs.
+      the `#7a`/`#7b` split). — confirmed 2026-06-14 (both: split + negatives allowed).
+- [x] Write `ADR-0004` and the `features/transfers.md` + `ux/transfers.md` specs. — `Accepted`.
+- [x] Build `#7a` (account transfer) as a vertical slice; then `#7b` (envelope reallocation). — both `Done` 2026-06-14.
+- [x] Discard `spikes/04-transfer-modeling/` once its findings are absorbed (throwaway). — discarded 2026-06-15 (EH6); findings live in `ADR-0004` + the shipped `#7a`/`#7b` slices + this report.

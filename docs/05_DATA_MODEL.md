@@ -23,6 +23,19 @@ foreign keys; data volume is small (fresh start), so no materialization in V1.
 top-level row carries `household_id` to design toward multi-household, with a **single
 seeded household** in V1 (no auth/RLS yet).
 
+> **Two accepted conventions** (review [2026-06-15](reviews/2026-06-15-repo-review.md), EH6 — documented, no change):
+>
+> - **`bigint` cents narrow to a JS `number` at the read boundary.** Columns are `BIGINT`, but the
+>   API returns amounts as JS `number` (`Number(row.amount_cents)`). JS represents integers exactly
+>   only to `2^53−1` cents (**≈ $90 trillion**) — well beyond any V1 balance, so the narrowing is
+>   exact in practice. Amounts past that ceiling are out of V1 scope (would need `bigint`
+>   end-to-end). See the `Cents` type in `packages/domain/src/money.ts`.
+> - **Name uniqueness: the domain normalizer is a strict superset of the DB key.** The unique index
+>   is `lower(btrim(name))` (case-fold + trim ends); the domain's `normalizeName` *also* collapses
+>   internal whitespace. Because the service persists the **normalized** name, the value the index
+>   sees is already collapsed, so the in-app guard and the DB key agree in practice. See
+>   `packages/domain/src/naming.ts` and [status-reports/2026-06-15-eh3.md](status-reports/2026-06-15-eh3.md).
+
 ## 2. Tables
 
 ### households
