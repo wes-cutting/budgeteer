@@ -68,6 +68,12 @@ pure-core/impure-shell, reconcilable idempotent imports, a consistent error enve
   (⚠ + reason + owner) so it never overstates "done." Right-size it: a trivial docs/config
   tweak gets a commit line, not a full report. See
   [`docs/00_WAYS_OF_WORKING.md`](docs/00_WAYS_OF_WORKING.md) §9.
+- **Make every Roadmap milestone handoff-ready.** When a Roadmap item reaches `Done`, leave
+  the project ready to resume in a fresh context window: gate green, docs updated, the status
+  report's **Resume here** current — and **end that report with a copy-pasteable
+  "Next-session kickoff prompt"** (the exact prompt to start the next session on the next
+  item). The newest status report is therefore both the handoff and the launch pad; a fresh
+  session should need nothing more than to read it.
 
 ## Documentation discipline
 

@@ -14,10 +14,16 @@
 # ============================================================================
 name: gate
 
+# Auto-run is intentionally OFF for now. This project runs the SAME gate locally (see README
+# / docs/TESTING_STRATEGY.md §3) and isn't ready to turn CI on yet. The workflow is kept as
+# part of the kit skeleton. To enable CI later: wire each step below to the real commands,
+# delete the `gate-not-configured` guard, and restore the auto triggers:
+#   on:
+#     pull_request:
+#     push:
+#       branches: [main]
 on:
-  pull_request:
-  push:
-    branches: [main] # adjust to your default branch
+  workflow_dispatch: # manual-only (Actions tab → Run workflow)
 
 # Cancel superseded runs on the same ref.
 concurrency:

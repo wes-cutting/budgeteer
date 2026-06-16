@@ -216,6 +216,14 @@ executes a flawed plan flawlessly:
   summary. Anything not done stays visible (⚠ + reason + owner) so a snapshot never
   overstates "done." This is what makes hand-offs between sessions/context windows clean and
   honest — and it doubles as the per-block review record.
+- **End each milestone handoff-ready, with the next session's kickoff prompt.** When a
+  roadmap item reaches `Done`, the project must be resumable cold: gate green, docs updated,
+  the status report's **Resume here** current. Close that report with a **copy-pasteable
+  "Next-session kickoff prompt"** — the exact text to paste into a fresh context window to
+  start the next item (it specializes the generic *Resume* prompt in
+  [`KICKOFF-PROMPT.md`](../KICKOFF-PROMPT.md): names the next item, its risks, and any new
+  setup). The newest status report is then both the handoff record and the launch pad — a new
+  session reads it and nothing else to get going.
 - Keep the practices that worked: pure-core/impure-shell (so logic is testable without
   I/O), pass/fail gates, gate-green-per-slice, and resumable status reports for clean
   hand-offs between sessions/context windows.
