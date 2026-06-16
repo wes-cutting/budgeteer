@@ -12,22 +12,21 @@ Sequencing model: docs/00_WAYS_OF_WORKING.md §7.
 | Status        | Living         |
 | Owner         | Wesley Cutting |
 | Last updated  | 2026-06-15     |
-| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) · [`reviews/2026-06-15-repo-review.md`](reviews/2026-06-15-repo-review.md) · [`status-reports/2026-06-15-eh1.md`](status-reports/2026-06-15-eh1.md) · [`status-reports/2026-06-15-eh2.md`](status-reports/2026-06-15-eh2.md) · [`status-reports/2026-06-15-eh3.md`](status-reports/2026-06-15-eh3.md) · [`status-reports/2026-06-15-eh4.md`](status-reports/2026-06-15-eh4.md) · [`status-reports/2026-06-15-eh5.md`](status-reports/2026-06-15-eh5.md) · [`status-reports/2026-06-15-eh6.md`](status-reports/2026-06-15-eh6.md) |
+| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) · [`reviews/2026-06-15-repo-review.md`](reviews/2026-06-15-repo-review.md) · [`status-reports/2026-06-15-eh1.md`](status-reports/2026-06-15-eh1.md) · [`status-reports/2026-06-15-eh2.md`](status-reports/2026-06-15-eh2.md) · [`status-reports/2026-06-15-eh3.md`](status-reports/2026-06-15-eh3.md) · [`status-reports/2026-06-15-eh4.md`](status-reports/2026-06-15-eh4.md) · [`status-reports/2026-06-15-eh5.md`](status-reports/2026-06-15-eh5.md) · [`status-reports/2026-06-15-eh6.md`](status-reports/2026-06-15-eh6.md) · [`features/analysis-envelope-spend.md`](features/analysis-envelope-spend.md) · [`ux/analysis-envelope-spend.md`](ux/analysis-envelope-spend.md) · [`status-reports/2026-06-15-slice-11.md`](status-reports/2026-06-15-slice-11.md) |
 
-**Current focus:** **`EH6` repo hygiene — ✅ `Done` (gate-green); the engineering-health track
-(`EH1`–`EH6`) is now complete.** Removed the absorbed throwaway spike code
-`spikes/04-transfer-modeling/` — confirmed inert first (no importer, not an npm workspace,
-`vitest.workspace.ts`/`eslint` already excluded `spikes/`); its findings live on in `ADR-0004` + the
-shipped `#7a`/`#7b` slices + the kept [spike report](spikes/04-transfer-modeling.md). Recorded the two
-review notes as **accepted, no behavior change**: (a) `bigint`→`Number()` is exact up to ~`2^53` cents
-(≈ $90T — beyond any V1 balance), documented on the `Cents` type and in `05_DATA_MODEL`; (b) the
-domain's `normalizeName` (collapses internal whitespace) is a strict **superset** of the DB unique key
-`lower(btrim(name))`, and they agree because the service stores the normalized name — documented in
-`naming.ts` and `05_DATA_MODEL`. **125 Vitest + 1 e2e** unchanged; lint + typecheck + format + web build
-green. **Next up — the analysis area (`#11`–`#14`)**, starting with **`#11` spend-by-envelope-over-time**
-(monthly/annual rollups) on the cleaned base; **then** hardening (`#15`–`#16`, which expands EH5 into
-full browser-e2e journeys + a11y). Prior blocks: **`EH5` browser e2e — ✅ Done**, 125 + 1 e2e; **`EH4`
-ESLint-in-the-gate — ✅ Done**, 125 tests.
+**Current focus:** **`#11` Analysis — spend by envelope over time — ✅ `Done` (gate-green); the first
+analysis slice.** A **generated** envelope × period grid of **net signed allocation flow** (`+` funded /
+`−` spent), replacing the spreadsheet's hand-keyed "18 Monthly" tab. Owner decisions (FEAT-011 §11):
+**net signed flow** per cell, **exclude** envelope↔envelope reallocations (real transaction flow only),
+**monthly grid + annual rollup**; archived envelopes **included**; bucketed by the calendar period of
+`transactions.occurred_on`. Built data → API → UI: a read-only aggregate query (`makeAnalysisService`,
+**no schema change/migration**) → `GET /analysis/envelope-spend?grain=month|year` → a thin `AnalysisView`
+table (a11y: caption + `scope`'d headers + totals `<tfoot>`). No spike (derives from existing data,
+low risk). **135 Vitest** (+10: 6 API integration + 4 web component) **+ 1 e2e**; lint + typecheck +
+format + web build green; verified in a real browser against the real API. **Next up — `#12`
+budget-vs-actual** (needs per-envelope monthly targets — an open Q to settle with the owner), then `#13`
+cash-flow forecast, `#14` debt/credit, then hardening (`#15`–`#16`). Prior block: **the
+engineering-health track `EH1`–`EH6` — ✅ Done** (125 + 1 e2e).
 
 ---
 
@@ -111,7 +110,7 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | 8 | **Refunds** (negative allocation within a split) | slice | Med | Med | #3 | **✅ Done** | Built & gate-green (93 tests + HTTP smoke); per-row **Refund** toggle, signed-total invariant (no schema change); [feature](features/refunds.md)·[UX](ux/refunds.md). Resolved the "negative rows?" open Q |
 | 9 | **Recurring transactions** | slice | Med | Low | #3 | **✅ Done** | Built & gate-green (106 tests + HTTP smoke); rule + split + schedule, idempotent **Post due** generator; [feature](features/recurring.md)·[UX](ux/recurring.md) |
 | 10 | **Reconcile to bank** (manual balance compare) | slice | Med | Low | #1 | **✅ Done** | Built & gate-green (120 tests + HTTP smoke); plain compare + recorded history; resolved the cleared-vs-compare open Q (plain compare); [feature](features/reconcile.md)·[UX](ux/reconcile.md) |
-| 11 | **Analysis — spend by envelope over time** (monthly/annual rollups) | slice | Med | Low | real data from #3 | Planned | Replaces the `18 Monthly` tab, generated not hand-keyed |
+| 11 | **Analysis — spend by envelope over time** (monthly/annual rollups) | slice | Med | Low | real data from #3 | **✅ Done** | Built & gate-green (135 tests + 1 e2e); generated net-flow grid, reallocations excluded, archived included; **no schema change** (read-only aggregate query); [feature](features/analysis-envelope-spend.md)·[UX](ux/analysis-envelope-spend.md) |
 | 12 | **Analysis — budget vs. actual** | slice | Med | Med | envelope **monthly targets** capability | Planned | Needs per-envelope targets (open Q) |
 | 13 | **Analysis — cash-flow forecast** (pay-period projection) | slice | Med | Med | #3 · #9 | Planned | Most modeling-heavy; the `Budget` tab's forward look |
 | 14 | **Analysis — debt & credit trends** (payoff % · utilization) | slice | Med | Med | cards-as-accounts + debt modeling | Planned | Larger area — likely spawns its own feature specs |
@@ -173,12 +172,14 @@ order**, then `#11`+. No live bugs — these are coverage + drift-prevention.
 | 2026-06-15 | **`EH3` Done** (gate-green); DB unique-violation now → 409 (was 500). New `services/dbErrors.ts` (`isUniqueViolation`/`asDuplicateName`) maps SQLSTATE `23505` → `DuplicateNameError` at the **service** layer (boundary rule: HTTP stays datastore-agnostic); wraps account/envelope/template create + rename/update. All 12 `req.params as {…}` casts replaced with Fastify route generics (`IdParams`/`AccountIdParams`) | The DB index is the real name guard (in-app check intercepts every *constructible* dup, so the index only fires under concurrency — and its failure was unhandled); casts were the last typed-assertion escape hatch | **Next: `EH4`** (ESLint in the gate). 125 tests (+4; backstop proven against real PGlite) |
 | 2026-06-15 | **`EH4` Done** (gate-green); ESLint 9 flat config added (`@typescript-eslint` recommended + `react-hooks`) with `npm run lint` as a **zero-warning gate**; README gate list + commands updated. Caught & fixed a real rules-of-hooks error (non-hook helper `useRemaining` → `fillRemaining`); made the mount-load `exhaustive-deps` suppressions consistent across all 5 sites | No linter ran before, so the react-hooks rules were unenforced and the existing `eslint-disable` comments were inert | **Next: `EH5`** (minimal browser e2e — Playwright). 125 tests (no behavior change; one rename) |
 | 2026-06-15 | **`EH5` Done** (gate-green); first **real browser→API** test layer. Added Playwright (Chromium-only): `playwright.config.ts` boots the real API + web (web on `:5173` to match the CORS allowlist) and Chromium drives one spec — dashboard-loads-vs-real-API + the account→envelope→deposit-allocated→derived-balance journey. New `npm run test:e2e` step (kept out of `npm test`); e2e TS folded into `typecheck`; ESLint/`.gitignore`/`.prettierignore` updated for the new surface | The CORS bug shipped because the three existing layers (domain unit · API `inject` · jsdom fake-API) never exercise a real browser→API round-trip ([2026-06-15 review](reviews/2026-06-15-repo-review.md) EH5 · [KIT_FEEDBACK](KIT_FEEDBACK.md) K3) | **Next: `EH6`** (repo hygiene — discard the absorbed transfer-modeling spike; record accepted notes). **125 Vitest + 1 e2e** |
+| 2026-06-15 | **`#11` Done** (gate-green) — **first analysis slice**; FEAT-011 `Implemented`. Owner settled the core modeling Qs: **net signed allocation flow** per cell, **exclude** envelope↔envelope reallocations, **monthly grid + annual rollup**; archived envelopes **included**. Built data→API→UI: read-only `makeAnalysisService` aggregate (**no schema change**) + `GET /analysis/envelope-spend?grain=month\|year` + thin `AnalysisView` grid; `06_API_CONTRACT` + `05_DATA_MODEL` (read-path note) updated | No spike needed (derives from existing `allocations`/`transactions`, low risk); the spend definition was a *definition* decision, captured in the feature spec (not an ADR) | **Next: `#12`** budget-vs-actual (needs per-envelope monthly targets — open Q). **135 Vitest + 1 e2e** (+10) |
 | 2026-06-15 | **`EH6` Done** (gate-green) — **completes the engineering-health track `EH1`–`EH6`**. Discarded the absorbed throwaway spike code `spikes/04-transfer-modeling/` (verified inert: no importer, not a workspace, `vitest.workspace.ts`/`eslint` already exclude `spikes/`); ticked the spike report's own discard follow-up. Recorded two accepted notes (no behavior change): `bigint`→`Number()` exact to ~`2^53` cents (≈$90T) on the `Cents` type + `05_DATA_MODEL`; `normalizeName` ⊃ DB `lower(btrim())` in `naming.ts` + `05_DATA_MODEL` | Kit rule: spike code is throwaway once its findings are absorbed (here into `ADR-0004` + `#7a`/`#7b` + the kept report); the two notes were "accepted as-is" in the [2026-06-15 review](reviews/2026-06-15-repo-review.md) (EH6) and needed a durable home | **Next: the analysis area (`#11`–`#14`)**, starting with `#11` spend-by-envelope-over-time. **125 Vitest + 1 e2e** (no test-count change) |
 
 ## 6. Done / shipped
 
 | # | Item | Shipped | Notes |
 | - | ---- | ---- | ----- |
+| 11 | **`#11`** — analysis: spend by envelope over time | 2026-06-15 | Generated net-flow grid (monthly + annual) · reallocations excluded · archived included · **no schema change** (read-only aggregate); [FEAT-011](features/analysis-envelope-spend.md); 135 tests + 1 e2e |
 | 10 | **`#10`** — reconcile to bank (manual compare) | 2026-06-15 | Plain compare + recorded history · `reconciliations` table · no balance effect; [FEAT-010](features/reconcile.md); 120 tests + HTTP smoke |
 | 9 | **`#9`** — recurring transactions | 2026-06-14 | Rule + split + schedule (weekly/biweekly/monthly) · idempotent **Post due** · `recurring_id` on generated txns; [FEAT-009](features/recurring.md); 106 tests + HTTP smoke |
 | 8 | **`#8`** — refunds (refund rows within a split) | 2026-06-14 | Per-row **Refund** toggle · signed-total invariant · no schema change; [FEAT-008](features/refunds.md); 93 tests + HTTP smoke |

@@ -21,6 +21,7 @@ import { makeEnvelopeTransferService } from "../services/envelopeTransferService
 import { makeRecurringService } from "../services/recurringService";
 import { makeReconcileService } from "../services/reconcileService";
 import { makeTemplateService } from "../services/templateService";
+import { makeAnalysisService } from "../services/analysisService";
 import { DuplicateNameError, NotFoundError, ValidationError } from "../services/errors";
 
 const createAccountBody = z.object({
@@ -119,6 +120,7 @@ function parseTemplateLines(
 /** Route param shapes — supplied as Fastify route generics so `req.params` is typed (no casts). */
 type IdParams = { Params: { id: string } };
 type AccountIdParams = { Params: { accountId: string } };
+type SpendQuery = { Querystring: { grain?: string } };
 
 export function buildServer(
   db: Kysely<DB>,
@@ -154,6 +156,7 @@ export function buildServer(
   const recurring = makeRecurringService(db);
   const reconcile = makeReconcileService(db);
   const templates = makeTemplateService(db);
+  const analysis = makeAnalysisService(db);
 
   app.setErrorHandler((err, _req, reply) => {
     const e = err as Error & { statusCode?: number };
@@ -460,6 +463,14 @@ export function buildServer(
   });
 
   app.post("/recurring/post-due", async () => ({ result: await recurring.postDue() }));
+
+  // --- Analysis: spend by envelope over time (FEAT-011) ---
+  app.get<SpendQuery>("/analysis/envelope-spend", async (req, reply) => {
+    const grain = req.query.grain ?? "month";
+    if (grain !== "month" && grain !== "year")
+      return fail(reply, 400, "grain must be 'month' or 'year'.");
+    return { rollup: await analysis.envelopeSpend(grain) };
+  });
 
   // --- Allocation templates (FEAT-004) ---
   app.get("/templates", async () => ({ templates: await templates.list() }));

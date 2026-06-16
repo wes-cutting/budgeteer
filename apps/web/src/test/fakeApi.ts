@@ -367,6 +367,42 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       const idx = templates.findIndex((t) => t.id === id);
       if (idx >= 0) templates.splice(idx, 1);
     },
+    async getEnvelopeSpend(grain) {
+      // Mirror the server: net signed allocation flow per envelope per period, bucketed by the
+      // transaction's date. Transfer legs carry no allocations and reallocations aren't allocations,
+      // so both are excluded by construction. Archived envelopes are included.
+      const periodOf = (d: string) => (grain === "year" ? d.slice(0, 4) : d.slice(0, 7));
+      const netByEnvPeriod = new Map<string, Map<string, number>>();
+      for (const t of txns) {
+        const period = periodOf(t.occurredOn);
+        for (const al of t.allocations) {
+          const inner = netByEnvPeriod.get(al.envelopeId) ?? new Map<string, number>();
+          inner.set(period, (inner.get(period) ?? 0) + al.amountCents);
+          netByEnvPeriod.set(al.envelopeId, inner);
+        }
+      }
+      const periods = [
+        ...new Set([...netByEnvPeriod.values()].flatMap((m) => [...m.keys()])),
+      ].sort();
+      const rows = [...netByEnvPeriod.entries()]
+        .map(([envelopeId, inner]) => {
+          const env = envelopes.find((e) => e.id === envelopeId);
+          const amounts = periods.map((p) => inner.get(p) ?? 0);
+          return {
+            envelopeId,
+            envelopeName: env?.name ?? "?",
+            archived: env ? env.archivedAt !== null : false,
+            amounts,
+            total: amounts.reduce((a, b) => a + b, 0),
+          };
+        })
+        .sort((a, b) => a.envelopeName.localeCompare(b.envelopeName));
+      const periodTotals = periods.map((_p, i) =>
+        rows.reduce((s, r) => s + (r.amounts[i] ?? 0), 0),
+      );
+      const grandTotal = periodTotals.reduce((a, b) => a + b, 0);
+      return { grain, periods, rows, periodTotals, grandTotal };
+    },
     ...overrides,
   };
   return api;

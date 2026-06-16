@@ -176,6 +176,27 @@ export interface CreateReconciliationInput {
   reconciledOn?: string;
 }
 
+// --- Analysis: spend by envelope over time (FEAT-011) ---
+
+export type SpendGrain = "month" | "year";
+
+export interface EnvelopeSpendRow {
+  envelopeId: string;
+  envelopeName: string;
+  archived: boolean;
+  /** Aligned to the rollup's `periods`; signed integer cents; 0 where no flow that period. */
+  amounts: number[];
+  total: number; // signed cents (row sum)
+}
+
+export interface EnvelopeSpendRollup {
+  grain: SpendGrain;
+  periods: string[]; // ascending; "YYYY-MM" (month) or "YYYY" (year)
+  rows: EnvelopeSpendRow[];
+  periodTotals: number[]; // column sums, aligned to periods
+  grandTotal: number;
+}
+
 /** Thrown on a non-2xx response, carrying the server's user-facing message. */
 export class ApiError extends Error {}
 
@@ -212,6 +233,7 @@ export interface Api {
     accountId: string,
     input: CreateReconciliationInput,
   ): Promise<ReconciliationView>;
+  getEnvelopeSpend(grain: SpendGrain): Promise<EnvelopeSpendRollup>;
 }
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -365,5 +387,10 @@ export const httpApi: Api = {
         { method: "POST", body: JSON.stringify(input) },
       )
     ).reconciliation;
+  },
+  async getEnvelopeSpend(grain) {
+    return (
+      await request<{ rollup: EnvelopeSpendRollup }>(`/analysis/envelope-spend?grain=${grain}`)
+    ).rollup;
   },
 };

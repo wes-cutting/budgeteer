@@ -10,7 +10,7 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
 | Status       | Implemented (Foundation slice) |
 | Owner        | Wesley Cutting                 |
 | Style        | HTTP / JSON (REST-ish)         |
-| Last updated | 2026-06-13                     |
+| Last updated | 2026-06-15                     |
 
 ## 1. Conventions
 
@@ -187,6 +187,22 @@ Template names are unique per household (case-insensitive).
   Errors: `400`; `404`; `409`.
 - **`DELETE /templates/:id`** → `204` (cascade-deletes its lines); `404` if missing. A bodyless
   request needs no `content-type`; an empty `application/json` body is tolerated.
+
+### Analysis: spend by envelope over time (FEAT-011)
+
+`EnvelopeSpendRollup = { grain: "month"|"year", periods: string[], rows: EnvelopeSpendRow[],
+periodTotals: number[], grandTotal: number }`;
+`EnvelopeSpendRow = { envelopeId, envelopeName, archived, amounts: number[], total }`. A **generated**
+rollup (the "18 Monthly" replacement): each cell is the **net signed allocation flow** for an
+envelope in a period — `Σ allocation.amountCents` for the envelope's allocations whose **transaction**
+fell in the period (`+` = funded, `−` = spent; signed cents). `periods` is **ascending** (`"YYYY-MM"`
+for month grain, `"YYYY"` for year), and a row's `amounts[]` and the top-level `periodTotals[]` are
+**aligned to `periods`** by index (0-filled). Envelope↔envelope **reallocations are excluded** (real
+transaction flow only); **archived** envelopes are **included** (flagged); only envelopes/periods with
+activity appear. Read-only — no new table or view (a derived aggregate query, [05_DATA_MODEL](05_DATA_MODEL.md) §4).
+
+- **`GET /analysis/envelope-spend?grain=month|year`** (default `month`) → `200 { rollup }`.
+  Errors: `400` (grain not `month`/`year`). Household-scoped server-side.
 
 ## 4. Internal contracts (non-network)
 

@@ -224,7 +224,12 @@ created as migrations alongside the tables.
 > `recurring_transactions` + `recurring_lines` tables and the nullable `transactions.recurring_id`
 > FK (idempotent `add column if not exists`); balance views are unchanged (generated rows are
 > ordinary transactions/allocations). **`#10`** adds the `reconciliations` table (a recorded
-> compare; no transaction, no balance/view change).
+> compare; no transaction, no balance/view change). **`#11`** (analysis, spend-by-envelope; FEAT-011)
+> adds **nothing** — it is a **read-only aggregate query** over `allocations ⋈ transactions ⋈
+> envelopes` (net signed allocation flow per envelope, bucketed by `to_char(transactions.occurred_on,
+> 'YYYY-MM' | 'YYYY')`, household-scoped), so there is **no table, no view, and no migration**.
+> Reallocations (`envelope_transfers`) are deliberately **not** read by this query; archived envelopes
+> are included.
 
 ## 5. Seed / fixtures
 
