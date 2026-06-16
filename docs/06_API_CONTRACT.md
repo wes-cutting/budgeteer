@@ -230,6 +230,31 @@ a derived aggregate — no balance-view change. Household-scoped server-side.
 - **`DELETE /envelopes/:id/target`** → `204`. Clears the target; **idempotent** (clearing an absent
   target is a no-op). `404` if the envelope is missing. A bodyless request needs no `content-type`.
 
+### Analysis: cash-flow forecast (FEAT-013)
+
+`CashFlowForecast = { accountId, accountName, startDate: "YYYY-MM-DD", endDate: "YYYY-MM-DD",
+horizonDays, includeExpected, startingBalanceCents, points: ForecastPoint[], endingBalanceCents,
+minBalanceCents, minBalanceDate, firstNegativeDate: string|null }`;
+`ForecastPoint = { date: "YYYY-MM-DD", deltaCents, balanceCents, kind: "scheduled"|"expected", label }`.
+A **projection** (the analysis area's only forward-looking read — `#11`/`#12` aggregate, this one
+projects): starting from the account's **derived balance** (`v_account_balances`), apply each
+**future dated event** (`date > today`, `≤ endDate`) and record the **running balance after it**.
+Events: (1) the account's **scheduled recurring rules** (FEAT-009) via the recurring engine fed the
+horizon as its bound — `±magnitude`; and, when `includeExpected`, (2) **expected discretionary
+spend** from monthly **targets** (FEAT-012) — per month `Σ max(0, target − actualThisMonth −
+scheduledThisMonth)` (current month un-prorated, future-tail prorated), spread **even-daily** as
+negative deltas, attributed to the forecast account. The netting prevents **double-counting**
+bills/actuals (proven by [SPIKE-05](spikes/05-cashflow-forecast.md)). Events are sorted
+`(date asc, delta asc)` — conservative same-day order. `minBalanceCents`/`minBalanceDate` and
+`firstNegativeDate` are derived over the series (including the starting point). The projection math is
+a **pure domain function** (`cashFlowForecast`); the service feeds it I/O. **Read-only — no new table
+or view.** Money is **integer cents**. Household-scoped server-side.
+
+- **`GET /analysis/cash-flow-forecast?accountId=<uuid>&horizonDays=90&includeExpected=true`** →
+  `200 { forecast }`. `horizonDays` defaults to **90**, capped `[7, 365]`; `includeExpected` defaults
+  to **true**. Errors: `400` (`horizonDays` non-integer / out of range); `404` (account missing / not
+  in the household).
+
 ## 4. Internal contracts (non-network)
 
 - **Domain core** (`@budgeteer/domain`, pure, no I/O): `parseMoney`/`formatMoney`/`sumMoney`

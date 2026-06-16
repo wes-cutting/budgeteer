@@ -4,5 +4,6 @@ coverage
 test-results
 playwright-report
 spikes/02-stack-feasibility
+spikes/05-cashflow-forecast
 docs
 *.md

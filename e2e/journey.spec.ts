@@ -78,4 +78,17 @@ test("dashboard loads against the real API, then account → envelope → alloca
   await expect(budgetRow).toContainText("$0.00"); // spent (outflow only — funding excluded)
   await expect(budgetRow).toContainText("$200.00"); // remaining = target − spent
   await expect(budgetRow.getByRole("button", { name: "Clear" })).toBeVisible();
+
+  // 7. Cash-flow forecast (FEAT-013): the forward projection renders against the real API. With the
+  //    $200 target just set (and no scheduled rules on this account), the default-on expected-spend
+  //    appears, projected from the derived $500 starting balance — proving the targets → forecast
+  //    read wires through end to end (data → API → UI), not just that the GET returned 2xx.
+  await page.getByRole("button", { name: "← Dashboard" }).click();
+  await page.getByRole("button", { name: "Forecast", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Analysis — cash-flow forecast", level: 1 }),
+  ).toBeVisible();
+  await page.getByLabel("Account").selectOption({ label: ACCOUNT });
+  await expect(page.getByText("$500.00").first()).toBeVisible(); // derived starting balance
+  await expect(page.getByText("Expected discretionary spend").first()).toBeVisible();
 });

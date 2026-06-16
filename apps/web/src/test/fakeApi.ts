@@ -1,4 +1,11 @@
-import { anchorDayOf, dueOccurrences, tryParseMoney } from "@budgeteer/domain";
+import {
+  type ForecastRule,
+  type ForecastTarget,
+  anchorDayOf,
+  cashFlowForecast,
+  dueOccurrences,
+  tryParseMoney,
+} from "@budgeteer/domain";
 import {
   type AccountView,
   type Api,
@@ -446,6 +453,52 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
     async clearEnvelopeTarget(envelopeId) {
       if (!envelopes.some((e) => e.id === envelopeId)) throw new ApiError("Envelope not found.");
       targets.delete(envelopeId);
+    },
+    async getCashFlowForecast(accountId, opts) {
+      // Mirror the server: gather the in-memory inputs and run the SAME pure domain projection.
+      recompute();
+      const account = accounts.find((a) => a.id === accountId);
+      if (!account) throw new ApiError("Account not found.");
+      const t = today();
+      const month = t.slice(0, 7);
+      const rules: ForecastRule[] = recurrings
+        .filter((r) => r.accountId === accountId)
+        .map((r) => ({
+          label: r.payee ?? (r.direction === "deposit" ? "Deposit" : "Withdrawal"),
+          direction: r.direction,
+          amountCents: r.amountCents,
+          frequency: r.frequency,
+          anchorOn: r.anchorOn,
+          nextOccurrenceOn: r.nextOccurrenceOn,
+          lines: r.lines.map((l) => ({
+            envelopeId: l.envelopeId,
+            magnitudeCents: l.amountCents,
+            refund: l.refund,
+          })),
+        }));
+      const targetList: ForecastTarget[] = [...targets.entries()].map(
+        ([envelopeId, monthlyTargetCents]) => ({ envelopeId, monthlyTargetCents }),
+      );
+      const netSpend = new Map<string, number>();
+      for (const txn of txns) {
+        if (txn.amountCents >= 0 || txn.occurredOn.slice(0, 7) !== month) continue;
+        for (const al of txn.allocations) {
+          netSpend.set(al.envelopeId, (netSpend.get(al.envelopeId) ?? 0) + al.amountCents);
+        }
+      }
+      const actualThisMonth = new Map([...netSpend].map(([id, net]) => [id, -net]));
+      const forecast = cashFlowForecast(
+        account.balanceCents,
+        t,
+        rules,
+        targetList,
+        actualThisMonth,
+        {
+          horizonDays: opts?.horizonDays ?? 90,
+          includeExpected: opts?.includeExpected ?? true,
+        },
+      );
+      return { accountId: account.id, accountName: account.name, ...forecast };
     },
     ...overrides,
   };

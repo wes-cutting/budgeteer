@@ -6,4 +6,5 @@ export * from "./transaction";
 export * from "./allocation";
 export * from "./transfer";
 export * from "./recurring";
+export * from "./forecast";
 export * from "./reconcile";

@@ -221,6 +221,36 @@ export interface BudgetVsActualReport {
   totalRemainingCents: number;
 }
 
+// --- Analysis: cash-flow forecast (FEAT-013) ---
+
+export interface ForecastOptions {
+  horizonDays?: number; // default 90, capped [7,365]
+  includeExpected?: boolean; // default true
+}
+
+export interface ForecastPoint {
+  date: string; // "YYYY-MM-DD"
+  deltaCents: number; // signed cash effect
+  balanceCents: number; // running balance after this event
+  kind: "scheduled" | "expected";
+  label: string;
+}
+
+export interface CashFlowForecast {
+  accountId: string;
+  accountName: string;
+  startDate: string; // today
+  endDate: string; // today + horizonDays
+  horizonDays: number;
+  includeExpected: boolean;
+  startingBalanceCents: number;
+  points: ForecastPoint[]; // date-ascending
+  endingBalanceCents: number;
+  minBalanceCents: number;
+  minBalanceDate: string;
+  firstNegativeDate: string | null; // first date balance < 0, or null
+}
+
 /** Thrown on a non-2xx response, carrying the server's user-facing message. */
 export class ApiError extends Error {}
 
@@ -259,6 +289,7 @@ export interface Api {
   ): Promise<ReconciliationView>;
   getEnvelopeSpend(grain: SpendGrain): Promise<EnvelopeSpendRollup>;
   getBudgetVsActual(month: string): Promise<BudgetVsActualReport>;
+  getCashFlowForecast(accountId: string, opts?: ForecastOptions): Promise<CashFlowForecast>;
   setEnvelopeTarget(envelopeId: string, amount: string): Promise<EnvelopeTargetView>;
   clearEnvelopeTarget(envelopeId: string): Promise<void>;
 }
@@ -424,6 +455,14 @@ export const httpApi: Api = {
     return (
       await request<{ report: BudgetVsActualReport }>(`/analysis/budget-vs-actual?month=${month}`)
     ).report;
+  },
+  async getCashFlowForecast(accountId, opts) {
+    const params = new URLSearchParams({ accountId });
+    if (opts?.horizonDays !== undefined) params.set("horizonDays", String(opts.horizonDays));
+    if (opts?.includeExpected !== undefined)
+      params.set("includeExpected", String(opts.includeExpected));
+    return (await request<{ forecast: CashFlowForecast }>(`/analysis/cash-flow-forecast?${params}`))
+      .forecast;
   },
   async setEnvelopeTarget(envelopeId, amount) {
     return (

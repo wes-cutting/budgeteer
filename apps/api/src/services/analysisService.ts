@@ -1,7 +1,16 @@
 import { type Kysely, sql } from "kysely";
+import {
+  type Forecast,
+  type ForecastRule,
+  type ForecastTarget,
+  type RecurringFrequency,
+  cashFlowForecast as computeForecast,
+} from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
 import { groupBy } from "../util/groupBy";
+import { todayStr, toDateStr } from "../util/dates";
+import { NotFoundError } from "./errors";
 
 export type SpendGrain = "month" | "year";
 
@@ -50,6 +59,12 @@ export interface BudgetVsActualReport {
   totalSpentCents: number;
   /** Σ remaining over budgeted rows (= totalTarget − spend on budgeted envelopes). */
   totalRemainingCents: number;
+}
+
+/** The pure-domain `Forecast` plus the account it was projected for (FEAT-013). */
+export interface CashFlowForecast extends Forecast {
+  accountId: string;
+  accountName: string;
 }
 
 const HH = DEFAULT_HOUSEHOLD_ID;
@@ -199,6 +214,124 @@ export function makeAnalysisService(db: Kysely<DB>) {
       }
 
       return { month, rows, totalTargetCents, totalSpentCents, totalRemainingCents };
+    },
+
+    /**
+     * Cash-flow forecast for one account (FEAT-013): project its running cash balance forward over
+     * `horizonDays`, starting from the derived balance (`v_account_balances`), applying future
+     * scheduled recurring events and — when `includeExpected` — expected discretionary spend from
+     * targets (netted to avoid double-counting). This read only **gathers** the inputs; the
+     * projection itself is the pure domain `cashFlowForecast` (proven by SPIKE-05). Read-only — no
+     * new table or view. Money stays integer cents (narrowed at the boundary).
+     */
+    async cashFlowForecast(
+      accountId: string,
+      opts: { horizonDays: number; includeExpected: boolean },
+    ): Promise<CashFlowForecast> {
+      const account = await db
+        .selectFrom("accounts")
+        .select(["id", "name"])
+        .where("id", "=", accountId)
+        .where("household_id", "=", HH)
+        .executeTakeFirst();
+      if (!account) throw new NotFoundError("account");
+
+      const today = todayStr();
+
+      const bal = await db
+        .selectFrom("v_account_balances")
+        .select("balance_cents")
+        .where("account_id", "=", accountId)
+        .executeTakeFirst();
+      const startingBalanceCents = Number(bal?.balance_cents ?? 0);
+
+      // Recurring rules on this account (the scheduled events) + their split lines.
+      const ruleRows = await db
+        .selectFrom("recurring_transactions")
+        .select([
+          "id",
+          "direction",
+          "amount_cents",
+          "payee",
+          "frequency",
+          "anchor_on",
+          "next_occurrence_on",
+        ])
+        .where("household_id", "=", HH)
+        .where("account_id", "=", accountId)
+        .execute();
+      const lineRows =
+        ruleRows.length === 0
+          ? []
+          : await db
+              .selectFrom("recurring_lines")
+              .select(["recurring_id", "envelope_id", "amount_cents", "refund"])
+              .where(
+                "recurring_id",
+                "in",
+                ruleRows.map((r) => r.id),
+              )
+              .execute();
+      const linesByRule = groupBy(
+        lineRows,
+        (r) => r.recurring_id,
+        (r) => ({
+          envelopeId: r.envelope_id,
+          magnitudeCents: Number(r.amount_cents),
+          refund: Boolean(r.refund),
+        }),
+      );
+      const rules: ForecastRule[] = ruleRows.map((r) => ({
+        label: r.payee ?? (r.direction === "deposit" ? "Deposit" : "Withdrawal"),
+        direction: r.direction === "deposit" ? "deposit" : "withdrawal",
+        amountCents: Number(r.amount_cents),
+        frequency: r.frequency as RecurringFrequency,
+        anchorOn: toDateStr(r.anchor_on),
+        nextOccurrenceOn: toDateStr(r.next_occurrence_on),
+        lines: linesByRule.get(r.id) ?? [],
+      }));
+
+      // Targets (the budget side, household-wide).
+      const targetRows = await db
+        .selectFrom("envelope_targets")
+        .select(["envelope_id", "monthly_target_cents"])
+        .where("household_id", "=", HH)
+        .execute();
+      const targets: ForecastTarget[] = targetRows.map((r) => ({
+        envelopeId: r.envelope_id,
+        monthlyTargetCents: Number(r.monthly_target_cents),
+      }));
+
+      // Current-month actual outflow per envelope (the FEAT-012 basis: −Σ allocations on withdrawals).
+      const month = today.slice(0, 7);
+      const spendRows = await db
+        .selectFrom("allocations as al")
+        .innerJoin("transactions as t", "t.id", "al.transaction_id")
+        .where("t.household_id", "=", HH)
+        .where(sql<boolean>`t.amount_cents < 0`)
+        .where(sql<boolean>`to_char(t.occurred_on, 'YYYY-MM') = ${month}`)
+        .select([
+          "al.envelope_id as envelope_id",
+          sql<string>`sum(al.amount_cents)`.as("net_cents"),
+        ])
+        .groupBy("al.envelope_id")
+        .execute();
+      const actualThisMonth = new Map(
+        spendRows.map((r) => [r.envelope_id, -Number(r.net_cents ?? 0)]),
+      );
+
+      const forecast = computeForecast(
+        startingBalanceCents,
+        today,
+        rules,
+        targets,
+        actualThisMonth,
+        {
+          horizonDays: opts.horizonDays,
+          includeExpected: opts.includeExpected,
+        },
+      );
+      return { accountId: account.id, accountName: account.name, ...forecast };
     },
   };
 }

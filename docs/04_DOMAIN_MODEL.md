@@ -33,6 +33,8 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 | **Reconciliation** | A recorded compare of an account's derived balance against the real bank **statement** balance at a point in time (FEAT-010). `difference = statement − derived`. Manual; no per-transaction *cleared* concept in V1. |
 | **Envelope target** | A per-envelope **recurring monthly budget** — what you plan to spend from the envelope each month (FEAT-012). A single amount (not effective-dated); optional (no target ⇒ none). |
 | **Actual spend (outflow)** | For budget-vs-actual: an envelope's **net spend** in a month = `−Σ allocation.amountCents` over allocations on **withdrawal** transactions (`amountCents < 0`). Excludes funding deposits; **nets refund rows** down. **Remaining** = `target − actual`. (FEAT-012.) |
+| **Cash-flow forecast** | **Derived:** an account's projected **running cash balance** over a horizon — current balance + future **scheduled** recurring events (± magnitude) and, optionally, **expected discretionary spend** from targets, netted to avoid double-counting. Yields the **minimum balance + date** and **first-negative date** (FEAT-013). |
+| **Expected (discretionary) spend** | For the forecast: a month's `Σ max(0, target − actualThisMonth − scheduledThisMonth)` over target envelopes — the budgeted spend **not** already covered by a scheduled bill or already-posted actual. Spread even-daily across the month's in-window days (FEAT-013). |
 | **Unallocated** | The part of a transaction not yet assigned to any envelope (`amount − Σ allocations`). May be non-zero ("enter now, split later"). |
 | **Account balance** | **Derived:** Σ of the account's transaction amounts. |
 | **Envelope balance** | **Derived:** Σ of the allocation amounts landing in that envelope. |
@@ -192,6 +194,16 @@ allocated` indefinitely; the app surfaces these via a **needs-allocation** indic
   `−Σ allocation.amountCents` over allocations on **withdrawal** transactions in the month (outflow
   only — funding deposits excluded, refund rows netted down); **remaining** = `monthlyTarget −
   actual`. The target is **stored** (config); the actual and remaining are **derived**.
+- **Cash-flow forecast** (FEAT-013, derived projection — the analysis area's only **forward** read):
+  for one account, the **running cash balance** over a horizon, starting from the derived account
+  balance and applying each **future dated event** (`date > today`). Events are (1) the account's
+  **scheduled recurring rules** (the recurring engine fed the horizon as its bound; `±magnitude`)
+  and, optionally, (2) **expected discretionary spend** from monthly **targets** — per month
+  `Σ max(0, target − actualThisMonth − scheduledThisMonth)` (current month un-prorated, future-tail
+  prorated), spread **even-daily**. The netting prevents double-counting bills/actuals already in the
+  schedule or the balance (proven by [SPIKE-05](spikes/05-cashflow-forecast.md)). The **minimum
+  balance + date** and **first-negative date** are derived over the series. **Nothing is stored** —
+  it is a pure projection over existing rules, targets, balances, and actuals.
 
 > **Opening balance = an opening Transaction.** Creating an account with a starting balance
 > creates the account **and** a `kind = opening` transaction for that amount (initially

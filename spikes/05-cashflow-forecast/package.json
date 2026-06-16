@@ -1,0 +1,16 @@
+{
+  "name": "spike-05-cashflow-forecast",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "THROWAWAY spike — proves the cash-flow forecast model (event-stepped projection + targets-as-expected-spend folding, anti-double-count). Not the V1 app.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/forecast.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}

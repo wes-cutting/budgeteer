@@ -3,6 +3,9 @@ import cors from "@fastify/cors";
 import type { Kysely } from "kysely";
 import { z } from "zod";
 import {
+  FORECAST_HORIZON_DEFAULT,
+  FORECAST_HORIZON_MAX,
+  FORECAST_HORIZON_MIN,
   isAccountKind,
   isEnvelopeKind,
   isRecurringFrequency,
@@ -125,6 +128,9 @@ type IdParams = { Params: { id: string } };
 type AccountIdParams = { Params: { accountId: string } };
 type SpendQuery = { Querystring: { grain?: string } };
 type MonthQuery = { Querystring: { month?: string } };
+type ForecastQuery = {
+  Querystring: { accountId?: string; horizonDays?: string; includeExpected?: string };
+};
 
 export function buildServer(
   db: Kysely<DB>,
@@ -486,6 +492,35 @@ export function buildServer(
     const month = req.query.month ?? todayStr().slice(0, 7);
     if (!MONTH_RE.test(month)) return fail(reply, 400, "month must be 'YYYY-MM'.");
     return { report: await analysis.budgetVsActual(month) };
+  });
+
+  // --- Analysis: cash-flow forecast (FEAT-013) ---
+  app.get<ForecastQuery>("/analysis/cash-flow-forecast", async (req, reply) => {
+    const accountId = req.query.accountId;
+    if (!accountId) return fail(reply, 400, "accountId is required.");
+    const horizonDays =
+      req.query.horizonDays === undefined
+        ? FORECAST_HORIZON_DEFAULT
+        : Number(req.query.horizonDays);
+    if (
+      !Number.isInteger(horizonDays) ||
+      horizonDays < FORECAST_HORIZON_MIN ||
+      horizonDays > FORECAST_HORIZON_MAX
+    )
+      return fail(
+        reply,
+        400,
+        `horizonDays must be an integer ${FORECAST_HORIZON_MIN}–${FORECAST_HORIZON_MAX}.`,
+      );
+    const includeExpected = req.query.includeExpected !== "false"; // default true
+    try {
+      return {
+        forecast: await analysis.cashFlowForecast(accountId, { horizonDays, includeExpected }),
+      };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
+      throw e;
+    }
   });
 
   // Set / clear an envelope's recurring monthly budget target (the "budget" half of FEAT-012).

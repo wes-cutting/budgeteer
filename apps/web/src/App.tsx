@@ -7,6 +7,7 @@ import { TemplatesView } from "./TemplatesView";
 import { RecurringView } from "./RecurringView";
 import { AnalysisView } from "./AnalysisView";
 import { BudgetVsActualView } from "./BudgetVsActualView";
+import { ForecastView } from "./ForecastView";
 
 type View =
   | { name: "dashboard" }
@@ -15,7 +16,8 @@ type View =
   | { name: "templates" }
   | { name: "recurring" }
   | { name: "analysis" }
-  | { name: "budget" };
+  | { name: "budget" }
+  | { name: "forecast" };
 
 export function App({ api }: { api: Api }) {
   const [view, setView] = useState<View>({ name: "dashboard" });
@@ -46,6 +48,9 @@ export function App({ api }: { api: Api }) {
   if (view.name === "budget") {
     return <BudgetVsActualView api={api} onBack={() => setView({ name: "dashboard" })} />;
   }
+  if (view.name === "forecast") {
+    return <ForecastView api={api} onBack={() => setView({ name: "dashboard" })} />;
+  }
   return (
     <Dashboard
       api={api}
@@ -57,6 +62,7 @@ export function App({ api }: { api: Api }) {
       onOpenRecurring={() => setView({ name: "recurring" })}
       onOpenAnalysis={() => setView({ name: "analysis" })}
       onOpenBudget={() => setView({ name: "budget" })}
+      onOpenForecast={() => setView({ name: "forecast" })}
     />
   );
 }
