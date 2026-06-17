@@ -11,53 +11,18 @@ Sequencing model: docs/00_WAYS_OF_WORKING.md §7.
 | ------------- | -------------- |
 | Status        | Living         |
 | Owner         | Wesley Cutting |
-| Last updated  | 2026-06-16     |
-| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) · [`reviews/2026-06-15-repo-review.md`](reviews/2026-06-15-repo-review.md) · [`status-reports/2026-06-15-eh1.md`](status-reports/2026-06-15-eh1.md) · [`status-reports/2026-06-15-eh2.md`](status-reports/2026-06-15-eh2.md) · [`status-reports/2026-06-15-eh3.md`](status-reports/2026-06-15-eh3.md) · [`status-reports/2026-06-15-eh4.md`](status-reports/2026-06-15-eh4.md) · [`status-reports/2026-06-15-eh5.md`](status-reports/2026-06-15-eh5.md) · [`status-reports/2026-06-15-eh6.md`](status-reports/2026-06-15-eh6.md) · [`features/analysis-envelope-spend.md`](features/analysis-envelope-spend.md) · [`ux/analysis-envelope-spend.md`](ux/analysis-envelope-spend.md) · [`status-reports/2026-06-15-slice-11.md`](status-reports/2026-06-15-slice-11.md) · [`features/budget-vs-actual.md`](features/budget-vs-actual.md) · [`ux/budget-vs-actual.md`](ux/budget-vs-actual.md) · [`status-reports/2026-06-16-slice-12.md`](status-reports/2026-06-16-slice-12.md) · [`spikes/05-cashflow-forecast.md`](spikes/05-cashflow-forecast.md) · [`features/cash-flow-forecast.md`](features/cash-flow-forecast.md) · [`ux/cash-flow-forecast.md`](ux/cash-flow-forecast.md) · [`status-reports/2026-06-16-slice-13.md`](status-reports/2026-06-16-slice-13.md) · [`features/credit-utilization.md`](features/credit-utilization.md) · [`ux/credit-utilization.md`](ux/credit-utilization.md) · [`status-reports/2026-06-16-slice-14a.md`](status-reports/2026-06-16-slice-14a.md) · [`features/debt-payoff.md`](features/debt-payoff.md) · [`ux/debt-payoff.md`](ux/debt-payoff.md) · [`status-reports/2026-06-16-slice-14b.md`](status-reports/2026-06-16-slice-14b.md) |
+| Last updated  | 2026-06-17     |
+| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) · [`reviews/2026-06-15-repo-review.md`](reviews/2026-06-15-repo-review.md) · [`status-reports/2026-06-15-eh1.md`](status-reports/2026-06-15-eh1.md) · [`status-reports/2026-06-15-eh2.md`](status-reports/2026-06-15-eh2.md) · [`status-reports/2026-06-15-eh3.md`](status-reports/2026-06-15-eh3.md) · [`status-reports/2026-06-15-eh4.md`](status-reports/2026-06-15-eh4.md) · [`status-reports/2026-06-15-eh5.md`](status-reports/2026-06-15-eh5.md) · [`status-reports/2026-06-15-eh6.md`](status-reports/2026-06-15-eh6.md) · [`features/analysis-envelope-spend.md`](features/analysis-envelope-spend.md) · [`ux/analysis-envelope-spend.md`](ux/analysis-envelope-spend.md) · [`status-reports/2026-06-15-slice-11.md`](status-reports/2026-06-15-slice-11.md) · [`features/budget-vs-actual.md`](features/budget-vs-actual.md) · [`ux/budget-vs-actual.md`](ux/budget-vs-actual.md) · [`status-reports/2026-06-16-slice-12.md`](status-reports/2026-06-16-slice-12.md) · [`spikes/05-cashflow-forecast.md`](spikes/05-cashflow-forecast.md) · [`features/cash-flow-forecast.md`](features/cash-flow-forecast.md) · [`ux/cash-flow-forecast.md`](ux/cash-flow-forecast.md) · [`status-reports/2026-06-16-slice-13.md`](status-reports/2026-06-16-slice-13.md) · [`features/credit-utilization.md`](features/credit-utilization.md) · [`ux/credit-utilization.md`](ux/credit-utilization.md) · [`status-reports/2026-06-16-slice-14a.md`](status-reports/2026-06-16-slice-14a.md) · [`features/debt-payoff.md`](features/debt-payoff.md) · [`ux/debt-payoff.md`](ux/debt-payoff.md) · [`status-reports/2026-06-16-slice-14b.md`](status-reports/2026-06-16-slice-14b.md) · [2026-06-17 improvement review](reviews/2026-06-17-improvement-review.md) |
 
-**Current focus:** **`#13` Analysis — cash-flow forecast — ✅ `Done` (gate-green); the third analysis
-slice and the area's only FORWARD-looking one.** Budgeteer now **projects** an account's running
-**cash balance** over a horizon (default 90 days), from the derived balance (`v_account_balances`) +
-**future scheduled recurring events** (FEAT-009) + a toggle (default on) for **expected discretionary
-spend** from monthly **targets** (FEAT-012), netted to avoid double-counting. Surfaces **ending /
-minimum + date / first-negative** ("will I make it to payday?"). **A real throwaway spike**
-([SPIKE-05](spikes/05-cashflow-forecast.md), 8/8) was warranted once the owner chose the richer
-"+ targets" model — it proved the recurring engine projects the future unchanged and that the netting
-avoids double-counting (naive raw-targets would have over-counted $1,620/mo on the fixture vs. the
-correct $550 discretionary). Owner decisions (FEAT-013 §11): **per-account cash**; **scheduled +
-expected (toggle, default on)**; **event-stepped, 90-day default**; expected = `Σ max(0, target −
-actual − scheduled)` spread even-daily. Built data → API → UI: a **pure domain** `cashFlowForecast` →
-read-only `analysisService.cashFlowForecast` → `GET /analysis/cash-flow-forecast` → a thin
-`ForecastView` (account picker + horizon + expected toggle + summary + running-balance table; a11y:
-caption + `scope`'d headers, warnings as text). **No schema change** (a pure projection, like `#11`).
-**168 Vitest** (+16: 9 domain + 4 API + 4 web; net of the #12 base 152) **+ 1 e2e** (extended with a
-Forecast step); lint + typecheck + format + web build green; verified in a real browser against the
-real API. Prior slice: **`#12` budget-vs-actual — ✅ Done** (151 + 1 e2e).
-
-**Latest:** **`#14a` Analysis — credit utilization — ✅ `Done` (gate-green); the fourth analysis slice
-and the FIRST half of the split `#14`.** The owner split the roadmap's "debt & credit trends" (as `#7`
-was split): **utilization now (`#14a`)**, installment-debt **payoff-% later (`#14b`)**. For every
-`kind='credit'` account Budgeteer now shows **owed vs. credit limit** — current utilization
-(`owed ÷ limit`, basis points), a **monthly utilization trend**, and a **portfolio roll-up** — where
-**owed = −balance** (a credit account's derived balance is ≤ 0 when in debt; the stored ledger sign is
-unchanged, only the analysis read flips it). **No spike** (like `#11`/`#12`, it aggregates existing
-balances + one stored number — no forward projection, no external source). Owner decisions
-(FEAT-014a §11): **utilization, not payoff**; **per-account + roll-up**; a **separate `credit_limits`
-config table** (mirrors `envelope_targets`; a reversible definition, **no ADR**). Built data → API →
-UI: a **pure domain** `creditUtilization` → read-only `analysisService.creditUtilization` →
-`GET /analysis/credit-utilization` + `PUT`/`DELETE /accounts/:id/credit-limit` → a thin `CreditView`
-(roll-up + per-account table with an inline limit editor + per-account trend tables; a11y: captions +
-`scope`'d headers, every ratio as **text** incl. "over limit"). **One new table** (`credit_limits`);
-owed/utilization/trend/roll-up are **derived**. **192 Vitest** (+24: 10 domain + 10 API + 4 web) **+ 1
-e2e** (extended with a Credit step); verified in a real browser against the real API.
-
-**Latest:** **`#14b` Analysis — debt payoff — ✅ `Done` (gate-green); the analysis area's LAST slice,
-completing the split `#14`.** Symmetric with `#14a`: a **credit** account has a **limit** → utilization;
-a **loan** account has an **original principal** → **payoff** (`1 − owed/original`). This slice adds the
-new **`kind='loan'`** account type (an idempotent accounts-kind-check evolution + domain/web kind lists)
-and a per-loan **`loan_principals`** store (one original, set/cleared inline, restricted to `kind='loan'`),
-then derives payoff — owed (= −balance), paid-down, a **monthly payoff trend**, and a **portfolio
-roll-up** — **truthful, not clamped** (0% new, 100% settled, >100% overpaid). **No spike** (aggregates
-existing balances + one stored number; the cumulative-trend technique was already proven by `#14a`).
+**Current focus:** **Analysis area (`#11`–`#14`) ✅ complete (214 Vitest + 1 e2e, gate-green).** The
+full analysis track — envelope spend, budget-vs-actual, cash-flow forecast, credit utilization, and
+debt payoff — is done. Hardening is next: **`#15` backup/export** is the active next item (see
+[#14b status report](status-reports/2026-06-16-slice-14b.md) for the scope decisions and kickoff
+prompt); **`#16`** (a11y/perf/full browser-e2e) follows. A **2026-06-17 improvement review** also
+surfaced UX-polish and developer-experience items now tracked as **`R1`–`R14`** below — quick wins
+(R1–R3 need zero API work), UX improvements (R4–R5), new feature slices (R6–R9), and DX items
+(R10–R14). Suggested sequencing: R10 + R1 are opportunistic now; R6–R9 interleave with hardening;
+R11–R14 fold into `#16`.
 Owner decisions (FEAT-014b §11): **add `kind='loan'`** (vs. a kind-agnostic store); **single original
 principal** (a definition, **no ADR**). Built data → API → UI: a **pure domain** `debtPayoff` →
 read-only `analysisService.debtPayoff` → `GET /analysis/debt-payoff` + `PUT`/`DELETE
@@ -156,6 +121,10 @@ Ordered by **Risk × Value**, top = next. `Gated by` names what must land first.
 | 13 | **Analysis — cash-flow forecast** (pay-period projection) | slice | Med | Med | #3 · #9 · ✅ SPIKE-05 | **✅ Done** | Built & gate-green (168 tests + 1 e2e); per-account event-stepped cash projection from `v_account_balances` + scheduled recurring + netted expected-spend toggle; pure domain `cashFlowForecast`, **no schema change**; de-risked by [SPIKE-05](spikes/05-cashflow-forecast.md); [feature](features/cash-flow-forecast.md)·[UX](ux/cash-flow-forecast.md) |
 | 14a | **Analysis — credit utilization** (owed vs. limit · trend · roll-up) | slice | Med | Med | `kind='credit'` accounts + a credit-limit store | **✅ Done** | Built & gate-green (192 tests + 1 e2e); new `credit_limits` store (one limit per credit account, set/cleared inline) + pure-domain `creditUtilization` (owed = −balance; owed/limit in bps; cumulative monthly trend; portfolio roll-up); resolved the credit-balance **sign** open Q (owed = −balance at the analysis layer); [feature](features/credit-utilization.md)·[UX](ux/credit-utilization.md) |
 | 14b | **Analysis — debt payoff %** (installment loans: 1 − owed/original) | slice | Med | Med | a `kind='loan'` account + an original-principal store | **✅ Done** | Built & gate-green (214 tests + 1 e2e); new **`kind='loan'`** account type (idempotent kind-check evolution) + `loan_principals` store (one original per loan, set/cleared inline) + pure-domain `debtPayoff` (owed = −balance; payoff = 1 − owed/original in bps, truthful; cumulative monthly trend; portfolio roll-up); completes the analysis area; [feature](features/debt-payoff.md)·[UX](ux/debt-payoff.md) |
+| R6 | **Transaction delete** — no way to remove a mis-entered `normal` transaction or a transfer pair; edit-split (`#5`) handles corrections-in-place but a duplicate or completely wrong entry has no corrective path | slice | High | Med | #3 | Planned | Settle scope with owner: soft vs. hard delete; transfer-pair teardown (both legs + parent, cascade allocations). A `DELETE /transactions/:id` (normal/opening only) and `DELETE /transfers/:id` (pair teardown). Invariant: deleting a transfer pair conserves both account balances. |
+| R7 | **Account archive / close** — `archived_at` exists on accounts in the schema and `AccountView.archivedAt` is already in `api.ts`, but no service method or UI exposes it | slice | Med | Low | #1 | Planned | Mirror the envelope-archive pattern (`#6`): `accountService.archive/unarchive`, `PATCH /accounts/:id/archive` + `PATCH /accounts/:id/unarchive`, Dashboard filtering (hide archived by default). Useful for closed credit cards, old accounts. |
+| R8 | **Transaction search / filter** — the account register loads all transactions with no server-side filter; as data grows the list becomes unbounded | slice | Med | Low | #3 | Planned | Date-range query params (`?from=YYYY-MM-DD&to=YYYY-MM-DD`, default = current month) on `GET /accounts/:id/transactions`; client-side payee/memo search input on the register. No schema change; `occurredOn` already stored. |
+| R9 | **Net worth over time analysis** — analysis covers envelopes and credit/loan trends but has no account-level trend; the "how am I doing overall?" picture is missing | slice | Med | Low | real data from #3 | Planned | Monthly `Σ account balances` derived from existing transaction data (same aggregate-query pattern as `#11`). New `GET /analysis/net-worth?grain=month` endpoint + thin `NetWorthView`. **No schema change** (read-only aggregate). |
 
 ### Engineering health (from the [2026-06-15 review](reviews/2026-06-15-repo-review.md))
 
@@ -172,12 +141,39 @@ order**, then `#11`+. No live bugs — these are coverage + drift-prevention.
 | EH5 | **Browser e2e (Playwright)** — minimal now (dashboard loads vs. real API + 1 journey); **full journeys land in `#16`** | hardening | P1 | **✅ Done** | Playwright (Chromium-only) drives the real web app vs. the real API: dashboard loads (the CORS-class check) + one journey (account → envelope → deposit allocated → derived envelope balance). New `test:e2e` gate step, kept out of `npm test`. 125 Vitest + **1 e2e**. [status report](status-reports/2026-06-15-eh5.md) |
 | EH6 | **Repo hygiene** — discard the absorbed `spikes/04-transfer-modeling/`; record accepted notes (bigint→Number; normalize-vs-btrim) | chore | P3 | **✅ Done** | Removed the throwaway spike code (no importer; not a workspace; tooling already excluded `spikes/`); findings persist in `ADR-0004` + `#7a`/`#7b` + the [spike report](spikes/04-transfer-modeling.md). Two notes recorded as accepted (no behavior change): bigint→`Number()` exact to ~$90T in `money.ts`/`05_DATA_MODEL`; `normalizeName` ⊃ DB `lower(btrim())` in `naming.ts`/`05_DATA_MODEL`. No test-count change (125 + 1 e2e). [status report](status-reports/2026-06-15-eh6.md) |
 
+### UX polish (from the 2026-06-17 improvement review)
+
+Quick wins and small UI improvements. Items R1–R3 require **zero API work** (endpoints already exist
+and are tested); R4–R5 are thin derived-data additions with no schema change. Do these opportunistically
+around the hardening track — they are not gated on each other.
+
+| # | Item | Kind | Pri | Gated by | Status | Notes |
+| - | ---- | ---- | --- | -------- | ------ | ----- |
+| R1 | **Account rename in UI** — `PATCH /accounts/:id` is implemented and tested; `api.ts` has no `renameAccount` method and the Dashboard has no rename control. Envelopes already expose inline rename. | polish | P1 | — (API done) | Planned | Wire `renameAccount(id, name)` in `api.ts` + add an inline rename control to the account list in `Dashboard.tsx`, mirroring the existing envelope rename pattern. ~30 lines total. |
+| R2 | **Needs-allocation count badge** — the "Needs allocation" header button has no count, so its urgency is invisible until clicked | polish | P1 | — (API done) | Planned | Count transactions where `unallocatedCents > 0` from the existing transaction list (or a lightweight aggregate endpoint). Render as a badge on the button. No domain change. |
+| R3 | **Grouped navigation — unified Analysis section** — the header has 8 flat buttons; 5 are analysis views (Envelope Spend, Budget, Forecast, Credit, Payoff) that require full back-navigation between them | polish | P2 | — | Planned | Replace the 5 separate analysis buttons with a single "Analysis" entry that renders an internal tab strip. Pure React refactor; no API or domain change. Makes the header manageable as items grow. |
+| R4 | **Dashboard net worth summary** — accounts are listed individually but never summed; no aggregate gives the "how am I doing?" snapshot | polish | P2 | — | Planned | Derive total assets (`Σ balanceCents > 0`), total liabilities (`Σ balanceCents < 0`), and net worth from the existing account list. Pure front-end calculation; render as a summary row below the account list. |
+| R5 | **Envelope targets visible inline** — monthly targets exist (`#12`) but are only visible in the Budget view; reaching them from the daily-use Dashboard requires a navigation hop | polish | P3 | #12 (done) | Planned | Display each active envelope's target + spent + remaining inline in the envelope list row. Target data is already returned by the budget endpoint; this is a display-layer addition only. |
+
+### Developer experience (from the 2026-06-17 improvement review)
+
+Cross-cutting developer-loop improvements. R10 is a one-liner; R11–R14 are best tackled
+alongside a new feature or folded into `#16`. No behavior change for any item.
+
+| # | Item | Kind | Pri | Status | Notes |
+| - | ---- | ---- | --- | ------ | ----- |
+| R10 | **API watch mode** — the API dev server (`npm run start`) has no file-watching; every API change requires a manual restart during development | DX | P1 | Planned | Add a `dev` script to `apps/api/package.json`: `tsx watch src/index.ts`. Update `.claude/launch.json` `api` entry to use `npm run dev`. One-line change; eliminates manual-restart friction on every development loop. |
+| R11 | **Route modularization** — `apps/api/src/http/server.ts` is 682 lines with all 40+ routes inline; adding a new route to any area requires reading the whole file | DX | P2 | Planned | Split into Fastify plugin modules per domain area (`routes/accounts.ts`, `routes/transactions.ts`, `routes/analysis.ts`, etc.) registered from `buildServer`. No behavior change; cheapest to do alongside a new route group (R6 or R8). |
+| R12 | **React error boundaries** — no `ErrorBoundary` exists; a render error in any view crashes the entire app to a blank screen | DX | P2 | Planned | A single top-level `ErrorBoundary` wrapping `<App>` — and optionally per-view ones for the analysis section — provides a recoverable error state. Zero API change; standard React pattern. |
+| R13 | **Structured API logging** — `buildServer` defaults to `logger: false`; the API emits no request/response logging. Fastify bundles `pino` at zero cost. | DX | P3 | Planned | Pass `logger: true` (or a minimal pino config) from `apps/api/src/index.ts`. Consider a `LOG_LEVEL` env var for dev vs. prod verbosity. Surfaces slow queries, error paths, and startup issues without instrumentation work. |
+| R14 | **Per-area e2e specs** — `e2e/journey.spec.ts` is a single growing file chaining 8+ steps; a failure in step 7 re-runs steps 1–6 and obscures which area regressed | DX | P3 | Planned | Split into per-feature files (`accounts.spec.ts`, `envelopes.spec.ts`, `analysis.spec.ts`, etc.) with a shared setup helper. **Fold into `#16`** (full browser-e2e pass) — the harness is in place; this is a reorganization, not a new tool. |
+
 ### Hardening
 
 | # | Item | Kind | Value | Risk | Trigger (when) | Status | Links |
 | - | ---- | ---- | ----- | ---- | -------------- | ------ | ----- |
 | 15 | **Backup / export** of the local store | hardening | Med | Med | real daily data exists | Planned | `07_NFR` |
-| 16 | **a11y pass** (WCAG 2.2 AA) + perf/NFR budgets + **full browser-e2e journeys** ([EH5](reviews/2026-06-15-repo-review.md)) + **ESLint in CI** ([EH4](reviews/2026-06-15-repo-review.md)) | hardening | Med | Low | UI surfaces exist | Planned | `07_NFR` *(a11y is also per-slice in the DoD; this is a consolidated pass; e2e/eslint started early as EH5/EH4)* |
+| 16 | **a11y pass** (WCAG 2.2 AA) + perf/NFR budgets + **full browser-e2e journeys** ([EH5](reviews/2026-06-15-repo-review.md)) + **ESLint in CI** ([EH4](reviews/2026-06-15-repo-review.md)) + **per-area e2e split** (R14) | hardening | Med | Low | UI surfaces exist | Planned | `07_NFR` *(a11y is also per-slice in the DoD; this is a consolidated pass; e2e/eslint started early as EH5/EH4; R14 e2e reorganization folds in here)* |
 
 ### Deferred — post-V1
 
@@ -220,6 +216,7 @@ order**, then `#11`+. No live bugs — these are coverage + drift-prevention.
 | 2026-06-16 | **`#14b` Done** (gate-green) — **completes the split `#14` and the analysis area (`#11`–`#14`)**; FEAT-014b `Implemented`. Owner settled: **add a `kind='loan'` account type** (vs. a kind-agnostic store — symmetric with `#14a`: credit→limit→utilization, loan→original→payoff); **single original principal** (a definition, **no ADR**). Evolved the accounts kind check idempotently (+`'loan'` in schema/domain/web); added `loan_principals` (idempotent migration) in `05_DATA_MODEL` + LoanPrincipal in `04_DOMAIN_MODEL`; pure-domain `debtPayoff` (owed = −balance; payoff = 1 − owed/original in bps, truthful/unclamped; cumulative monthly trend; roll-up); `loanPrincipalService` (set/clear, loan-kind only) + `analysisService.debtPayoff`; `GET /analysis/debt-payoff` + `PUT`/`DELETE /accounts/:id/original-principal` in `06_API_CONTRACT` | No spike: aggregates existing balances + one stored number (like `#11`/`#12`/`#14a`); the cumulative-trend technique was already proven by `#14a`. The forks (loan modeling + effective-dating) were settled with the owner | **Analysis area complete. Next: hardening — `#15` backup/export, then `#16`. 214 Vitest + 1 e2e** (+22) |
 | 2026-06-16 | **`#14` split → `#14a` + `#14b`; `#14a` Done** (gate-green) — fourth analysis slice; FEAT-014a `Implemented`. Owner split the roadmap's "debt & credit trends" (as `#7` was split): **credit utilization now (`#14a`)**, installment-debt **payoff-% later (`#14b`)**. Owner settled: **utilization, not payoff**; **per-account + portfolio roll-up**; a **separate `credit_limits` config table** (mirrors `envelope_targets`; a reversible definition, **no ADR**). Added `credit_limits` (idempotent migration) in `05_DATA_MODEL` + CreditLimit in `04_DOMAIN_MODEL`; pure-domain `creditUtilization` (owed = −balance; owed/limit in bps; cumulative monthly trend; roll-up); `creditLimitService` (set/clear, credit-kind only) + `analysisService.creditUtilization`; `GET /analysis/credit-utilization` + `PUT`/`DELETE /accounts/:id/credit-limit` in `06_API_CONTRACT`; resolved the `04_DOMAIN_MODEL` credit-balance **sign** open Q (owed = −balance at the analysis layer, ledger sign unchanged) | No spike: aggregates existing balances + one stored number (like `#11`/`#12`); the only new logic (cumulative balance per period vs. `#11`'s per-period net flow) is unit-proven, not a spike-level unknown. The gap was the **limit** store + the owed/utilization definitions — all settled with the owner | **Next: `#14b`** debt payoff %, then hardening `#15`–`#16`. **192 Vitest + 1 e2e** (+24) |
 | 2026-06-15 | **`EH6` Done** (gate-green) — **completes the engineering-health track `EH1`–`EH6`**. Discarded the absorbed throwaway spike code `spikes/04-transfer-modeling/` (verified inert: no importer, not a workspace, `vitest.workspace.ts`/`eslint` already exclude `spikes/`); ticked the spike report's own discard follow-up. Recorded two accepted notes (no behavior change): `bigint`→`Number()` exact to ~`2^53` cents (≈$90T) on the `Cents` type + `05_DATA_MODEL`; `normalizeName` ⊃ DB `lower(btrim())` in `naming.ts` + `05_DATA_MODEL` | Kit rule: spike code is throwaway once its findings are absorbed (here into `ADR-0004` + `#7a`/`#7b` + the kept report); the two notes were "accepted as-is" in the [2026-06-15 review](reviews/2026-06-15-repo-review.md) (EH6) and needed a durable home | **Next: the analysis area (`#11`–`#14`)**, starting with `#11` spend-by-envelope-over-time. **125 Vitest + 1 e2e** (no test-count change) |
+| 2026-06-17 | **Improvement review captured; `R1`–`R14` added to this roadmap.** Post-`#14b` review surfaced: 3 zero-API-work quick wins (R1–R3), 2 UX improvements using existing data (R4–R5), 4 new feature slices (R6–R9), and 5 DX items (R10–R14). R14 (per-area e2e split) folds into `#16`; `#16` hardening row updated accordingly. `docs/03b_IMPROVEMENTS.md` (the working draft) deleted — this roadmap is the single plan of record. | Post-analysis improvement review | Added "UX polish" (R1–R5) and "Developer experience" (R10–R14) sections; R6–R9 appended to domain-slices table; `#16` updated; current focus updated |
 
 ## 6. Done / shipped
 
