@@ -28,6 +28,7 @@ import { makeAnalysisService } from "../services/analysisService";
 import { makeTargetService } from "../services/targetService";
 import { makeCreditLimitService } from "../services/creditLimitService";
 import { makeLoanPrincipalService } from "../services/loanPrincipalService";
+import { makeBackupService } from "../services/backupService";
 import { DuplicateNameError, NotFoundError, ValidationError } from "../services/errors";
 
 const createAccountBody = z.object({
@@ -178,6 +179,7 @@ export function buildServer(
   const targets = makeTargetService(db);
   const creditLimits = makeCreditLimitService(db);
   const loanPrincipals = makeLoanPrincipalService(db);
+  const backup = makeBackupService(db);
 
   app.setErrorHandler((err, _req, reply) => {
     const e = err as Error & { statusCode?: number };
@@ -676,6 +678,18 @@ export function buildServer(
       if (e instanceof NotFoundError) return fail(reply, 404, "Template not found.");
       throw e;
     }
+  });
+
+  // --- Backup / export (FEAT-015a) ---
+  // Returns a household JSON snapshot for download. Content-Disposition: attachment causes the
+  // browser to save the file rather than display it. Body is never logged (financial data).
+  app.get("/export", async (_req, reply) => {
+    const snapshot = await backup.snapshot();
+    const filename = `budgeteer-backup-${todayStr()}.json`;
+    return reply
+      .header("Content-Disposition", `attachment; filename="${filename}"`)
+      .type("application/json")
+      .send(JSON.stringify(snapshot, null, 2));
   });
 
   return app;

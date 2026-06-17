@@ -10,7 +10,7 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
 | Status       | Implemented (Foundation slice) |
 | Owner        | Wesley Cutting                 |
 | Style        | HTTP / JSON (REST-ish)         |
-| Last updated | 2026-06-16                     |
+| Last updated | 2026-06-17                     |
 
 ## 1. Conventions
 
@@ -319,6 +319,33 @@ Household-scoped server-side.
 > **Account kinds:** `POST /accounts` accepts `kind ∈ {checking, savings, credit, loan, cash, other}`
 > — `'loan'` was added by FEAT-014b (the installment-debt account type that carries an original
 > principal for payoff). There is no edit-kind endpoint in V1, so a loan is created as `kind='loan'`.
+
+### Backup / export (FEAT-015a)
+
+Delivers a complete JSON snapshot of the household's data as a downloadable file. The
+response body is **never logged** (financial data). Cents are integers (`number`, not
+string). Timestamps are ISO-8601 strings. The two derived views (`v_account_balances`,
+`v_envelope_balances`) are excluded — they are recomputed from the raw tables.
+
+```
+BudgeteerBackup = {
+  version:     1,
+  exportedAt:  string,   // ISO-8601 timestamp of the export
+  householdId: string,   // uuid of the exported household
+  tables: {
+    households, accounts, envelopes, transfers, envelope_transfers,
+    transactions, allocations, templates, template_lines,
+    recurring_transactions, recurring_lines, reconciliations,
+    envelope_targets, credit_limits, loan_principals
+  }  // each is an array of raw table rows (cents as number, dates as ISO strings)
+}
+```
+
+- **`GET /export`** → `200` with `Content-Disposition: attachment; filename="budgeteer-backup-YYYY-MM-DD.json"` and `Content-Type: application/json`. The response body is the `BudgeteerBackup` object (pretty-printed JSON). No query params. No request body. This is a simple anchor link in the web app — no `fetch` needed; browser navigation triggers the download via `Content-Disposition`.
+
+> **Security:** the backup contains the user's complete financial history. Do not commit a
+> real backup to the repo (`.gitignore` already excludes data files). Tests use synthetic
+> fixtures only. The endpoint has no auth in V1 — auth-gating is part of roadmap `#19`.
 
 ## 4. Internal contracts (non-network)
 

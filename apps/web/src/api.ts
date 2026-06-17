@@ -365,6 +365,9 @@ export interface Api {
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
 
+/** Direct URL for the backup download — an anchor href, not a fetch call (no CORS needed). */
+export const exportUrl = `${BASE}/export`;
+
 function errorMessage(data: unknown): string | undefined {
   if (typeof data === "object" && data !== null) {
     const err = (data as { error?: { message?: unknown } }).error;

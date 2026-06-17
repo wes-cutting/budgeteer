@@ -1,0 +1,151 @@
+<!--
+NFR / OPERATIONAL-READINESS — hardening track for Budgeteer. The non-functional requirements
+and operational readiness the app must meet. Created alongside #15a (backup/export), the first
+hardening item; extended by #16 (a11y pass + perf/NFR budgets + CI gates).
+Adapted from templates/NFR-TEMPLATE.md.
+-->
+
+# Non-Functional Requirements & Operational Readiness — Budgeteer
+
+| Field        | Value                                                                   |
+| ------------ | ----------------------------------------------------------------------- |
+| Status       | Draft                                                                   |
+| Owner        | Wesley Cutting                                                          |
+| Last updated | 2026-06-17                                                              |
+| Sources      | [`SECURITY.md`](SECURITY.md) · [`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) · [`ADR-0003`](adr/ADR-0003-money-integer-minor-units.md) · [`03_ROADMAP.md`](03_ROADMAP.md) `#15a`/`#16` |
+
+> **Measure before optimizing.** Every budget must be verified against a realistic data
+> volume — not an empty dev database. An unmeasured target is a guess.
+
+---
+
+## 1. Performance budgets
+
+Targets for the critical read paths. Measured against synthetic (never real) data volumes.
+`#16` fills in verified numbers; placeholders here mark what will be measured.
+
+| Journey / operation | Budget | At volume | How verified |
+| ------------------- | ------ | --------- | ------------ |
+| `GET /accounts` (account list) | < 50 ms p95 | 50 accounts | API integration test timing (#16) |
+| `GET /analysis/envelope-spend` (monthly grid) | < 200 ms p95 | 2 yrs × 20 envelopes × 100 txns/mo | Load test (#16) |
+| `GET /export` (backup snapshot) | < 500 ms p95 | 5 yrs daily data (~1 800 txns) | Integration test timing (#16) |
+| Web initial load (LCP) | < 2.5 s | Cold load, production build | Lighthouse / axe (#16) |
+
+---
+
+## 2. Capacity & scale
+
+Budgeteer is a **single-household personal finance tool** — scale targets are intentionally
+modest and sized for one household's real financial history.
+
+- **Expected data:** 5–15 years of transactions × 1 household × 10–30 envelopes.
+  Realistic upper bound: ~5 000 transactions, ~2 000 allocations, ~500 recurring lines.
+- **Concurrent users:** 1–2 (household members). No multi-tenancy in V1 (#19 is the
+  multi-user epic; it will add its own NFR doc section).
+- **Bottleneck:** All reads are against an in-process PGlite store (single writer, reads
+  share the process). Forecast and envelope-spend aggregates are the heaviest queries.
+- **Synthetic test dataset** for perf tests: generated via API seed scripts (never real
+  data); format TBD at #16.
+
+---
+
+## 3. Availability & reliability
+
+- **Deployment model (V1):** local-only — the API and web app run on the user's machine.
+  No remote SLO target in V1; availability is "works when the machine is on."
+- **Data integrity:** The split invariant (`Σ allocation_cents = transaction.amount_cents`)
+  is enforced at the service boundary on every write (never derived by reading). The
+  database schema has FK constraints enforcing referential integrity. PGlite persists to a
+  local file; if the file is corrupted, the backup (`GET /export`) is the recovery path.
+- **No partial writes:** every multi-step operation (e.g., account creation + opening
+  transaction) runs within a Kysely transaction; partial failure rolls back.
+- **Backup / restore:**
+  - **`#15a` (export, done):** `GET /export` → `budgeteer-backup-YYYY-MM-DD.json`. A
+    JSON snapshot of all 15 tables; integer cents as numbers; dated filename. The user can
+    download on demand from the Dashboard.
+  - **`#15b` (import/restore, planned):** restores a snapshot into the local store.
+    Gated on a spike to confirm round-trip fidelity (IDs, FK ordering, partial-failure
+    handling). Tracked as roadmap `#15b`.
+
+---
+
+## 4. Observability
+
+V1 is local-only; production observability is minimal but intentional.
+
+- **Structured logging:** Fastify logger is off by default in V1 (see `buildServer` opts).
+  `R13` (roadmap) will wire `logger: true` with `pino` + a `LOG_LEVEL` env var.
+- **Metrics:** No instrumentation in V1. The meaningful signal is the backup export — if it
+  downloads a non-empty JSON, the data layer is alive.
+- **Backup as a health probe:** `GET /export` exercises the full read path (15 table queries
+  in parallel). A failing export surfaces datastore issues immediately.
+- **Alerts:** Not applicable for V1 (local-only, single user). Add if the app is deployed
+  remotely.
+
+---
+
+## 5. Security & privacy NFRs
+
+In addition to the baseline in [`SECURITY.md`](SECURITY.md):
+
+- **Data classification:** All data is personal financial data — household accounts,
+  balances, transaction history, debt/credit figures. Treat as **confidential**.
+- **Backup security:** The exported JSON contains the user's complete financial history.
+  - Never committed to the repo (`.gitignore` excludes `*.json` in data directories;
+    the download lands in the user's `Downloads` folder, not the repo).
+  - Never logged — the `GET /export` route does not log the response body.
+  - The file is unencrypted (V1); users should store it in an encrypted location.
+    Encryption-at-rest is a `#15b`/post-V1 concern.
+- **Tests use synthetic fixtures only** — no real financial data ever enters the test suite
+  ([`SECURITY.md`](SECURITY.md) §8, [`00_WAYS_OF_WORKING.md`](00_WAYS_OF_WORKING.md) §8).
+- **No auth in V1** — the export endpoint (like all V1 endpoints) has no authentication.
+  Multi-user auth is roadmap `#19`; when it lands, `GET /export` must be auth-gated.
+- **SCA / dependency gate:** `npm audit` is not yet wired into CI. `#16` adds it alongside
+  ESLint-in-CI and e2e-in-CI.
+
+---
+
+## 6. Accessibility
+
+Baseline: **WCAG 2.2 AA** on all user-facing surfaces
+([`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) §2). Each slice's DoD includes an
+accessibility check on any new UI. `#16` is a consolidated a11y pass.
+
+- **`#15a` — "Download backup" link:** a plain `<a href>` element with descriptive link
+  text ("Download backup") — natively accessible (keyboard focusable, screen-reader
+  announced). No ARIA additions needed.
+- **`#16` — consolidated pass:** axe-core scan of all views; keyboard navigation
+  verification; `prefers-reduced-motion` respected in any animated elements.
+- **Audit cadence:** once at the consolidated `#16` pass; then per-slice thereafter.
+- **Tools:** axe-core (automated), Playwright a11y snapshots, manual keyboard walkthrough.
+
+---
+
+## 7. Operational readiness
+
+Pre-production checklist. Checked as items land; `#16` completes most of these for V1.
+
+- [x] **Backup (export) available** — `GET /export` delivers a complete JSON snapshot;
+  user can download from the Dashboard. (#15a done.)
+- [ ] **Restore (import) proven** — restore path exercised against a real backup file;
+  round-trip fidelity confirmed by a spike. (#15b — planned.)
+- [ ] **Deploy & rollback documented** — a repeatable "how to run the app" guide for V1
+  (local-only: `npm run start` + `npm run dev`). Currently undocumented outside the README.
+- [ ] **Config validated at startup** — `DATABASE_URL`, `CORS_ORIGINS`, and `PORT` are
+  validated at boot; the process exits with a clear error if misconfigured. (#16 scope.)
+- [ ] **Dependency / vulnerability gate in CI** — `npm audit --audit-level=high` in
+  `gate.yml`; fails the gate on high/critical. (#16.)
+- [ ] **ESLint in CI** — `npm run lint` added to `gate.yml` (currently manual-only).
+  (#16.)
+- [ ] **e2e in CI** — `npm run test:e2e` added to `gate.yml`. (#16.)
+- [ ] **A11y pass complete** — axe scan clean on all views. (#16.)
+
+---
+
+## 8. Open questions
+
+| Question | Owner | Status |
+| -------- | ----- | ------ |
+| Should the backup file be encrypted (e.g. passphrase-protected zip) in V1? | Wesley Cutting | open — deferred to #15b scoping |
+| What is the correct FK insert order for restore? (households → accounts/envelopes → transactions → allocations → …) | Agent | open — spike at #15b start |
+| Should `GET /export` stream the response for very large datasets, or is a single JSON payload sufficient for V1 volumes? | Wesley Cutting | open — likely fine for V1 (~5 000 txns); revisit if performance budget fails |

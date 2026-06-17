@@ -6,6 +6,7 @@ import {
   ApiError,
   type EnvelopeKind,
   type EnvelopeView,
+  exportUrl,
 } from "./api";
 import { formatCents } from "./format";
 import { MoveMoneyForm } from "./MoveMoneyForm";
@@ -108,6 +109,7 @@ export function Dashboard({
         <button type="button" onClick={() => onOpenPayoff?.()}>
           Payoff
         </button>
+        <a href={exportUrl}>Download backup</a>
       </header>
 
       {loadError ? <p role="alert">{loadError}</p> : null}
