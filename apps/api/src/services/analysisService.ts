@@ -2,12 +2,15 @@ import { type Kysely, sql } from "kysely";
 import {
   type CreditAccountInput,
   type CreditUtilizationReport,
+  type DebtPayoffReport,
   type Forecast,
   type ForecastRule,
   type ForecastTarget,
+  type LoanAccountInput,
   type RecurringFrequency,
   cashFlowForecast as computeForecast,
   creditUtilization as computeCreditUtilization,
+  debtPayoff as computeDebtPayoff,
 } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
@@ -417,6 +420,89 @@ export function makeAnalysisService(db: Kysely<DB>) {
       }
 
       return computeCreditUtilization(inputs);
+    },
+
+    /**
+     * Debt payoff for every loan account (FEAT-014b): how much of each loan's **original principal**
+     * has been paid down (`1 − owed/original`), plus a month-by-month payoff trend and a portfolio
+     * roll-up over the loans that have an original principal. "Owed" is the derived balance
+     * (`v_account_balances`) interpreted as a liability — `owed = −balance` (a loan carries its debt
+     * as a negative balance) — never stored.
+     *
+     * This read only **gathers** the inputs; the math (owed, payoff basis points, the cumulative
+     * trend, the roll-up) is the pure domain `debtPayoff`. Read-only — the only new table is the
+     * `loan_principals` config (written by loanPrincipalService). The structure mirrors
+     * `creditUtilization` (#14a): loan accounts shown when active, or (archived) only if they still
+     * carry a principal or a non-zero balance; ordered by name. Money stays integer cents.
+     */
+    async debtPayoff(): Promise<DebtPayoffReport> {
+      const accountRows = await db
+        .selectFrom("accounts")
+        .select(["id", "name", "archived_at"])
+        .where("household_id", "=", HH)
+        .where("kind", "=", "loan")
+        .orderBy("name")
+        .execute();
+      if (accountRows.length === 0) return computeDebtPayoff([]);
+      const accountIds = accountRows.map((a) => a.id);
+
+      const balanceRows = await db
+        .selectFrom("v_account_balances")
+        .select(["account_id", "balance_cents"])
+        .where("account_id", "in", accountIds)
+        .execute();
+      const balanceByAccount = new Map(
+        balanceRows.map((r) => [r.account_id, Number(r.balance_cents ?? 0)]),
+      );
+
+      const principalRows = await db
+        .selectFrom("loan_principals")
+        .select(["account_id", "original_principal_cents"])
+        .where("household_id", "=", HH)
+        .execute();
+      const principalByAccount = new Map(
+        principalRows.map((r) => [r.account_id, Number(r.original_principal_cents)]),
+      );
+
+      // Per-account, per-month net balance flow (signed) — cumulated for the payoff trend, exactly as
+      // in creditUtilization.
+      const flowRows = await db
+        .selectFrom("transactions")
+        .where("household_id", "=", HH)
+        .where("account_id", "in", accountIds)
+        .select([
+          "account_id",
+          sql<string>`to_char(occurred_on, 'YYYY-MM')`.as("period"),
+          sql<string>`sum(amount_cents)`.as("net_cents"),
+        ])
+        .groupBy(["account_id", sql`to_char(occurred_on, 'YYYY-MM')`])
+        .orderBy("account_id")
+        .orderBy("period")
+        .execute();
+      const flowsByAccount = groupBy(
+        flowRows,
+        (r) => r.account_id,
+        (r) => ({ period: r.period, netCents: Number(r.net_cents ?? 0) }),
+      );
+
+      const inputs: LoanAccountInput[] = [];
+      for (const a of accountRows) {
+        const balanceCents = balanceByAccount.get(a.id) ?? 0;
+        const originalPrincipalCents = principalByAccount.get(a.id) ?? null;
+        const archived = a.archived_at !== null;
+        // Hide archived loan accounts that are dormant (no principal, settled balance); keep all active.
+        if (archived && originalPrincipalCents === null && balanceCents === 0) continue;
+        inputs.push({
+          accountId: a.id,
+          accountName: a.name,
+          archived,
+          balanceCents,
+          originalPrincipalCents,
+          flows: flowsByAccount.get(a.id) ?? [],
+        });
+      }
+
+      return computeDebtPayoff(inputs);
     },
   };
 }

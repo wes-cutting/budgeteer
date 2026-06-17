@@ -1,7 +1,7 @@
 // API client + the view types the UI depends on (mirrors apps/api responses; shared types are
 // a future refinement once the domain package ships a build — see docs/06_API_CONTRACT.md).
 
-export type AccountKind = "checking" | "savings" | "credit" | "cash" | "other";
+export type AccountKind = "checking" | "savings" | "credit" | "loan" | "cash" | "other";
 export type EnvelopeKind = "standard" | "sinking_fund";
 
 export interface AccountView {
@@ -282,6 +282,38 @@ export interface CreditUtilizationReport {
   utilizationBps: number | null; // aggregate over limited accounts; null when none
 }
 
+// --- Analysis: debt payoff (FEAT-014b) ---
+
+export interface LoanPrincipalView {
+  accountId: string;
+  originalPrincipalCents: number;
+}
+
+export interface PayoffPoint {
+  period: string; // "YYYY-MM"
+  owedCents: number; // −(cumulative balance through this period); ≤ 0 = paid off
+  payoffBps: number | null; // (1 − owed/original) in basis points; null when no original
+}
+
+export interface LoanAccountPayoff {
+  accountId: string;
+  accountName: string;
+  archived: boolean;
+  originalPrincipalCents: number | null;
+  owedCents: number; // −balance (positive = still owed; ≤ 0 = paid off / overpaid)
+  paidDownCents: number | null; // original − owed; null when no original
+  payoffBps: number | null; // current payoff (truthful, not clamped); null when no original
+  trend: PayoffPoint[]; // ascending; one point per period with activity
+}
+
+export interface DebtPayoffReport {
+  accounts: LoanAccountPayoff[];
+  totalOriginalCents: number;
+  totalOwedCents: number;
+  totalPaidDownCents: number;
+  payoffBps: number | null; // aggregate over loans with an original principal; null when none
+}
+
 /** Thrown on a non-2xx response, carrying the server's user-facing message. */
 export class ApiError extends Error {}
 
@@ -326,6 +358,9 @@ export interface Api {
   getCreditUtilization(): Promise<CreditUtilizationReport>;
   setCreditLimit(accountId: string, amount: string): Promise<CreditLimitView>;
   clearCreditLimit(accountId: string): Promise<void>;
+  getDebtPayoff(): Promise<DebtPayoffReport>;
+  setOriginalPrincipal(accountId: string, amount: string): Promise<LoanPrincipalView>;
+  clearOriginalPrincipal(accountId: string): Promise<void>;
 }
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -523,5 +558,19 @@ export const httpApi: Api = {
   },
   async clearCreditLimit(accountId) {
     await request<unknown>(`/accounts/${accountId}/credit-limit`, { method: "DELETE" });
+  },
+  async getDebtPayoff() {
+    return (await request<{ report: DebtPayoffReport }>("/analysis/debt-payoff")).report;
+  },
+  async setOriginalPrincipal(accountId, amount) {
+    return (
+      await request<{ loanPrincipal: LoanPrincipalView }>(
+        `/accounts/${accountId}/original-principal`,
+        { method: "PUT", body: JSON.stringify({ amount }) },
+      )
+    ).loanPrincipal;
+  },
+  async clearOriginalPrincipal(accountId) {
+    await request<unknown>(`/accounts/${accountId}/original-principal`, { method: "DELETE" });
   },
 };

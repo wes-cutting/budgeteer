@@ -53,7 +53,7 @@ seeded household** in V1 (no auth/RLS yet).
 | id | uuid | no | PK |
 | household_id | uuid | no | FK → households(id), **restrict** |
 | name | text | no | trimmed, non-empty (`check (length(btrim(name)) > 0)`) |
-| kind | text | no | `check (kind in ('checking','savings','credit','cash','other'))` |
+| kind | text | no | `check (kind in ('checking','savings','credit','loan','cash','other'))` (named `accounts_kind_chk`; `'loan'` added FEAT-014b) |
 | created_at | timestamptz | no | default `now()` |
 | archived_at | timestamptz | yes | null = active |
 - **Keys/Indexes:** PK `id`; **unique** `(household_id, lower(btrim(name)))`; index `(household_id)`.
@@ -210,8 +210,24 @@ seeded household** in V1 (no auth/RLS yet).
   Set/replaced via `PUT /accounts/:id/credit-limit`, removed via `DELETE`. Only meaningful for
   `kind='credit'` accounts — enforced at the **service** boundary (a limit on a non-credit account →
   `400`), not as a DB constraint. The **owed** side (= −derived balance) and utilization are
-  **derived**, never stored (see §5). Installment-loan payoff (original principal) is the deferred
-  sibling #14b.
+  **derived**, never stored (see §5). Installment-loan payoff (original principal) is the sibling
+  store below (FEAT-014b).
+
+### loan_principals → `LoanPrincipal` (FEAT-014b)
+| Field | Type | Null | Notes |
+| ----- | ---- | ---- | ----- |
+| id | uuid | no | PK |
+| household_id | uuid | no | FK → households(id), **restrict** |
+| account_id | uuid | no | FK → accounts(id), **restrict**; **unique** (one principal per account) |
+| original_principal_cents | bigint | no | positive magnitude (`check (original_principal_cents > 0)`); the loan's original principal |
+| created_at | timestamptz | no | default `now()` |
+| updated_at | timestamptz | no | default `now()`; set on update (mutable **config**, not a ledger row) |
+- **Keys/Indexes:** PK `id`; **unique** `(account_id)`; index `(household_id)`.
+- **Semantics:** **no row = no principal.** The reference number for debt **payoff** (`1 − owed/original`).
+  Set/replaced via `PUT /accounts/:id/original-principal`, removed via `DELETE`. Only meaningful for
+  `kind='loan'` accounts — enforced at the **service** boundary (a principal on a non-loan account →
+  `400`), not as a DB constraint. The **owed** side (= −derived balance), payoff, and paid-down are
+  **derived**, never stored (see §5). Mirrors `credit_limits` (FEAT-014a).
 
 ## 3. Relationships & integrity
 
@@ -272,7 +288,13 @@ created as migrations alongside the tables.
 > read-only aggregate of the derived balance (`owed = −v_account_balances.balance_cents`) plus a
 > per-account monthly net-flow query (`sum(amount_cents)` bucketed by `to_char(occurred_on,'YYYY-MM')`,
 > cumulated into the period-end balance for the trend). No balance-view change (a limit does not affect
-> derived balances). Migrator stays idempotent.
+> derived balances). Migrator stays idempotent. **`#14b`** (analysis, debt payoff; FEAT-014b) adds the
+> new `kind='loan'` account type — the accounts `kind` check is **evolved** idempotently (drop the
+> foundation's inline `accounts_kind_check`, add a named `accounts_kind_chk` allowing the 6th kind;
+> existing rows all satisfy the wider set) — and **one** table, `loan_principals` (idempotent
+> `create table if not exists` + a unique index on `account_id`), the per-loan original principal. The
+> **payoff** half adds **no** schema: it is the same read as `#14a` (owed = −balance + a per-account
+> monthly net-flow trend) against the stored original. No balance-view change. Migrator stays idempotent.
 
 ## 5. Seed / fixtures
 

@@ -30,6 +30,15 @@ export async function migrateToLatest(db: Kysely<DB>): Promise<void> {
     create unique index if not exists accounts_household_name_uniq
       on accounts (household_id, lower(btrim(name)))
   `.execute(db);
+  // Evolve the kind check to allow 'loan' (FEAT-014b), idempotently and without plpgsql: drop the
+  // foundation's inline check and any prior named variant, then (re)add ours. Existing rows (the
+  // original 5 kinds) all satisfy the wider set, so this is safe.
+  await sql`alter table accounts drop constraint if exists accounts_kind_check`.execute(db);
+  await sql`alter table accounts drop constraint if exists accounts_kind_chk`.execute(db);
+  await sql`
+    alter table accounts
+      add constraint accounts_kind_chk check (kind in ('checking','savings','credit','loan','cash','other'))
+  `.execute(db);
 
   await sql`
     create table if not exists envelopes (
@@ -276,6 +285,28 @@ export async function migrateToLatest(db: Kysely<DB>): Promise<void> {
       on credit_limits (account_id)
   `.execute(db);
   await sql`create index if not exists credit_limits_household_idx on credit_limits (household_id)`.execute(
+    db,
+  );
+
+  // Per-loan-account original principal (FEAT-014b): one row per loan account (no row = no
+  // principal). The reference number for debt **payoff** (1 − owed/original); the "owed" side is the
+  // derived balance (v_account_balances), never stored. Mutable config (not a ledger row), so it
+  // carries updated_at. Only meaningful for kind='loan' accounts — enforced at the service boundary.
+  await sql`
+    create table if not exists loan_principals (
+      id uuid primary key default gen_random_uuid(),
+      household_id uuid not null references households(id),
+      account_id uuid not null references accounts(id),
+      original_principal_cents bigint not null check (original_principal_cents > 0),
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `.execute(db);
+  await sql`
+    create unique index if not exists loan_principals_account_uniq
+      on loan_principals (account_id)
+  `.execute(db);
+  await sql`create index if not exists loan_principals_household_idx on loan_principals (household_id)`.execute(
     db,
   );
 

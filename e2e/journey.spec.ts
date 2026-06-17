@@ -8,6 +8,7 @@ const ACCOUNT = `E2E Checking ${stamp}`;
 const ENVELOPE = `E2E Groceries ${stamp}`;
 const PAYEE = `E2E Paycheck ${stamp}`;
 const CARD = `E2E Card ${stamp}`;
+const LOAN = `E2E Loan ${stamp}`;
 
 test("dashboard loads against the real API, then account → envelope → allocate a deposit", async ({
   page,
@@ -114,4 +115,26 @@ test("dashboard loads against the real API, then account → envelope → alloca
   await cardLimitForm.getByRole("button", { name: "Save" }).click();
   // 300 owed ÷ 1,000 limit = 30.0% — shown as text, never colour/bar alone.
   await expect(page.getByText("30.0%").first()).toBeVisible();
+
+  // 9. Debt payoff (FEAT-014b): add a LOAN account (the new kind='loan') owing $7,500, then set its
+  //    original principal on the Payoff view — a real cross-origin PUT /accounts/:id/original-principal.
+  //    paid-down ÷ original = (10,000 − 7,500)/10,000 = 25.0%, proving the original-principal store →
+  //    payoff read wires through end to end (data → API → UI) for the new account kind.
+  await page.getByRole("button", { name: "← Dashboard" }).click();
+  const loanForm = page.getByRole("form", { name: "Add account" });
+  await loanForm.getByLabel("Name", { exact: true }).fill(LOAN);
+  await loanForm.getByLabel("Kind").selectOption("loan");
+  await loanForm.getByLabel("Starting balance").fill("-7500.00");
+  await loanForm.getByRole("button", { name: "Add account" }).click();
+  await expect(page.getByRole("button", { name: LOAN })).toBeVisible();
+
+  await page.getByRole("button", { name: "Payoff", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Analysis — debt payoff", level: 1 }),
+  ).toBeVisible();
+  const loanPrincipalForm = page.getByRole("form", { name: `Original principal for ${LOAN}` });
+  await loanPrincipalForm.getByLabel(`Original principal for ${LOAN}`).fill("10000.00");
+  await loanPrincipalForm.getByRole("button", { name: "Save" }).click();
+  // (10,000 − 7,500) ÷ 10,000 = 25.0% paid off — shown as text.
+  await expect(page.getByText("25.0%").first()).toBeVisible();
 });

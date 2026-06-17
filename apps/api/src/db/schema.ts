@@ -23,6 +23,7 @@ export interface DB {
   reconciliations: ReconciliationsTable;
   envelope_targets: EnvelopeTargetsTable;
   credit_limits: CreditLimitsTable;
+  loan_principals: LoanPrincipalsTable;
   v_account_balances: AccountBalancesView;
   v_envelope_balances: EnvelopeBalancesView;
 }
@@ -161,6 +162,16 @@ interface CreditLimitsTable {
   household_id: string;
   account_id: string;
   credit_limit_cents: IntCents; // positive magnitude (the card's limit)
+  created_at: Generated<Date>;
+  updated_at: ColumnType<Date, Date | undefined, Date>;
+}
+
+/** Per-loan-account original principal (FEAT-014b): one row per loan account, no row = no principal. */
+interface LoanPrincipalsTable {
+  id: Generated<string>;
+  household_id: string;
+  account_id: string;
+  original_principal_cents: IntCents; // positive magnitude (the loan's original principal)
   created_at: Generated<Date>;
   updated_at: ColumnType<Date, Date | undefined, Date>;
 }

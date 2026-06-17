@@ -38,6 +38,8 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 | **Credit limit** | A per-**credit-account** stored amount: the card's credit ceiling (FEAT-014a). A single positive amount (no row ⇒ no limit). Only meaningful for `kind='credit'` accounts. |
 | **Owed** | For a credit account: the liability reading of its balance — `owed = −balanceCents` (a credit account's balance is ≤ 0 when in debt). Positive = debt; ≤ 0 = a credit balance / overpayment. **Derived**, never stored (FEAT-014a). |
 | **Credit utilization** | **Derived:** for a credit account, `owed ÷ limit` (reported in **basis points**: `round(max(0, owed) / limit × 10000)`). Floored at 0% (overpayment), **not** clamped above 100% (over-limit is real). A **trend** applies it to each month's cumulative owed; a **portfolio roll-up** is `Σ owed ÷ Σ limit` over accounts with a limit (FEAT-014a). |
+| **Original principal** | A per-**loan-account** stored amount: the loan's original borrowed principal (FEAT-014b). A single positive amount (no row ⇒ no principal). Only meaningful for `kind='loan'` accounts. |
+| **Debt payoff** | **Derived:** for a loan account, how much of the original principal is paid down — `paid-down ÷ original = 1 − owed/original` (reported in **basis points**, **truthful/not clamped**: 0% at origination, 100% settled, >100% overpaid, <0% if owing more than borrowed). A **trend** applies it to each month's cumulative owed; a **portfolio roll-up** is `Σ(original − owed) ÷ Σ original` over loans with an original principal (FEAT-014b). |
 | **Unallocated** | The part of a transaction not yet assigned to any envelope (`amount − Σ allocations`). May be non-zero ("enter now, split later"). |
 | **Account balance** | **Derived:** Σ of the account's transaction amounts. |
 | **Envelope balance** | **Derived:** Σ of the allocation amounts landing in that envelope. |
@@ -47,7 +49,7 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 
 ### Account
 - **Purpose:** mirror a real bank/card/cash account; the source of transactions.
-- **Key attributes:** `id`, `householdId`, `name`, `kind` (`checking | savings | credit | cash | other`), `createdAt`, `archivedAt?`.
+- **Key attributes:** `id`, `householdId`, `name`, `kind` (`checking | savings | credit | loan | cash | other`), `createdAt`, `archivedAt?`.
 - **Invariants:**
   - `name` is non-empty (trimmed) and **unique per household** (case-insensitive).
   - An account's **starting balance is not a stored scalar** — it is represented as an
@@ -144,6 +146,19 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
   - **Not effective-dated** in V1 — the current limit is applied to every historical period of the
     utilization trend (a definition here, not an ADR; effective-dated limits can layer on later).
 
+### LoanPrincipal
+- **Purpose:** the reference number for debt **payoff** (FEAT-014b) — a per-loan-account original
+  principal (the "owed vs. **original**" denominator). The installment-debt sibling of `CreditLimit`.
+- **Key attributes:** `accountId`, `householdId`, `originalPrincipalCents` (positive magnitude), `createdAt`, `updatedAt`.
+- **Invariants:**
+  - **At most one** original principal per account (no principal ⇒ payoff is unknown for that loan).
+  - `originalPrincipalCents > 0`.
+  - Only set on a `kind='loan'` account (enforced at the service boundary, → `400` otherwise).
+  - **Mutable config**, not a ledger row — setting replaces, clearing removes; **no** balance effect.
+  - **Not effective-dated** in V1 — the current original is applied to every historical period of the
+    payoff trend (a definition here, not an ADR; effective-dated / refinance-aware originals can layer
+    on later).
+
 ### Allocation
 - **Purpose:** assign a slice of a transaction to an envelope (the account↔envelope bridge).
 - **Key attributes:** `id`, `transactionId`, `envelopeId`, `amountCents` (signed).
@@ -226,6 +241,13 @@ allocated` indefinitely; the app surfaces these via a **needs-allocation** indic
   applied throughout); and a **portfolio roll-up** = `Σ owed ÷ Σ limit` over accounts with a limit.
   Only the **limit** is stored (`credit_limits`); owed, utilization, available, the trend, and the
   roll-up are all **derived**.
+- **Debt payoff** (FEAT-014b, derived): for each **loan** account, `owed = −balanceCents` against the
+  **stored** `originalPrincipal` → `payoff = 1 − owed/original` (basis points; **truthful, not
+  clamped**); `paidDown = original − owed`; a monthly **trend** = the cumulative owed balance per
+  period with payoff at each period end (current original applied throughout); and a **portfolio
+  roll-up** = `Σ(original − owed) ÷ Σ original` over loans with an original principal. Only the
+  **original principal** is stored (`loan_principals`); owed, payoff, paid-down, the trend, and the
+  roll-up are all **derived**.
 
 > **Opening balance = an opening Transaction.** Creating an account with a starting balance
 > creates the account **and** a `kind = opening` transaction for that amount (initially
@@ -244,10 +266,10 @@ allocated` indefinitely; the app surfaces these via a **needs-allocation** indic
   strings; invalid input fails loudly.
 - **Account `kind`** is descriptive for the **ledger** (every account balance is uniformly the
   signed sum of its transactions — no kind-specific storage). The **liability** reading lives in the
-  **analysis** layer, not the ledger: credit utilization (FEAT-014a) interprets a `kind='credit'`
-  account's balance as **owed = −balance** for the owed/limit ratio. The stored balance sign is
-  unchanged; only the analysis read flips it. Installment-loan payoff (original principal) is the
-  deferred sibling #14b.
+  **analysis** layer, not the ledger: credit utilization (FEAT-014a, `kind='credit'`) and debt payoff
+  (FEAT-014b, `kind='loan'`) both interpret the account's balance as **owed = −balance** (for owed/limit
+  and 1−owed/original respectively). The stored balance sign is unchanged; only the analysis read flips
+  it. `kind='loan'` is the installment-debt account type added by FEAT-014b.
 
 ## 7. Open questions
 
@@ -255,4 +277,4 @@ allocated` indefinitely; the app surfaces these via a **needs-allocation** indic
 | -------- | ----- | ------ |
 | Should envelope/account name uniqueness be case-insensitive *and* whitespace-normalized? | Wesley | open (lean: yes) |
 | Do we need an explicit "unarchive" in V1, or is archive one-way for now? | Wesley | open → archive slice (#6) |
-| ~~Liability (credit-card) balance sign convention~~ | Wesley | **resolved (#14a): owed = −balance** at the analysis layer (the stored ledger sign is unchanged); credit utilization = owed ÷ limit. Installment-loan payoff (original principal) → #14b |
+| ~~Liability (credit-card / loan) balance sign convention~~ | Wesley | **resolved (#14a/#14b): owed = −balance** at the analysis layer (the stored ledger sign is unchanged); credit utilization = owed ÷ limit (#14a), debt payoff = 1 − owed/original on the new `kind='loan'` (#14b) |

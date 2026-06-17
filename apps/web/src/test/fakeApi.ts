@@ -2,9 +2,11 @@ import {
   type CreditAccountInput,
   type ForecastRule,
   type ForecastTarget,
+  type LoanAccountInput,
   anchorDayOf,
   cashFlowForecast,
   creditUtilization,
+  debtPayoff,
   dueOccurrences,
   tryParseMoney,
 } from "@budgeteer/domain";
@@ -34,6 +36,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
   const templates: TemplateView[] = [];
   const targets = new Map<string, number>(); // envelopeId → monthly target cents (FEAT-012)
   const creditLimits = new Map<string, number>(); // accountId → credit limit cents (FEAT-014a)
+  const loanPrincipals = new Map<string, number>(); // accountId → original principal cents (FEAT-014b)
   const today = () => new Date().toISOString().slice(0, 10);
   let seq = 0;
   const newId = (p: string) => `${p}${seq++}`;
@@ -550,6 +553,54 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       if (account.kind !== "credit")
         throw new ApiError("A credit limit applies only to credit accounts.");
       creditLimits.delete(accountId);
+    },
+    async getDebtPayoff() {
+      // Mirror the server: per loan account, owed = −balance and a monthly net-flow trend, run
+      // through the SAME pure domain function. Archived dormant loan accounts (no principal, settled)
+      // are hidden; accounts are ordered by name.
+      recompute();
+      const inputs: LoanAccountInput[] = accounts
+        .filter((a) => a.kind === "loan")
+        .filter((a) => a.archivedAt === null || loanPrincipals.has(a.id) || a.balanceCents !== 0)
+        .slice()
+        .sort((x, y) => x.name.localeCompare(y.name))
+        .map((a) => {
+          const byMonth = new Map<string, number>();
+          for (const t of txns) {
+            if (t.accountId !== a.id) continue;
+            const period = t.occurredOn.slice(0, 7);
+            byMonth.set(period, (byMonth.get(period) ?? 0) + t.amountCents);
+          }
+          const flows = [...byMonth.entries()]
+            .sort(([p1], [p2]) => p1.localeCompare(p2))
+            .map(([period, netCents]) => ({ period, netCents }));
+          return {
+            accountId: a.id,
+            accountName: a.name,
+            archived: a.archivedAt !== null,
+            balanceCents: a.balanceCents,
+            originalPrincipalCents: loanPrincipals.get(a.id) ?? null,
+            flows,
+          };
+        });
+      return debtPayoff(inputs);
+    },
+    async setOriginalPrincipal(accountId, amount) {
+      const account = accounts.find((a) => a.id === accountId);
+      if (!account) throw new ApiError("Account not found.");
+      if (account.kind !== "loan")
+        throw new ApiError("An original principal applies only to loan accounts.");
+      const cents = tryParseMoney(amount) ?? 0;
+      if (cents <= 0) throw new ApiError("Enter an original principal greater than 0.");
+      loanPrincipals.set(accountId, cents);
+      return { accountId, originalPrincipalCents: cents };
+    },
+    async clearOriginalPrincipal(accountId) {
+      const account = accounts.find((a) => a.id === accountId);
+      if (!account) throw new ApiError("Account not found.");
+      if (account.kind !== "loan")
+        throw new ApiError("An original principal applies only to loan accounts.");
+      loanPrincipals.delete(accountId);
     },
     ...overrides,
   };

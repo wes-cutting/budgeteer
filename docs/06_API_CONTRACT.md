@@ -286,6 +286,40 @@ server-side.
   absent limit is a no-op). Errors: `400` (account not `kind='credit'`); `404` (account missing). A
   bodyless request needs no `content-type`.
 
+### Analysis: debt payoff (FEAT-014b)
+
+`DebtPayoffReport = { accounts: LoanAccountPayoff[], totalOriginalCents, totalOwedCents,
+totalPaidDownCents, payoffBps: number|null }`;
+`LoanAccountPayoff = { accountId, accountName, archived, originalPrincipalCents: number|null, owedCents,
+paidDownCents: number|null, payoffBps: number|null, trend: PayoffPoint[] }`;
+`PayoffPoint = { period: "YYYY-MM", owedCents, payoffBps: number|null }`. For every **loan** account
+(`kind='loan'`): how much of its **original principal** has been paid down. "Owed" is the derived
+balance interpreted as a liability — `owedCents = −balanceCents` (a loan carries debt as a negative
+balance; the stored sign is unchanged, only the read flips it). **Payoff** is reported in integer
+**basis points** (`round((1 − owed/original) × 10000)`; `2500` = 25.0%) — **truthful, not clamped**:
+0% at origination (owed = original), 100% settled (owed = 0), > 100% if overpaid, < 0% if owing more
+than the original. `paidDownCents = original − owed`. The **trend** cumulates each month's net flow into
+the period-end owed and its payoff (the current original applied to every period — not effective-dated
+in V1). The **roll-up** is `Σ(original − owed) ÷ Σ original` over loans **with** an original principal;
+loans without one appear with `null` payoff and are excluded from the roll-up. Loan accounts are shown
+when active, or (archived) only if they still carry a principal or a non-zero balance; ordered by name.
+The math is a **pure domain function** (`debtPayoff`); the service feeds it I/O. The only new table is
+`loan_principals` (the stored original); owed/payoff are **derived**. Money is **integer cents**.
+Household-scoped server-side.
+
+- **`GET /analysis/debt-payoff`** → `200 { report }`. (No query params.)
+- **`PUT /accounts/:id/original-principal`** `{ amount: string }` → `200 { loanPrincipal }` where
+  `LoanPrincipalView = { accountId, originalPrincipalCents }`. Sets/replaces the original principal (a
+  **positive** magnitude). Errors: `400` (amount ≤ 0 / unparseable, **or** the account is not
+  `kind='loan'`); `404` (account missing / not in the household).
+- **`DELETE /accounts/:id/original-principal`** → `204`. Clears the original principal; **idempotent**.
+  Errors: `400` (account not `kind='loan'`); `404` (account missing). A bodyless request needs no
+  `content-type`.
+
+> **Account kinds:** `POST /accounts` accepts `kind ∈ {checking, savings, credit, loan, cash, other}`
+> — `'loan'` was added by FEAT-014b (the installment-debt account type that carries an original
+> principal for payoff). There is no edit-kind endpoint in V1, so a loan is created as `kind='loan'`.
+
 ## 4. Internal contracts (non-network)
 
 - **Domain core** (`@budgeteer/domain`, pure, no I/O): `parseMoney`/`formatMoney`/`sumMoney`

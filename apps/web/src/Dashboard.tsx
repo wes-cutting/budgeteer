@@ -10,7 +10,7 @@ import {
 import { formatCents } from "./format";
 import { MoveMoneyForm } from "./MoveMoneyForm";
 
-const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "cash", "other"];
+const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "loan", "cash", "other"];
 const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
 
 export function Dashboard({
@@ -23,6 +23,7 @@ export function Dashboard({
   onOpenBudget,
   onOpenForecast,
   onOpenCredit,
+  onOpenPayoff,
 }: {
   api: Api;
   onOpenAccount?: (account: AccountView) => void;
@@ -33,6 +34,7 @@ export function Dashboard({
   onOpenBudget?: () => void;
   onOpenForecast?: () => void;
   onOpenCredit?: () => void;
+  onOpenPayoff?: () => void;
 }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
@@ -102,6 +104,9 @@ export function Dashboard({
         </button>
         <button type="button" onClick={() => onOpenCredit?.()}>
           Credit
+        </button>
+        <button type="button" onClick={() => onOpenPayoff?.()}>
+          Payoff
         </button>
       </header>
 

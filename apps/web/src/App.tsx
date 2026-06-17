@@ -9,6 +9,7 @@ import { AnalysisView } from "./AnalysisView";
 import { BudgetVsActualView } from "./BudgetVsActualView";
 import { ForecastView } from "./ForecastView";
 import { CreditView } from "./CreditView";
+import { PayoffView } from "./PayoffView";
 
 type View =
   | { name: "dashboard" }
@@ -19,7 +20,8 @@ type View =
   | { name: "analysis" }
   | { name: "budget" }
   | { name: "forecast" }
-  | { name: "credit" };
+  | { name: "credit" }
+  | { name: "payoff" };
 
 export function App({ api }: { api: Api }) {
   const [view, setView] = useState<View>({ name: "dashboard" });
@@ -56,6 +58,9 @@ export function App({ api }: { api: Api }) {
   if (view.name === "credit") {
     return <CreditView api={api} onBack={() => setView({ name: "dashboard" })} />;
   }
+  if (view.name === "payoff") {
+    return <PayoffView api={api} onBack={() => setView({ name: "dashboard" })} />;
+  }
   return (
     <Dashboard
       api={api}
@@ -69,6 +74,7 @@ export function App({ api }: { api: Api }) {
       onOpenBudget={() => setView({ name: "budget" })}
       onOpenForecast={() => setView({ name: "forecast" })}
       onOpenCredit={() => setView({ name: "credit" })}
+      onOpenPayoff={() => setView({ name: "payoff" })}
     />
   );
 }
