@@ -13,7 +13,7 @@ test("envelope ledger: click envelope name → view allocations → back to Dash
   await createEnvelope(page, ENVELOPE);
 
   // Open the account register and add a withdrawal allocated to the envelope
-  await page.getByRole("button", { name: ACCOUNT }).click();
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByLabel("Transaction amount").fill("48.70");
   await txnForm.getByLabel("Payee").fill("Whole Foods");

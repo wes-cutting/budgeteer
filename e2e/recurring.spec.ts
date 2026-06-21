@@ -34,7 +34,7 @@ test("create a monthly recurring rule and post due", async ({ page }) => {
 
   // Verify the generated transaction appears in the account register.
   await page.getByRole("button", { name: "← Dashboard" }).click();
-  await page.getByRole("button", { name: ACCOUNT }).click();
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
   const txnList = page.getByRole("list", { name: "Transactions" });
   await expect(txnList.getByRole("listitem").filter({ hasText: PAYEE }).first()).toBeVisible();
 });

@@ -59,6 +59,21 @@ export function Dashboard({
     };
   }, [api]);
 
+  async function refreshAccounts() {
+    try {
+      setAccounts(await api.listAccounts());
+    } catch (err: unknown) {
+      setLoadError(err instanceof Error ? err.message : "Couldn't refresh accounts.");
+    }
+  }
+  async function renameAccount(id: string, name: string) {
+    try {
+      await api.renameAccount(id, name);
+      await refreshAccounts();
+    } catch (err: unknown) {
+      setLoadError(err instanceof Error ? err.message : "Couldn't rename the account.");
+    }
+  }
   async function refreshEnvelopes() {
     try {
       setEnvelopes(await api.listEnvelopes());
@@ -119,7 +134,11 @@ export function Dashboard({
       <section aria-labelledby="accounts-heading">
         <h2 id="accounts-heading">Accounts</h2>
         <AddAccountForm api={api} onCreated={(a) => setAccounts((cur) => [...(cur ?? []), a])} />
-        <AccountList accounts={accounts} onOpen={onOpenAccount} />
+        <AccountList
+          accounts={accounts}
+          onOpen={onOpenAccount}
+          onRename={(id, name) => void renameAccount(id, name)}
+        />
       </section>
 
       <section aria-labelledby="envelopes-heading">
@@ -144,10 +163,15 @@ export function Dashboard({
 function AccountList({
   accounts,
   onOpen,
+  onRename,
 }: {
   accounts: AccountView[] | null;
   onOpen?: (account: AccountView) => void;
+  onRename?: (id: string, name: string) => void;
 }) {
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+
   if (accounts === null) return <p>Loading…</p>;
   if (accounts.length === 0) {
     return <p>No accounts yet — add the bank, card, or cash accounts you use.</p>;
@@ -156,14 +180,47 @@ function AccountList({
     <ul aria-label="Accounts list">
       {accounts.map((a) => (
         <li key={a.id}>
-          {onOpen ? (
-            <button type="button" onClick={() => onOpen(a)}>
-              {a.name}
-            </button>
+          {renamingId === a.id ? (
+            <span>
+              <input
+                aria-label={`Rename ${a.name}`}
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  onRename?.(a.id, renameValue);
+                  setRenamingId(null);
+                }}
+              >
+                Save
+              </button>
+            </span>
           ) : (
-            <span>{a.name}</span>
-          )}{" "}
-          <span>{a.kind}</span> <span>{formatCents(a.balanceCents)}</span>
+            <>
+              {onOpen ? (
+                <button type="button" onClick={() => onOpen(a)}>
+                  {a.name}
+                </button>
+              ) : (
+                <span>{a.name}</span>
+              )}{" "}
+              <span>{a.kind}</span> <span>{formatCents(a.balanceCents)}</span>
+              {onRename ? (
+                <button
+                  type="button"
+                  aria-label={`Rename ${a.name}`}
+                  onClick={() => {
+                    setRenamingId(a.id);
+                    setRenameValue(a.name);
+                  }}
+                >
+                  Rename
+                </button>
+              ) : null}
+            </>
+          )}
         </li>
       ))}
     </ul>

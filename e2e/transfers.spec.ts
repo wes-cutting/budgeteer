@@ -10,7 +10,7 @@ test("account transfer: move money between two accounts", async ({ page }) => {
   await createAccount(page, ACCOUNT_TO);
 
   // Open ACCOUNT_FROM's register and transfer $200 to ACCOUNT_TO.
-  await page.getByRole("button", { name: ACCOUNT_FROM }).click();
+  await page.getByRole("button", { name: ACCOUNT_FROM, exact: true }).click();
   const transferForm = page.getByRole("form", { name: "Transfer money" });
   await transferForm.getByLabel("To account").selectOption({ label: ACCOUNT_TO });
   await transferForm.getByLabel("Amount").fill("200.00");
@@ -40,7 +40,7 @@ test("envelope reallocation: move budgeted money between envelopes", async ({ pa
   await createEnvelope(page, ENVELOPE_B);
 
   // Fund ENVELOPE_A with a $300 deposit.
-  await page.getByRole("button", { name: ACCOUNT }).click();
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("300.00");

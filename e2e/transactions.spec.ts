@@ -13,7 +13,7 @@ test("single allocation: deposit fully allocated — balance derived end to end"
   await createEnvelope(page, ENVELOPE);
 
   // Open the account register and record a $500 deposit allocated to the envelope.
-  await page.getByRole("button", { name: ACCOUNT }).click();
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("500.00");
@@ -50,7 +50,7 @@ test("split allocation: deposit split across two envelopes", async ({ page }) =>
   await createEnvelope(page, ENVELOPE_A);
   await createEnvelope(page, ENVELOPE_B);
 
-  await page.getByRole("button", { name: ACCOUNT }).click();
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("100.00");
@@ -82,7 +82,7 @@ test("partial allocation: unallocated deposit surfaces in Needs allocation", asy
   await createAccount(page, ACCOUNT);
 
   // Enter a $200 deposit in Split mode with no allocation rows filled.
-  await page.getByRole("button", { name: ACCOUNT }).click();
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("200.00");
@@ -116,7 +116,7 @@ test("edit a past split: change the envelope allocation via the inline editor", 
   await createEnvelope(page, ENVELOPE_B);
 
   // Create a $100 deposit allocated to ENVELOPE_A.
-  await page.getByRole("button", { name: ACCOUNT }).click();
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("100.00");
@@ -147,7 +147,7 @@ test("refund row: withdrawal with a refund results in the correct net spend", as
   await createEnvelope(page, ENVELOPE);
 
   // $80 withdrawal: ENVELOPE charged $100 (normal) + $20 refund back → net = $80.
-  await page.getByRole("button", { name: ACCOUNT }).click();
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByLabel("Transaction amount").fill("80.00");
   await txnForm.getByLabel("Payee").fill(PAYEE);

@@ -122,6 +122,12 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       recompute();
       return { ...account };
     },
+    async renameAccount(id, name) {
+      const account = accounts.find((a) => a.id === id);
+      if (!account) throw new ApiError("Account not found.");
+      account.name = name;
+      return { ...account };
+    },
     async listEnvelopes() {
       recompute();
       return envelopes.map((e) => ({ ...e }));

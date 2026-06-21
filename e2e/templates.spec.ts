@@ -12,7 +12,7 @@ test("save a split as a template, then apply it to a second transaction", async 
   await createAccount(page, ACCOUNT);
   await createEnvelope(page, ENVELOPE);
 
-  await page.getByRole("button", { name: ACCOUNT }).click();
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
   const txnForm = page.getByRole("form", { name: "Add transaction" });
 
   // First transaction: $500 deposit in split mode → save as template.

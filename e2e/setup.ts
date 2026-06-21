@@ -13,7 +13,7 @@ export async function createAccount(
   }
   await form.getByLabel("Starting balance").fill(balance);
   await form.getByRole("button", { name: "Add account" }).click();
-  await expect(page.getByRole("button", { name })).toBeVisible();
+  await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
 }
 
 export async function createEnvelope(page: Page, name: string) {

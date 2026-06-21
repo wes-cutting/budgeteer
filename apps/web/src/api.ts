@@ -338,6 +338,7 @@ export interface Api {
     kind: AccountKind;
     startingBalance: string;
   }): Promise<AccountView>;
+  renameAccount(id: string, name: string): Promise<AccountView>;
   listEnvelopes(): Promise<EnvelopeView[]>;
   createEnvelope(input: { name: string; kind: EnvelopeKind }): Promise<EnvelopeView>;
   archiveEnvelope(id: string): Promise<EnvelopeView>;
@@ -413,6 +414,14 @@ export const httpApi: Api = {
       await request<{ account: AccountView }>("/accounts", {
         method: "POST",
         body: JSON.stringify(input),
+      })
+    ).account;
+  },
+  async renameAccount(id, name) {
+    return (
+      await request<{ account: AccountView }>(`/accounts/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name }),
       })
     ).account;
   },

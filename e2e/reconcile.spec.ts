@@ -7,7 +7,7 @@ async function fundAccount(
   envelope: string,
   payee: string,
 ) {
-  await page.getByRole("button", { name: account }).click();
+  await page.getByRole("button", { name: account, exact: true }).click();
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("500.00");
