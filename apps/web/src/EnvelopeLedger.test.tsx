@@ -1,0 +1,63 @@
+import { describe, expect, test, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { EnvelopeLedger } from "./EnvelopeLedger";
+import { makeFakeApi } from "./test/fakeApi";
+
+describe("EnvelopeLedger (R15)", () => {
+  test("renders rows with date, payee, account, and signed amount", async () => {
+    const api = makeFakeApi();
+    const account = await api.createAccount({
+      name: "Checking",
+      kind: "checking",
+      startingBalance: "500.00",
+    });
+    const env = await api.createEnvelope({ name: "Groceries", kind: "standard" });
+    await api.createTransaction(account.id, {
+      kind: "withdrawal",
+      amount: "48.70",
+      payee: "Whole Foods",
+      occurredOn: "2026-06-16",
+      allocations: [{ envelopeId: env.id, amount: "48.70" }],
+    });
+
+    render(<EnvelopeLedger api={api} envelope={env} onBack={() => {}} />);
+
+    await screen.findByText("Whole Foods");
+    expect(screen.getByText("Checking")).toBeTruthy();
+    expect(screen.getByText("2026-06-16")).toBeTruthy();
+    expect(screen.getByText(/\$48\.70/)).toBeTruthy();
+  });
+
+  test("shows empty state when envelope has no allocations", async () => {
+    const api = makeFakeApi();
+    const env = await api.createEnvelope({ name: "Vacation", kind: "sinking_fund" });
+
+    render(<EnvelopeLedger api={api} envelope={env} onBack={() => {}} />);
+
+    await screen.findByText("No transactions in this envelope yet.");
+  });
+
+  test("archived envelope shows (archived) badge", async () => {
+    const api = makeFakeApi();
+    const env = await api.createEnvelope({ name: "Old Fund", kind: "standard" });
+    const archived = await api.archiveEnvelope(env.id);
+
+    render(<EnvelopeLedger api={api} envelope={archived} onBack={() => {}} />);
+
+    await screen.findByText(/archived/);
+  });
+
+  test("back button calls onBack", async () => {
+    const api = makeFakeApi();
+    const env = await api.createEnvelope({ name: "Rent", kind: "standard" });
+    const onBack = vi.fn();
+    const user = userEvent.setup();
+
+    render(<EnvelopeLedger api={api} envelope={env} onBack={onBack} />);
+
+    await screen.findByText("No transactions in this envelope yet.");
+    await user.click(screen.getByRole("button", { name: "← Dashboard" }));
+    expect(onBack).toHaveBeenCalledOnce();
+  });
+});

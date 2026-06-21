@@ -17,6 +17,7 @@ const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
 export function Dashboard({
   api,
   onOpenAccount,
+  onOpenEnvelope,
   onOpenNeeds,
   onOpenTemplates,
   onOpenRecurring,
@@ -28,6 +29,7 @@ export function Dashboard({
 }: {
   api: Api;
   onOpenAccount?: (account: AccountView) => void;
+  onOpenEnvelope?: (envelope: EnvelopeView) => void;
   onOpenNeeds?: () => void;
   onOpenTemplates?: () => void;
   onOpenRecurring?: () => void;
@@ -125,6 +127,7 @@ export function Dashboard({
         <AddEnvelopeForm api={api} onCreated={(e) => setEnvelopes((cur) => [...(cur ?? []), e])} />
         <EnvelopeList
           envelopes={envelopes}
+          onOpen={onOpenEnvelope}
           onArchive={(id) => void archiveEnvelope(id)}
           onUnarchive={(id) => void unarchiveEnvelope(id)}
         />
@@ -169,10 +172,12 @@ function AccountList({
 
 function EnvelopeList({
   envelopes,
+  onOpen,
   onArchive,
   onUnarchive,
 }: {
   envelopes: EnvelopeView[] | null;
+  onOpen?: (envelope: EnvelopeView) => void;
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
 }) {
@@ -187,7 +192,14 @@ function EnvelopeList({
       <ul aria-label="Envelopes list">
         {active.map((e) => (
           <li key={e.id}>
-            <span>{e.name}</span> <span>{e.kind}</span> <span>{formatCents(e.balanceCents)}</span>
+            {onOpen ? (
+              <button type="button" onClick={() => onOpen(e)}>
+                {e.name}
+              </button>
+            ) : (
+              <span>{e.name}</span>
+            )}{" "}
+            <span>{e.kind}</span> <span>{formatCents(e.balanceCents)}</span>
             {onArchive ? (
               <button type="button" onClick={() => onArchive(e.id)}>
                 Archive
@@ -202,7 +214,14 @@ function EnvelopeList({
           <ul aria-label="Archived envelopes">
             {archived.map((e) => (
               <li key={e.id}>
-                <span>{e.name}</span> <span>{formatCents(e.balanceCents)}</span>
+                {onOpen ? (
+                  <button type="button" onClick={() => onOpen(e)}>
+                    {e.name}
+                  </button>
+                ) : (
+                  <span>{e.name}</span>
+                )}{" "}
+                <span>{formatCents(e.balanceCents)}</span>
                 {onUnarchive ? (
                   <button type="button" onClick={() => onUnarchive(e.id)}>
                     Unarchive

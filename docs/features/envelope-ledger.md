@@ -8,7 +8,7 @@ docs/ux/envelope-ledger.md. No schema change — data is already in allocations 
 | Field        | Value                                  |
 | ------------ | -------------------------------------- |
 | Feature ID   | FEAT-015                               |
-| Status       | Proposed                               |
+| Status       | Implemented                            |
 | Owner        | Wesley Cutting                         |
 | Last updated | 2026-06-21                             |
 | Related      | [UX spec](../ux/envelope-ledger.md) · [Transactions](transactions.md) · [API](../06_API_CONTRACT.md) · [Data model](../05_DATA_MODEL.md) |

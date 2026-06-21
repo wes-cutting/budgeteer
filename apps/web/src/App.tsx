@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { type AccountView, type Api } from "./api";
+import { type AccountView, type Api, type EnvelopeView } from "./api";
 import { Dashboard } from "./Dashboard";
 import { AccountRegister } from "./AccountRegister";
+import { EnvelopeLedger } from "./EnvelopeLedger";
 import { NeedsAllocation } from "./NeedsAllocation";
 import { TemplatesView } from "./TemplatesView";
 import { RecurringView } from "./RecurringView";
@@ -14,6 +15,7 @@ import { PayoffView } from "./PayoffView";
 type View =
   | { name: "dashboard" }
   | { name: "account"; accountId: string; accountName: string }
+  | { name: "envelope"; envelope: EnvelopeView }
   | { name: "needs" }
   | { name: "templates" }
   | { name: "recurring" }
@@ -34,6 +36,15 @@ export function App({ api }: { api: Api }) {
         accountName={view.accountName}
         onBack={() => setView({ name: "dashboard" })}
         onOpenNeeds={() => setView({ name: "needs" })}
+      />
+    );
+  }
+  if (view.name === "envelope") {
+    return (
+      <EnvelopeLedger
+        api={api}
+        envelope={view.envelope}
+        onBack={() => setView({ name: "dashboard" })}
       />
     );
   }
@@ -67,6 +78,7 @@ export function App({ api }: { api: Api }) {
       onOpenAccount={(a: AccountView) =>
         setView({ name: "account", accountId: a.id, accountName: a.name })
       }
+      onOpenEnvelope={(e: EnvelopeView) => setView({ name: "envelope", envelope: e })}
       onOpenNeeds={() => setView({ name: "needs" })}
       onOpenTemplates={() => setView({ name: "templates" })}
       onOpenRecurring={() => setView({ name: "recurring" })}

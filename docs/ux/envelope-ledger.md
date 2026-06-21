@@ -7,7 +7,7 @@ Pairs with features/envelope-ledger.md (FEAT-015).
 
 | Field        | Value                                                          |
 | ------------ | -------------------------------------------------------------- |
-| Status       | Proposed                                                       |
+| Status       | Implemented                                                    |
 | Feature      | FEAT-015 ([feature spec](../features/envelope-ledger.md))      |
 | Owner        | Wesley Cutting                                                 |
 | Last updated | 2026-06-21                                                     |

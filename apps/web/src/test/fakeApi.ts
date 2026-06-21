@@ -14,6 +14,7 @@ import {
   type AccountView,
   type Api,
   ApiError,
+  type EnvelopeLedgerRow,
   type EnvelopeTransferView,
   type EnvelopeView,
   type ReconciliationView,
@@ -380,6 +381,32 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
     async deleteTemplate(id) {
       const idx = templates.findIndex((t) => t.id === id);
       if (idx >= 0) templates.splice(idx, 1);
+    },
+    async getEnvelopeLedger(envelopeId) {
+      const env = envelopes.find((e) => e.id === envelopeId);
+      if (!env) throw new ApiError("Envelope not found.");
+      const rows: EnvelopeLedgerRow[] = [];
+      const sorted = [...txns].sort((a, b) =>
+        a.occurredOn < b.occurredOn ? 1 : a.occurredOn > b.occurredOn ? -1 : 0,
+      );
+      for (const t of sorted) {
+        for (const al of t.allocations) {
+          if (al.envelopeId !== envelopeId) continue;
+          const account = accounts.find((a) => a.id === t.accountId);
+          rows.push({
+            allocationId: al.id,
+            transactionId: t.id,
+            occurredOn: t.occurredOn,
+            payee: t.payee,
+            memo: t.memo,
+            transactionKind: t.kind as EnvelopeLedgerRow["transactionKind"],
+            accountId: t.accountId,
+            accountName: account?.name ?? "?",
+            amountCents: al.amountCents,
+          });
+        }
+      }
+      return rows;
     },
     async getEnvelopeSpend(grain) {
       // Mirror the server: net signed allocation flow per envelope per period, bucketed by the

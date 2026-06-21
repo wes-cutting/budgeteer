@@ -176,6 +176,20 @@ export interface CreateReconciliationInput {
   reconciledOn?: string;
 }
 
+// --- Envelope ledger (R15) ---
+
+export interface EnvelopeLedgerRow {
+  allocationId: string;
+  transactionId: string;
+  occurredOn: string;
+  payee: string | null;
+  memo: string | null;
+  transactionKind: "opening" | "normal" | "transfer";
+  accountId: string;
+  accountName: string;
+  amountCents: number;
+}
+
 // --- Analysis: spend by envelope over time (FEAT-011) ---
 
 export type SpendGrain = "month" | "year";
@@ -350,6 +364,7 @@ export interface Api {
     accountId: string,
     input: CreateReconciliationInput,
   ): Promise<ReconciliationView>;
+  getEnvelopeLedger(envelopeId: string): Promise<EnvelopeLedgerRow[]>;
   getEnvelopeSpend(grain: SpendGrain): Promise<EnvelopeSpendRollup>;
   getBudgetVsActual(month: string): Promise<BudgetVsActualReport>;
   getCashFlowForecast(accountId: string, opts?: ForecastOptions): Promise<CashFlowForecast>;
@@ -517,6 +532,9 @@ export const httpApi: Api = {
         { method: "POST", body: JSON.stringify(input) },
       )
     ).reconciliation;
+  },
+  async getEnvelopeLedger(envelopeId) {
+    return (await request<{ rows: EnvelopeLedgerRow[] }>(`/envelopes/${envelopeId}/ledger`)).rows;
   },
   async getEnvelopeSpend(grain) {
     return (

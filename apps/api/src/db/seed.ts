@@ -79,29 +79,29 @@ const autoLoan = accountRows[3]!;
 
 const ENVELOPE_DEFS = [
   // Standard (16)
-  { name: "Groceries",            kind: "standard"     },
-  { name: "Dining Out",           kind: "standard"     },
-  { name: "Gas",                  kind: "standard"     },
-  { name: "Electric",             kind: "standard"     },
-  { name: "Internet",             kind: "standard"     },
-  { name: "Phone",                kind: "standard"     },
-  { name: "Streaming Services",   kind: "standard"     },
-  { name: "Medical",              kind: "standard"     },
-  { name: "Clothing",             kind: "standard"     },
-  { name: "Household Supplies",   kind: "standard"     },
-  { name: "Personal Care",        kind: "standard"     },
-  { name: "Entertainment",        kind: "standard"     },
-  { name: "Gifts",                kind: "standard"     },
-  { name: "Pet Care",             kind: "standard"     },
-  { name: "Home Maintenance",     kind: "standard"     },
-  { name: "Miscellaneous",        kind: "standard"     },
+  { name: "Groceries", kind: "standard" },
+  { name: "Dining Out", kind: "standard" },
+  { name: "Gas", kind: "standard" },
+  { name: "Electric", kind: "standard" },
+  { name: "Internet", kind: "standard" },
+  { name: "Phone", kind: "standard" },
+  { name: "Streaming Services", kind: "standard" },
+  { name: "Medical", kind: "standard" },
+  { name: "Clothing", kind: "standard" },
+  { name: "Household Supplies", kind: "standard" },
+  { name: "Personal Care", kind: "standard" },
+  { name: "Entertainment", kind: "standard" },
+  { name: "Gifts", kind: "standard" },
+  { name: "Pet Care", kind: "standard" },
+  { name: "Home Maintenance", kind: "standard" },
+  { name: "Miscellaneous", kind: "standard" },
   // Sinking funds (6)
-  { name: "Emergency Fund",       kind: "sinking_fund" },
-  { name: "Vacation",             kind: "sinking_fund" },
-  { name: "Car Maintenance",      kind: "sinking_fund" },
+  { name: "Emergency Fund", kind: "sinking_fund" },
+  { name: "Vacation", kind: "sinking_fund" },
+  { name: "Car Maintenance", kind: "sinking_fund" },
   { name: "Christmas / Holidays", kind: "sinking_fund" },
-  { name: "Home Projects",        kind: "sinking_fund" },
-  { name: "New Car Fund",         kind: "sinking_fund" },
+  { name: "Home Projects", kind: "sinking_fund" },
+  { name: "New Car Fund", kind: "sinking_fund" },
 ] as const;
 
 const envRows = await db
@@ -117,28 +117,28 @@ const env = Object.fromEntries(ENVELOPE_DEFS.map((def, i) => [def.name, envRows[
 // and recurring rule lines (always positive magnitude per the schema).
 
 const PAYCHECK_LINES: { envelope: string; amount_cents: number }[] = [
-  { envelope: "Groceries",            amount_cents: 60_000 },
-  { envelope: "Dining Out",           amount_cents: 20_000 },
-  { envelope: "Gas",                  amount_cents: 15_000 },
-  { envelope: "Electric",             amount_cents: 12_000 },
-  { envelope: "Internet",             amount_cents:  8_000 },
-  { envelope: "Phone",                amount_cents:  9_000 },
-  { envelope: "Streaming Services",   amount_cents:  2_000 },
-  { envelope: "Medical",              amount_cents: 20_000 },
-  { envelope: "Clothing",             amount_cents: 15_000 },
-  { envelope: "Household Supplies",   amount_cents: 10_000 },
-  { envelope: "Personal Care",        amount_cents:  9_000 },
-  { envelope: "Entertainment",        amount_cents: 12_000 },
-  { envelope: "Gifts",                amount_cents:  5_000 },
-  { envelope: "Pet Care",             amount_cents:  5_000 },
-  { envelope: "Home Maintenance",     amount_cents:  8_000 },
-  { envelope: "Miscellaneous",        amount_cents: 10_000 },
-  { envelope: "Emergency Fund",       amount_cents: 25_000 },
-  { envelope: "Vacation",             amount_cents: 20_000 },
-  { envelope: "Car Maintenance",      amount_cents: 15_000 },
-  { envelope: "Christmas / Holidays", amount_cents:  5_000 },
-  { envelope: "Home Projects",        amount_cents:  5_000 },
-  { envelope: "New Car Fund",         amount_cents: 30_000 },
+  { envelope: "Groceries", amount_cents: 60_000 },
+  { envelope: "Dining Out", amount_cents: 20_000 },
+  { envelope: "Gas", amount_cents: 15_000 },
+  { envelope: "Electric", amount_cents: 12_000 },
+  { envelope: "Internet", amount_cents: 8_000 },
+  { envelope: "Phone", amount_cents: 9_000 },
+  { envelope: "Streaming Services", amount_cents: 2_000 },
+  { envelope: "Medical", amount_cents: 20_000 },
+  { envelope: "Clothing", amount_cents: 15_000 },
+  { envelope: "Household Supplies", amount_cents: 10_000 },
+  { envelope: "Personal Care", amount_cents: 9_000 },
+  { envelope: "Entertainment", amount_cents: 12_000 },
+  { envelope: "Gifts", amount_cents: 5_000 },
+  { envelope: "Pet Care", amount_cents: 5_000 },
+  { envelope: "Home Maintenance", amount_cents: 8_000 },
+  { envelope: "Miscellaneous", amount_cents: 10_000 },
+  { envelope: "Emergency Fund", amount_cents: 25_000 },
+  { envelope: "Vacation", amount_cents: 20_000 },
+  { envelope: "Car Maintenance", amount_cents: 15_000 },
+  { envelope: "Christmas / Holidays", amount_cents: 5_000 },
+  { envelope: "Home Projects", amount_cents: 5_000 },
+  { envelope: "New Car Fund", amount_cents: 30_000 },
   // Sum: 320,000 ✓
 ];
 
@@ -150,17 +150,47 @@ const PAYCHECK_LINES: { envelope: string; amount_cents: number }[] = [
 const openingRows = await db
   .insertInto("transactions")
   .values([
-    { household_id: HH, account_id: checking.id,  amount_cents:    350_000, kind: "opening", occurred_on: "2026-03-31" },
-    { household_id: HH, account_id: savings.id,   amount_cents:    820_000, kind: "opening", occurred_on: "2026-03-31" },
-    { household_id: HH, account_id: visa.id,      amount_cents:    -42_000, kind: "opening", occurred_on: "2026-03-31" },
-    { household_id: HH, account_id: autoLoan.id,  amount_cents: -1_450_000, kind: "opening", occurred_on: "2026-03-31" },
+    {
+      household_id: HH,
+      account_id: checking.id,
+      amount_cents: 350_000,
+      kind: "opening",
+      occurred_on: "2026-03-31",
+    },
+    {
+      household_id: HH,
+      account_id: savings.id,
+      amount_cents: 820_000,
+      kind: "opening",
+      occurred_on: "2026-03-31",
+    },
+    {
+      household_id: HH,
+      account_id: visa.id,
+      amount_cents: -42_000,
+      kind: "opening",
+      occurred_on: "2026-03-31",
+    },
+    {
+      household_id: HH,
+      account_id: autoLoan.id,
+      amount_cents: -1_450_000,
+      kind: "opening",
+      occurred_on: "2026-03-31",
+    },
   ])
   .returning(["id"])
   .execute();
 
 await db
   .insertInto("allocations")
-  .values([{ transaction_id: openingRows[1]!.id, envelope_id: env["Emergency Fund"]!, amount_cents: 820_000 }])
+  .values([
+    {
+      transaction_id: openingRows[1]!.id,
+      envelope_id: env["Emergency Fund"]!,
+      amount_cents: 820_000,
+    },
+  ])
   .execute();
 
 // ── Monthly transaction helper ────────────────────────────────────────────────
@@ -191,59 +221,134 @@ async function seedMonth(dates: {
     .executeTakeFirstOrThrow();
   await db
     .insertInto("allocations")
-    .values(PAYCHECK_LINES.map((l) => ({ transaction_id: paycheck.id, envelope_id: env[l.envelope]!, amount_cents: l.amount_cents })))
+    .values(
+      PAYCHECK_LINES.map((l) => ({
+        transaction_id: paycheck.id,
+        envelope_id: env[l.envelope]!,
+        amount_cents: l.amount_cents,
+      })),
+    )
     .execute();
 
   // Grocery runs
   for (const [date, payee, amount_cents] of [
-    [dates.grocery1, "Trader Joe's",  -17_800],
-    [dates.grocery2, "Whole Foods",   -16_500],
+    [dates.grocery1, "Trader Joe's", -17_800],
+    [dates.grocery2, "Whole Foods", -16_500],
   ] as [string, string, number][]) {
-    const txn = await db.insertInto("transactions").values({ household_id: HH, account_id: checking.id, amount_cents, kind: "normal", occurred_on: date, payee }).returning(["id"]).executeTakeFirstOrThrow();
-    await db.insertInto("allocations").values([{ transaction_id: txn.id, envelope_id: env["Groceries"]!, amount_cents }]).execute();
+    const txn = await db
+      .insertInto("transactions")
+      .values({
+        household_id: HH,
+        account_id: checking.id,
+        amount_cents,
+        kind: "normal",
+        occurred_on: date,
+        payee,
+      })
+      .returning(["id"])
+      .executeTakeFirstOrThrow();
+    await db
+      .insertInto("allocations")
+      .values([{ transaction_id: txn.id, envelope_id: env["Groceries"]!, amount_cents }])
+      .execute();
   }
 
   // Monthly bills from checking
   const checkingBills: [string, string, number, string][] = [
     [dates.electric, "City Electric", -11_500, "Electric"],
-    [dates.internet, "Comcast",        -7_500, "Internet"],
-    [dates.phone,    "T-Mobile",       -8_900, "Phone"],
-    [dates.gas,      "Shell",          -5_400, "Gas"],
+    [dates.internet, "Comcast", -7_500, "Internet"],
+    [dates.phone, "T-Mobile", -8_900, "Phone"],
+    [dates.gas, "Shell", -5_400, "Gas"],
   ];
   for (const [date, payee, amount_cents, envName] of checkingBills) {
-    const txn = await db.insertInto("transactions").values({ household_id: HH, account_id: checking.id, amount_cents, kind: "normal", occurred_on: date, payee }).returning(["id"]).executeTakeFirstOrThrow();
-    await db.insertInto("allocations").values([{ transaction_id: txn.id, envelope_id: env[envName]!, amount_cents }]).execute();
+    const txn = await db
+      .insertInto("transactions")
+      .values({
+        household_id: HH,
+        account_id: checking.id,
+        amount_cents,
+        kind: "normal",
+        occurred_on: date,
+        payee,
+      })
+      .returning(["id"])
+      .executeTakeFirstOrThrow();
+    await db
+      .insertInto("allocations")
+      .values([{ transaction_id: txn.id, envelope_id: env[envName]!, amount_cents }])
+      .execute();
   }
 
   // Credit card charges
   const creditCharges: [string, number, string][] = [
-    ["Netflix",       -2_800, "Streaming Services"],
-    ["Local Bistro",  -7_800, "Dining Out"],
-    ["Great Clips",   -4_500, "Personal Care"],
+    ["Netflix", -2_800, "Streaming Services"],
+    ["Local Bistro", -7_800, "Dining Out"],
+    ["Great Clips", -4_500, "Personal Care"],
   ];
   for (const [payee, amount_cents, envName] of creditCharges) {
-    const txn = await db.insertInto("transactions").values({ household_id: HH, account_id: visa.id, amount_cents, kind: "normal", occurred_on: dates.credit, payee }).returning(["id"]).executeTakeFirstOrThrow();
-    await db.insertInto("allocations").values([{ transaction_id: txn.id, envelope_id: env[envName]!, amount_cents }]).execute();
+    const txn = await db
+      .insertInto("transactions")
+      .values({
+        household_id: HH,
+        account_id: visa.id,
+        amount_cents,
+        kind: "normal",
+        occurred_on: dates.credit,
+        payee,
+      })
+      .returning(["id"])
+      .executeTakeFirstOrThrow();
+    await db
+      .insertInto("allocations")
+      .values([{ transaction_id: txn.id, envelope_id: env[envName]!, amount_cents }])
+      .execute();
   }
 }
 
-await seedMonth({ paycheck: "2026-04-01", grocery1: "2026-04-05", grocery2: "2026-04-18", electric: "2026-04-10", internet: "2026-04-12", phone: "2026-04-14", gas: "2026-04-20", credit: "2026-04-22" });
-await seedMonth({ paycheck: "2026-05-01", grocery1: "2026-05-04", grocery2: "2026-05-17", electric: "2026-05-09", internet: "2026-05-11", phone: "2026-05-13", gas: "2026-05-21", credit: "2026-05-22" });
-await seedMonth({ paycheck: "2026-06-01", grocery1: "2026-06-05", grocery2: "2026-06-16", electric: "2026-06-09", internet: "2026-06-11", phone: "2026-06-13", gas: "2026-06-19", credit: "2026-06-20" });
+await seedMonth({
+  paycheck: "2026-04-01",
+  grocery1: "2026-04-05",
+  grocery2: "2026-04-18",
+  electric: "2026-04-10",
+  internet: "2026-04-12",
+  phone: "2026-04-14",
+  gas: "2026-04-20",
+  credit: "2026-04-22",
+});
+await seedMonth({
+  paycheck: "2026-05-01",
+  grocery1: "2026-05-04",
+  grocery2: "2026-05-17",
+  electric: "2026-05-09",
+  internet: "2026-05-11",
+  phone: "2026-05-13",
+  gas: "2026-05-21",
+  credit: "2026-05-22",
+});
+await seedMonth({
+  paycheck: "2026-06-01",
+  grocery1: "2026-06-05",
+  grocery2: "2026-06-16",
+  electric: "2026-06-09",
+  internet: "2026-06-11",
+  phone: "2026-06-13",
+  gas: "2026-06-19",
+  credit: "2026-06-20",
+});
 
 // ── Envelope targets ──────────────────────────────────────────────────────────
 
 await db
   .insertInto("envelope_targets")
   .values([
-    { household_id: HH, envelope_id: env["Groceries"]!,      monthly_target_cents: 60_000 },
-    { household_id: HH, envelope_id: env["Dining Out"]!,     monthly_target_cents: 20_000 },
-    { household_id: HH, envelope_id: env["Gas"]!,            monthly_target_cents: 15_000 },
-    { household_id: HH, envelope_id: env["Electric"]!,       monthly_target_cents: 12_000 },
-    { household_id: HH, envelope_id: env["Internet"]!,       monthly_target_cents:  8_000 },
-    { household_id: HH, envelope_id: env["Phone"]!,          monthly_target_cents:  9_000 },
-    { household_id: HH, envelope_id: env["Entertainment"]!,  monthly_target_cents: 12_000 },
-    { household_id: HH, envelope_id: env["Personal Care"]!,  monthly_target_cents:  9_000 },
+    { household_id: HH, envelope_id: env["Groceries"]!, monthly_target_cents: 60_000 },
+    { household_id: HH, envelope_id: env["Dining Out"]!, monthly_target_cents: 20_000 },
+    { household_id: HH, envelope_id: env["Gas"]!, monthly_target_cents: 15_000 },
+    { household_id: HH, envelope_id: env["Electric"]!, monthly_target_cents: 12_000 },
+    { household_id: HH, envelope_id: env["Internet"]!, monthly_target_cents: 8_000 },
+    { household_id: HH, envelope_id: env["Phone"]!, monthly_target_cents: 9_000 },
+    { household_id: HH, envelope_id: env["Entertainment"]!, monthly_target_cents: 12_000 },
+    { household_id: HH, envelope_id: env["Personal Care"]!, monthly_target_cents: 9_000 },
   ])
   .execute();
 
@@ -308,7 +413,14 @@ const netflixRule = await db
 
 await db
   .insertInto("recurring_lines")
-  .values([{ recurring_id: netflixRule.id, envelope_id: env["Streaming Services"]!, amount_cents: 2_800, position: 1 }])
+  .values([
+    {
+      recurring_id: netflixRule.id,
+      envelope_id: env["Streaming Services"]!,
+      amount_cents: 2_800,
+      position: 1,
+    },
+  ])
   .execute();
 
 console.log("Seed complete.");

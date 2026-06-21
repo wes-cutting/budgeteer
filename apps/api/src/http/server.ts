@@ -268,6 +268,16 @@ export function buildServer(
     }
   });
 
+  app.get<IdParams>("/envelopes/:id/ledger", async (req, reply) => {
+    const { id } = req.params;
+    try {
+      return { rows: await envelopes.ledger(id) };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Envelope not found.");
+      throw e;
+    }
+  });
+
   app.post<IdParams>("/envelopes/:id/archive", async (req, reply) => {
     const { id } = req.params;
     try {

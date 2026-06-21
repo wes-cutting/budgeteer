@@ -94,6 +94,15 @@ The error handler **preserves the original 4xx status** (e.g. a malformed/empty 
 - `GET /envelopes` returns **all** envelopes (active + archived) with `archivedAt`; allocating
   to an **archived** envelope is rejected `400` (the `assertEnvelopesUsable` guard).
 
+### `GET /envelopes/:id/ledger` (R15)
+- **Purpose:** per-envelope allocation list — all allocations that contributed to the envelope's
+  balance, newest-first. Read-only; no schema change (derives from `allocations ⋈ transactions ⋈ accounts`).
+- **Output:** `200 { "rows": EnvelopeLedgerRow[] }`.
+- `EnvelopeLedgerRow = { allocationId, transactionId, occurredOn: "YYYY-MM-DD", payee: string|null, memo: string|null, transactionKind: "opening"|"normal"|"transfer", accountId, accountName, amountCents: number }`.
+  `amountCents` is **signed**: positive = funded into the envelope (deposit/opening), negative = spent from it (withdrawal). Order: `occurred_on DESC, created_at DESC`.
+- **Scope:** household-scoped via `transactions.household_id`; includes `kind='opening'` and `kind='transfer'` rows; excludes `envelope_transfers` (reallocations are a separate concept).
+- **Errors:** `404` if the envelope id is missing or belongs to a different household.
+
 ### Transactions & allocation (FEAT-003)
 
 `TransactionView = { id, accountId, accountName, kind: "opening"|"normal"|"transfer",

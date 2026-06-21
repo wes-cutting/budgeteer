@@ -2,7 +2,7 @@ import type { Kysely } from "kysely";
 import { type EnvelopeKind, nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
-import { toISO } from "../util/dates";
+import { toDateStr, toISO } from "../util/dates";
 import { asDuplicateName } from "./dbErrors";
 import { DuplicateNameError, NotFoundError } from "./errors";
 
@@ -12,6 +12,18 @@ export interface EnvelopeView {
   kind: EnvelopeKind;
   balanceCents: number;
   archivedAt: string | null;
+}
+
+export interface EnvelopeLedgerRow {
+  allocationId: string;
+  transactionId: string;
+  occurredOn: string;
+  payee: string | null;
+  memo: string | null;
+  transactionKind: "opening" | "normal" | "transfer";
+  accountId: string;
+  accountName: string;
+  amountCents: number;
 }
 
 export function makeEnvelopeService(db: Kysely<DB>) {
@@ -106,6 +118,49 @@ export function makeEnvelopeService(db: Kysely<DB>) {
           return toView(row);
         }),
       );
+    },
+
+    async ledger(id: string): Promise<EnvelopeLedgerRow[]> {
+      const env = await db
+        .selectFrom("envelopes")
+        .select("id")
+        .where("id", "=", id)
+        .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .executeTakeFirst();
+      if (!env) throw new NotFoundError("envelope");
+
+      const rows = await db
+        .selectFrom("allocations as a")
+        .innerJoin("transactions as t", "t.id", "a.transaction_id")
+        .innerJoin("accounts as ac", "ac.id", "t.account_id")
+        .select([
+          "a.id as allocation_id",
+          "t.id as transaction_id",
+          "t.occurred_on",
+          "t.payee",
+          "t.memo",
+          "t.kind as transaction_kind",
+          "ac.id as account_id",
+          "ac.name as account_name",
+          "a.amount_cents",
+        ])
+        .where("a.envelope_id", "=", id)
+        .where("t.household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .orderBy("t.occurred_on", "desc")
+        .orderBy("t.created_at", "desc")
+        .execute();
+
+      return rows.map((r) => ({
+        allocationId: r.allocation_id,
+        transactionId: r.transaction_id,
+        occurredOn: toDateStr(r.occurred_on),
+        payee: r.payee,
+        memo: r.memo,
+        transactionKind: r.transaction_kind as EnvelopeLedgerRow["transactionKind"],
+        accountId: r.account_id,
+        accountName: r.account_name,
+        amountCents: Number(r.amount_cents),
+      }));
     },
 
     /** Soft-delete (archive) or restore an envelope; history/balance is preserved either way. */
