@@ -10,7 +10,7 @@ import { buildServer } from "./http/server";
 loadEnv({ path: path.resolve(import.meta.dirname, "../../../.env") });
 
 const config = loadConfig();
-const db = await createDb(config.DATABASE_URL);
+const db = await createDb(config.DATABASE_URL, config.PGLITE_DIR);
 await migrateToLatest(db);
 
 const corsOrigins = config.CORS_ORIGINS.split(",")

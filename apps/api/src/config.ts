@@ -6,6 +6,10 @@ const schema = z.object({
   LOG_LEVEL: z.string().default("info"),
   // Unset in dev/test → in-process PGlite; set in production → real PostgreSQL (ADR-0002).
   DATABASE_URL: z.string().optional(),
+  // Optional: persist the PGlite store to a directory so data survives restarts and `npm run seed`
+  // works without a full PostgreSQL install. Ignored when DATABASE_URL is set. Path is relative to
+  // the process working directory (apps/api when running npm scripts). e.g. ../../data/budgeteer-dev
+  PGLITE_DIR: z.string().optional(),
   // Browser origins allowed to call the API (comma-separated). Defaults to the Vite dev origin;
   // set explicitly in production. An allowlist, never `*` (SECURITY.md).
   CORS_ORIGINS: z.string().default("http://localhost:5173,http://127.0.0.1:5173"),

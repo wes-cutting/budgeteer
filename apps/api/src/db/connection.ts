@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { Kysely, PostgresDialect } from "kysely";
 import type { DB } from "./schema";
 
@@ -6,13 +7,14 @@ import type { DB } from "./schema";
  * node-postgres; without one (dev/test) we use an in-process PGlite database — real Postgres
  * in WASM, no server needed — so the app runs and tests pass with zero infrastructure.
  */
-export async function createDb(databaseUrl?: string): Promise<Kysely<DB>> {
+export async function createDb(databaseUrl?: string, pgliteDir?: string): Promise<Kysely<DB>> {
   if (databaseUrl) {
     const { default: pg } = await import("pg");
     const pool = new pg.Pool({ connectionString: databaseUrl });
     return new Kysely<DB>({ dialect: new PostgresDialect({ pool }) });
   }
   const { KyselyPGlite } = await import("kysely-pglite");
-  const pglite = await KyselyPGlite.create("memory://");
+  if (pgliteDir) fs.mkdirSync(pgliteDir, { recursive: true });
+  const pglite = await KyselyPGlite.create(pgliteDir ?? "memory://");
   return new Kysely<DB>({ dialect: pglite.dialect });
 }
