@@ -52,7 +52,7 @@ const existing = await db
   .execute();
 
 if (existing.length > 0) {
-  console.log("Seed data already present — skipping.");
+  console.log("Seed data already present — skipping. Run `npm run db:fresh` to reset and re-seed.");
   await db.destroy();
   process.exit(0);
 }

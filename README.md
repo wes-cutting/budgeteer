@@ -98,8 +98,43 @@ startup — the app fails loudly on invalid config. See [`.env.example`](.env.ex
 | -------- | ----- | ------- | ------- |
 | `PORT` | api | `3001` | API listen port |
 | `DATABASE_URL` | api | _unset_ → in-process PGlite | Set to a Postgres URL in production |
+| `PGLITE_DIR` | api | _unset_ → in-memory (ephemeral) | Path to a file-based PGlite store; required by `npm run seed` / `db:reset` / `db:fresh`. Ignored when `DATABASE_URL` is set. |
 | `CORS_ORIGINS` | api | dev origins | Comma-separated **allowlist** of browser origins (never `*`) |
 | `VITE_API_BASE_URL` | web | `http://localhost:3001` | Base URL the browser uses to reach the API |
+
+## Dev database
+
+By default the API uses an **in-memory** PGlite instance — fast, zero-setup, but ephemeral (data
+is lost when the server restarts). To persist data across restarts and populate it with realistic
+seed data, point both the API and the seed scripts at the same on-disk store via `PGLITE_DIR`.
+
+**One-time setup** — uncomment this line in your `.env` (the `/data/` directory is already
+gitignored):
+
+```
+PGLITE_DIR=../../data/budgeteer-dev
+```
+
+Then, from the `apps/api/` directory:
+
+```bash
+# Populate an empty store with 3 months of realistic data:
+#   4 accounts · 22 envelopes · April–June 2026 transactions
+#   8 envelope targets · credit limit · loan principal · 2 recurring rules
+npm run seed
+
+# Wipe the dev store completely (irreversible):
+npm run db:reset
+
+# Reset + re-seed in one shot (the usual "start fresh" command):
+npm run db:fresh
+```
+
+`seed` is **idempotent** — it exits quietly if data already exists. Run `db:fresh` if you want
+to replace existing data.
+
+**Tests are unaffected.** The Vitest suite never reads `PGLITE_DIR`; each test spins up its own
+ephemeral in-memory PGlite and tears it down — no `PGLITE_DIR` needed, no cleanup required.
 
 ## Scripts (from the repo root)
 
