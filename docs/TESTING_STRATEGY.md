@@ -18,7 +18,8 @@ layers and the gate below are constant.
 | **Unit** | Pure domain + library logic (no I/O) | Instant | The bulk of tests live here because the logic lives here (pure core). |
 | **Property** | Invariants over generated inputs | Fast | For rules that must always hold (exact-quantity math, idempotence, ordering, tenancy scoping). |
 | **Integration** | The adapter boundary against a **real ephemeral dependency** | Moderate | Spin up a throwaway datastore/service; assert real behavior, not mocks. |
-| **End-to-end** | Critical user journeys through the running app | Slower | Includes an **accessibility scan** on user-facing flows. |
+| **End-to-end** | Critical user journeys through the **running app + real API** | Slower | The only layer that exercises the **browser→API seam** (CORS, headers, content-type, preflight methods) the others mock away. Includes an **automated accessibility scan** (e.g. axe) on user-facing flows. |
+| **Performance** | The heaviest reads/journeys at a realistic data volume | Slowest | Assert the `07_NFR.md` budgets (p95) against **synthetic volume**, not an empty dev DB. |
 
 Guidelines:
 - **Most coverage at the bottom** (pure unit), least at the top (e2e) — but every
@@ -27,6 +28,12 @@ Guidelines:
   that integration tests exist to catch.
 - **Synthetic fixtures only** — never real confidential data in tests. Build fixtures in
   code where possible so they're reviewable in diffs.
+- **Ship the real browser→API smoke in the foundation, not in hardening.** The unit /
+  integration / component layers never exercise a real browser hitting the real API, so a
+  whole class of bug (CORS, content-type, preflight methods) is invisible to them — exactly
+  what shipped here as the CORS bug, caught only by running the app by hand. Wire one real
+  e2e (app loads + one journey against the running API) **and** lint in the foundation slice,
+  so "the gate" is real on day one rather than aspirational.
 
 ## 2. What must be tested
 
@@ -53,6 +60,9 @@ types/typecheck  →  lint  →  format check  →  unit + integration  →  e2e
   reports a false green).
 - Tests should need **no manual setup** — ephemeral dependencies boot as part of the test
   run.
+- Keep the exact gate **commands in one canonical place** (the project README's scripts
+  table) and *reference* it from CI and status reports — don't restate them in three docs,
+  they drift (a step gets added in one place and missed in another).
 
 ## 4. Speed & hygiene
 
@@ -60,3 +70,15 @@ types/typecheck  →  lint  →  format check  →  unit + integration  →  e2e
   its own command.
 - Reset state between tests (truncate/teardown) for isolation.
 - Flaky tests are bugs — fix or quarantine with a tracked issue, never ignore.
+
+## 5. e2e conventions
+
+- **Split specs per area, with a shared setup helper**; every new slice lands with its own
+  spec. A single growing journey file is slow to isolate when it breaks.
+- Prefer **`exact: true`** for accessible-name/role queries when the target name appears
+  inside another element's accessible name — a substring match silently grabs the wrong control.
+- The a11y scan should fail on **serious/critical** violations and ship a baseline
+  accessibility CSS floor (e.g. a minimum interactive target size) so WCAG 2.2 AA is enforced
+  from commit zero, not discovered late.
+- The reference harness is in this repo: `e2e/` (per-area Playwright specs + `e2e/setup.ts`),
+  `e2e/a11y.spec.ts` (axe scan), and `apps/api/test/perf.test.ts` (p95 budgets).

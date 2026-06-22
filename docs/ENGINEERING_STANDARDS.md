@@ -34,7 +34,8 @@ template at [`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLAT
 is checked on every change:
 
 - [ ] Acceptance criteria met and covered by tests.
-- [ ] The capability is **usable end-to-end** (data → API → UI), not just a layer.
+- [ ] The capability is **usable end-to-end** (data → API → UI), not just a layer — a shipped
+      endpoint includes its **client binding and a UI surface** (or an explicit, logged deferral).
 - [ ] Gate green: types/typecheck, lint, format, unit + integration tests, end-to-end for
       the journey, build. **No failing or skipped tests.**
 - [ ] External input validated at the boundary.
@@ -44,7 +45,8 @@ is checked on every change:
       `prefers-reduced-motion`).
 - [ ] Authorization checked at the resource level (default-deny) where applicable.
 - [ ] No secrets committed or logged.
-- [ ] Relevant docs updated **in the same change**; doc status promoted as warranted.
+- [ ] Relevant docs updated **in the same change** — including overview/summary lines and
+      internal links (which rot first); doc status promoted as warranted.
 
 ## 3. Commits & workflow
 
@@ -78,6 +80,28 @@ the choice in an ADR when adopted.
   to a checkable invariant** (a pass/fail gate) so "did it work?" is never a guess.
 - **A consistent error envelope** at every interface (a stable shape with a code,
   message, and correlation id) so callers and logs can rely on it.
+- **Presentation imports the domain; never reimplement it in the UI.** Wire the pure-core
+  package so both the API *and* the UI consume it (workspace dep + bundler-consumable
+  exports). The UI must not re-derive domain logic (money math, validation, date rules) — a
+  duplicated rule is a second source of truth that drifts. Distinguish **domain** formatting
+  (plain, exact) from **presentation** formatting (locale/currency) and keep each in one place.
+- **Share adapter/service plumbing; don't couple constants to a module that does I/O.** Put
+  cross-cutting helpers (date conversion, group-by, an error shim) in a small `util/`, and app
+  constants in a neutral `constants` module — not inside the migration/bootstrap module that
+  merely needed them first. Re-deriving plumbing per service is where drift starts.
+- **Map infrastructure errors to domain errors at the boundary; type adapter inputs.** A
+  datastore/driver error (e.g. a unique-constraint violation) should surface as a typed domain
+  error mapped to the right status (a duplicate → `409`, not a leaked `500`), via the error
+  envelope above. Avoid typed-assertion escape hatches for request params/inputs — validate
+  and narrow them.
+- **Derived read-model for analysis/reporting.** A rollup, trend, or projection is a **pure
+  function over the existing log** — compute it on read; don't add a stored aggregate table
+  (an extension of *derive, don't store*). Keep the math in the pure core and feed it I/O from
+  a thin read service; add a materialized cache only when measured performance demands it.
+- **Reference / config store.** When a feature needs a single mutable reference value per owner
+  (a target, a limit, a principal), a tiny `(owner_id unique, value, updated_at)` table with
+  set/clear and a **service-boundary validity check** (e.g. only on the right entity kind) is
+  the repeatable shape — distinct from the immutable ledger it annotates.
 
 ## 5. Performance, observability, hardening
 
