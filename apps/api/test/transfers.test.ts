@@ -11,6 +11,7 @@ afterEach(async () => {
 
 const post = (url: string, body: Record<string, unknown>) =>
   ctx.app.inject({ method: "POST", url, payload: body });
+const del = (url: string) => ctx.app.inject({ method: "DELETE", url });
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeAccount(name: string, startingBalance = "0"): Promise<string> {
@@ -58,6 +59,31 @@ describe("transfers API (FEAT-007 / ADR-0004)", () => {
 
     const needs = (await get("/transactions/needs-allocation")).json().transactions;
     expect(needs.some((t: { kind: string }) => t.kind === "transfer")).toBe(false);
+  });
+
+  test("DELETE /transfers/:id removes both legs and restores both balances", async () => {
+    const checking = await makeAccount("Del Checking", "500.00");
+    const savings = await makeAccount("Del Savings", "0");
+    const transfer = (
+      await post("/transfers", { fromAccountId: checking, toAccountId: savings, amount: "200.00" })
+    ).json().transfer;
+
+    expect(await balanceOf(checking)).toBe(30000); // 500 − 200
+    expect(await balanceOf(savings)).toBe(20000); // 0 + 200
+
+    const res = await del(`/transfers/${transfer.id}`);
+    expect(res.statusCode).toBe(204);
+
+    expect(await balanceOf(checking)).toBe(50000); // restored
+    expect(await balanceOf(savings)).toBe(0);
+    // Neither leg should appear in either register.
+    const checkingTxns = (await get(`/accounts/${checking}/transactions`)).json().transactions;
+    expect(checkingTxns.some((t: { kind: string }) => t.kind === "transfer")).toBe(false);
+  });
+
+  test("DELETE /transfers/:id on unknown transfer → 404", async () => {
+    const ghost = "00000000-0000-0000-0000-0000000000ff";
+    expect((await del(`/transfers/${ghost}`)).statusCode).toBe(404);
   });
 
   test("rejects same-account, non-positive, and missing-account transfers", async () => {

@@ -119,7 +119,7 @@ export function ForecastView({ api, onBack }: { api: Api; onBack: () => void }) 
             <p role="status">Projecting…</p>
           ) : (
             <>
-              <dl role="status">
+              <dl>
                 <div>
                   <dt>Starting balance (today, {forecast.startDate})</dt>
                   <dd>{formatCents(forecast.startingBalanceCents)}</dd>

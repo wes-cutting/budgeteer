@@ -82,7 +82,7 @@ export function CreditView({ api, onBack }: { api: Api; onBack: () => void }) {
         </p>
       ) : (
         <>
-          <dl role="status">
+          <dl>
             <div>
               <dt>Total owed (across cards with a limit)</dt>
               <dd>{formatCents(report.totalOwedCents)}</dd>

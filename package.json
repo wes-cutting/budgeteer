@@ -18,6 +18,7 @@
     "format:write": "prettier --write ."
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.61.0",
     "@types/node": "^20.14.0",

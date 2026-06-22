@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope } from "./setup";
+import { createAccount, createEnvelope, goToDashboard } from "./setup";
 
 test("single allocation: deposit fully allocated — balance derived end to end", async ({
   page,
@@ -167,4 +167,43 @@ test("refund row: withdrawal with a refund results in the correct net spend", as
     .filter({ hasText: PAYEE });
   await expect(txnRow).toContainText("fully allocated");
   await expect(txnRow).toContainText("-$80.00");
+});
+
+test("delete transaction: row disappears and balance reverts", async ({ page }) => {
+  const stamp = Date.now();
+  const ACCOUNT = `E2E Account ${stamp}`;
+  const ENVELOPE = `E2E Food ${stamp}`;
+  const PAYEE = `E2E DelTxn ${stamp}`;
+  await page.goto("/");
+  await createAccount(page, ACCOUNT, { balance: "200.00" });
+  await createEnvelope(page, ENVELOPE);
+
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  const txnForm = page.getByRole("form", { name: "Add transaction" });
+  await txnForm.getByRole("radio", { name: "Deposit" }).check();
+  await txnForm.getByLabel("Transaction amount").fill("100.00");
+  await txnForm.getByLabel("Payee").fill(PAYEE);
+  await txnForm.getByLabel("Envelope", { exact: true }).selectOption({ label: ENVELOPE });
+  await txnForm.getByRole("button", { name: "Save transaction" }).click();
+
+  // Verify the transaction exists and balance reflects it.
+  const txnList = page.getByRole("list", { name: "Transactions" });
+  const txnRow = txnList.getByRole("listitem").filter({ hasText: PAYEE });
+  await expect(txnRow).toBeVisible();
+  await expect(page.getByText("Balance: $300.00", { exact: true })).toBeVisible();
+
+  // Delete the transaction.
+  await txnRow.getByRole("button", { name: "Delete transaction" }).click();
+
+  // Row is gone and balance reverts to $200 (opening only).
+  await expect(txnRow).not.toBeVisible();
+  await expect(page.getByText("Balance: $200.00", { exact: true })).toBeVisible();
+
+  // Envelope balance also reverts: verify on dashboard.
+  await goToDashboard(page);
+  const envelopeRow = page
+    .getByRole("list", { name: "Envelopes list" })
+    .getByRole("listitem")
+    .filter({ hasText: ENVELOPE });
+  await expect(envelopeRow).toContainText("$0.00");
 });

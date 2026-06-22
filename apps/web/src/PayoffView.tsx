@@ -82,7 +82,7 @@ export function PayoffView({ api, onBack }: { api: Api; onBack: () => void }) {
         </p>
       ) : (
         <>
-          <dl role="status">
+          <dl>
             <div>
               <dt>Total original (across loans with a principal)</dt>
               <dd>{formatCents(report.totalOriginalCents)}</dd>

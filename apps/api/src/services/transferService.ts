@@ -67,6 +67,17 @@ export function makeTransferService(db: Kysely<DB>) {
   }
 
   return {
+    async remove(id: string): Promise<void> {
+      const transfer = await db
+        .selectFrom("transfers")
+        .select("id")
+        .where("id", "=", id)
+        .where("household_id", "=", HH)
+        .executeTakeFirst();
+      if (!transfer) throw new NotFoundError("transfer");
+      await db.deleteFrom("transfers").where("id", "=", id).execute();
+    },
+
     /** Move money between two accounts as a double-entry transfer (ADR-0004), atomically. */
     async create(input: CreateTransferInput): Promise<TransferView> {
       const check = validateTransfer(input.fromAccountId, input.toAccountId, input.magnitudeCents);

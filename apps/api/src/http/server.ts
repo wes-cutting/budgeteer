@@ -29,7 +29,12 @@ import { makeTargetService } from "../services/targetService";
 import { makeCreditLimitService } from "../services/creditLimitService";
 import { makeLoanPrincipalService } from "../services/loanPrincipalService";
 import { makeBackupService } from "../services/backupService";
-import { DuplicateNameError, NotFoundError, ValidationError } from "../services/errors";
+import {
+  ConflictError,
+  DuplicateNameError,
+  NotFoundError,
+  ValidationError,
+} from "../services/errors";
 
 const createAccountBody = z.object({
   name: z.string(),
@@ -344,6 +349,18 @@ export function buildServer(
     }
   });
 
+  app.delete<IdParams>("/transactions/:id", async (req, reply) => {
+    const { id } = req.params;
+    try {
+      await transactions.remove(id);
+      return reply.code(204).send();
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Transaction not found.");
+      if (e instanceof ConflictError) return fail(reply, 409, e.message);
+      throw e;
+    }
+  });
+
   app.put<IdParams>("/transactions/:id/allocations", async (req, reply) => {
     const parsed = setAllocationsBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
@@ -419,6 +436,17 @@ export function buildServer(
     } catch (e) {
       if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
       if (e instanceof ValidationError) return fail(reply, 400, e.message);
+      throw e;
+    }
+  });
+
+  app.delete<IdParams>("/transfers/:id", async (req, reply) => {
+    const { id } = req.params;
+    try {
+      await transfers.remove(id);
+      return reply.code(204).send();
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Transfer not found.");
       throw e;
     }
   });

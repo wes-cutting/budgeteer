@@ -30,6 +30,7 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function load() {
     try {
@@ -56,6 +57,23 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
       await load();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Couldn't save the template.");
+    }
+  }
+
+  async function deleteRow(txn: TransactionView) {
+    setDeletingId(txn.id);
+    setError(null);
+    try {
+      if (txn.kind === "transfer" && txn.transferId) {
+        await api.deleteTransfer(txn.transferId);
+      } else {
+        await api.deleteTransaction(txn.id);
+      }
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Couldn't delete the transaction.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -136,6 +154,14 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
                     {t.transferCounterpartName ?? "another account"}
                   </span>{" "}
                   <span>{formatCents(t.amountCents)}</span>
+                  <button
+                    type="button"
+                    disabled={deletingId === t.id}
+                    onClick={() => void deleteRow(t)}
+                    aria-label={`Delete transfer`}
+                  >
+                    {deletingId === t.id ? "Deleting…" : "Delete"}
+                  </button>
                 </li>
               ) : (
                 <li key={t.id}>
@@ -158,6 +184,14 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
                     onToggle={() => setEditingId((cur) => (cur === t.id ? null : t.id))}
                     onSave={(allocs) => void saveSplit(t, allocs)}
                   />
+                  <button
+                    type="button"
+                    disabled={deletingId === t.id}
+                    onClick={() => void deleteRow(t)}
+                    aria-label={`Delete transaction`}
+                  >
+                    {deletingId === t.id ? "Deleting…" : "Delete"}
+                  </button>
                 </li>
               ),
             )}

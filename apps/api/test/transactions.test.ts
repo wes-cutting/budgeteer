@@ -13,6 +13,7 @@ const post = (url: string, body: Record<string, unknown>) =>
   ctx.app.inject({ method: "POST", url, payload: body });
 const put = (url: string, body: Record<string, unknown>) =>
   ctx.app.inject({ method: "PUT", url, payload: body });
+const del = (url: string) => ctx.app.inject({ method: "DELETE", url });
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeEnvelope(name: string): Promise<string> {
@@ -227,6 +228,48 @@ describe("transactions & allocation API (FEAT-003)", () => {
     expect(await balanceOf("accounts", accountId)).toBe(-7000);
     expect(await balanceOf("envelopes", env.Groceries)).toBe(-10000); // spent
     expect(await balanceOf("envelopes", env.Gas)).toBe(3000); // refunded (opposite sign)
+  });
+
+  test("DELETE removes a normal transaction and cascades its allocations", async () => {
+    const { accountId, env } = await seed("0");
+    const txn = (
+      await post(`/accounts/${accountId}/transactions`, {
+        kind: "deposit",
+        amount: "100.00",
+        allocations: [{ envelopeId: env.Rent, amount: "100.00" }],
+      })
+    ).json().transaction;
+
+    expect(await balanceOf("accounts", accountId)).toBe(10000);
+    expect(await balanceOf("envelopes", env.Rent)).toBe(10000);
+
+    const res = await del(`/transactions/${txn.id}`);
+    expect(res.statusCode).toBe(204);
+
+    expect(await balanceOf("accounts", accountId)).toBe(0);
+    expect(await balanceOf("envelopes", env.Rent)).toBe(0);
+    const register = (await get(`/accounts/${accountId}/transactions`)).json().transactions;
+    expect(register.every((t: { id: string }) => t.id !== txn.id)).toBe(true);
+  });
+
+  test("DELETE on a transfer leg → 409 (must use DELETE /transfers/:id)", async () => {
+    const checking = (
+      await post("/accounts", { name: "Del Checking", kind: "checking", startingBalance: "100.00" })
+    ).json().account.id as string;
+    const savings = (
+      await post("/accounts", { name: "Del Savings", kind: "savings", startingBalance: "0" })
+    ).json().account.id as string;
+    const transfer = (
+      await post("/transfers", { fromAccountId: checking, toAccountId: savings, amount: "50.00" })
+    ).json().transfer;
+    const legId = transfer.from.transactionId as string;
+    const res = await del(`/transactions/${legId}`);
+    expect(res.statusCode).toBe(409);
+  });
+
+  test("DELETE on unknown transaction → 404", async () => {
+    const ghost = "00000000-0000-0000-0000-0000000000ff";
+    expect((await del(`/transactions/${ghost}`)).statusCode).toBe(404);
   });
 
   test("refunds that flip the net direction are rejected (FEAT-008)", async () => {

@@ -345,6 +345,8 @@ export interface Api {
   unarchiveEnvelope(id: string): Promise<EnvelopeView>;
   listTransactions(accountId: string): Promise<TransactionView[]>;
   createTransaction(accountId: string, input: CreateTransactionInput): Promise<TransactionView>;
+  deleteTransaction(id: string): Promise<void>;
+  deleteTransfer(id: string): Promise<void>;
   createTransfer(input: CreateTransferInput): Promise<TransferView>;
   createEnvelopeTransfer(input: CreateEnvelopeTransferInput): Promise<EnvelopeTransferView>;
   setAllocations(transactionId: string, allocations: AllocationDraft[]): Promise<TransactionView>;
@@ -458,6 +460,12 @@ export const httpApi: Api = {
         body: JSON.stringify(input),
       })
     ).transaction;
+  },
+  async deleteTransaction(id) {
+    await request<unknown>(`/transactions/${id}`, { method: "DELETE" });
+  },
+  async deleteTransfer(id) {
+    await request<unknown>(`/transfers/${id}`, { method: "DELETE" });
   },
   async createTransfer(input) {
     return (

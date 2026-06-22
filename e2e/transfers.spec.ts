@@ -63,3 +63,34 @@ test("envelope reallocation: move budgeted money between envelopes", async ({ pa
   await expect(rowA).toContainText("$200.00");
   await expect(rowB).toContainText("$100.00");
 });
+
+test("delete transfer: both legs removed and account balances restored", async ({ page }) => {
+  const stamp = Date.now();
+  const ACCOUNT_FROM = `E2E Checking ${stamp}`;
+  const ACCOUNT_TO = `E2E Savings ${stamp}`;
+  await page.goto("/");
+  await createAccount(page, ACCOUNT_FROM, { balance: "500.00" });
+  await createAccount(page, ACCOUNT_TO);
+
+  // Create a $300 transfer from ACCOUNT_FROM to ACCOUNT_TO.
+  await page.getByRole("button", { name: ACCOUNT_FROM, exact: true }).click();
+  const transferForm = page.getByRole("form", { name: "Transfer money" });
+  await transferForm.getByLabel("To account").selectOption({ label: ACCOUNT_TO });
+  await transferForm.getByLabel("Amount").fill("300.00");
+  await transferForm.getByRole("button", { name: "Transfer" }).click();
+
+  // FROM balance is now $200.
+  await expect(page.getByText("Balance: $200.00", { exact: true })).toBeVisible();
+
+  // Delete the outgoing transfer leg.
+  const txnList = page.getByRole("list", { name: "Transactions" });
+  const transferRow = txnList
+    .getByRole("listitem")
+    .filter({ hasText: `Transfer to ${ACCOUNT_TO}` });
+  await expect(transferRow).toBeVisible();
+  await transferRow.getByRole("button", { name: "Delete transfer" }).click();
+
+  // Both legs gone: FROM balance back to $500.
+  await expect(transferRow).not.toBeVisible();
+  await expect(page.getByText("Balance: $500.00", { exact: true })).toBeVisible();
+});

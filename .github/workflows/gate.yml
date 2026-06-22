@@ -1,27 +1,17 @@
 # ============================================================================
-# CI gate — carry as-is, then wire each step to your stack's real commands.
+# CI gate — mirrors the local gate exactly (docs/TESTING_STRATEGY.md §3):
+#   typecheck → lint → format check → unit + integration → e2e (incl. a11y) → build → SCA
 #
-# This MUST run the SAME gate as local, in the SAME order (docs/TESTING_STRATEGY.md §3):
-#   types/typecheck → lint → format check → unit + integration → e2e (incl. a11y) → build
-#
-# Rules this skeleton encodes:
-#   • A failing OR skipped test blocks the merge — never green on skipped tests.
-#   • Exclude any illustrative / non-product code (e.g. examples/) from typecheck/lint/build.
-#   • Wire a dependency/vulnerability scan (SCA) in early (docs/SECURITY.md §4).
-#
-# Each step below is a PLACEHOLDER. Replace the `echo` with the real command from your
-# project's README / ADR-0001, then DELETE the `gate-not-configured` guard step.
-# ============================================================================
-name: gate
-
-# Auto-run is intentionally OFF for now. This project runs the SAME gate locally (see README
-# / docs/TESTING_STRATEGY.md §3) and isn't ready to turn CI on yet. The workflow is kept as
-# part of the kit skeleton. To enable CI later: wire each step below to the real commands,
-# delete the `gate-not-configured` guard, and restore the auto triggers:
+# Auto-run is intentionally OFF. This project runs the same gate locally
+# (see README / docs/TESTING_STRATEGY.md §3). Enable CI triggers (#16 done locally;
+# enable remote triggers here when the team is ready):
 #   on:
 #     pull_request:
 #     push:
 #       branches: [main]
+# ============================================================================
+name: gate
+
 on:
   workflow_dispatch: # manual-only (Actions tab → Run workflow)
 
@@ -36,42 +26,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Fails CI until the gate is wired — so a skeleton never reports a false "green"
-      # (docs/00_WAYS_OF_WORKING.md §10, "False-Certainty Docs"). Delete once configured.
-      - name: gate-not-configured
-        run: |
-          echo "::error::CI gate is a skeleton. Wire each step to your stack's commands"
-          echo "::error::(docs/TESTING_STRATEGY.md §3), then delete this guard step."
-          exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
 
-      # --- Set up your toolchain (runtime, package manager, dependency cache) ---
-      # - uses: actions/setup-node@v4        # or setup-python / setup-go / setup-java …
-      #   with: { node-version: '20', cache: 'npm' }
-      # - run: <install from the lockfile, e.g. `npm ci`>
+      - name: install dependencies
+        run: npm ci
+
+      - name: install Playwright browsers
+        run: npx playwright install --with-deps chromium
 
       - name: types / typecheck
-        # e.g. tsc --noEmit
-        run: echo "TODO - typecheck"
+        run: npm run typecheck
 
       - name: lint
-        # e.g. eslint .
-        run: echo "TODO - lint"
+        run: npm run lint
 
       - name: format check
-        # e.g. prettier --check .
-        run: echo "TODO - format check"
+        run: npm run format
 
       - name: unit + integration
-        # no skipped tests; ephemeral deps boot here
-        run: echo "TODO - unit and integration tests"
+        run: npm test
 
-      - name: e2e (incl. accessibility scan)
-        # accessibility scan on critical journeys
-        run: echo "TODO - e2e and a11y"
+      - name: e2e (incl. a11y scan)
+        run: npm run test:e2e
+        env:
+          CI: "true"
 
       - name: build
-        run: echo "TODO - build"
+        run: npm run build --workspace @budgeteer/web
 
       - name: dependency / vulnerability scan (SCA)
-        # e.g. npm audit --audit-level=high / pip-audit / govulncheck
-        run: echo "TODO - SCA scan"
+        # --omit=dev: exclude dev-only tools (vitest UI server vulnerability, esbuild dev-server
+        # vulnerability — neither reachable in CI or production).
+        # --audit-level=critical: the one remaining "high" finding is kysely ≤ 0.28.16 in the
+        # kysely-pglite → kysely-codegen transitive chain. That chain is a type-gen tool, not used
+        # at runtime; and the only sql.lit() call in this project uses a validated enum, not user
+        # input (safe pattern — see apps/api/src/services/analysisService.ts). Tracked as a future
+        # dep-upgrade task: bump kysely-pglite once it ships kysely-codegen ≥ 0.19.
+        run: npm audit --omit=dev --audit-level=critical

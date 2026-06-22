@@ -180,6 +180,21 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       recompute();
       return clone(txn);
     },
+    async deleteTransaction(id) {
+      const idx = txns.findIndex((t) => t.id === id);
+      if (idx === -1) throw new ApiError("Transaction not found.");
+      txns.splice(idx, 1);
+      recompute();
+    },
+    async deleteTransfer(id) {
+      const indices = txns
+        .map((t, i) => (t.transferId === id ? i : -1))
+        .filter((i) => i !== -1)
+        .reverse();
+      if (indices.length === 0) throw new ApiError("Transfer not found.");
+      for (const i of indices) txns.splice(i, 1);
+      recompute();
+    },
     async createTransfer({ fromAccountId, toAccountId, amount, occurredOn, memo }) {
       const from = accounts.find((a) => a.id === fromAccountId);
       const to = accounts.find((a) => a.id === toAccountId);

@@ -4,7 +4,7 @@ import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
 import { toDateStr } from "../util/dates";
 import { groupBy } from "../util/groupBy";
-import { NotFoundError, ValidationError } from "./errors";
+import { ConflictError, NotFoundError, ValidationError } from "./errors";
 import { assertEnvelopesUsable } from "./envelopeGuards";
 
 export interface AllocationView {
@@ -292,6 +292,21 @@ export function makeTransactionService(db: Kysely<DB>) {
         }
         return getView(trx, txnId);
       });
+    },
+
+    async remove(id: string): Promise<void> {
+      const txn = await db
+        .selectFrom("transactions")
+        .select(["id", "kind"])
+        .where("id", "=", id)
+        .where("household_id", "=", HH)
+        .executeTakeFirst();
+      if (!txn) throw new NotFoundError("transaction");
+      if (txn.kind === "transfer")
+        throw new ConflictError(
+          "Transfer legs must be deleted as a pair — use DELETE /transfers/:id.",
+        );
+      await db.deleteFrom("transactions").where("id", "=", id).execute();
     },
 
     async needsAllocation(): Promise<TransactionView[]> {
