@@ -24,8 +24,10 @@ describe("Dashboard (Foundation UX)", () => {
     await user.type(balance, "2140.00");
     await user.click(within(form).getByRole("button", { name: /add account/i }));
 
-    expect(await screen.findByText("Checking")).toBeTruthy();
-    expect(await screen.findByText("$2,140.00")).toBeTruthy();
+    // Scope to the account row — the new net worth summary (R4) also shows $2,140.00.
+    const list = await screen.findByRole("list", { name: "Accounts list" });
+    expect(within(list).getByText("Checking")).toBeTruthy();
+    expect(within(list).getByText("$2,140.00")).toBeTruthy();
   });
 
   test("adding an envelope shows it at $0.00", async () => {
@@ -57,6 +59,31 @@ describe("Dashboard (Foundation UX)", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toMatch(/already exists/i);
+  });
+
+  test("net worth summary sums accounts by kind (R4)", async () => {
+    const api = makeFakeApi();
+    await api.createAccount({ name: "Checking", kind: "checking", startingBalance: "1000.00" });
+    await api.createAccount({ name: "Savings", kind: "savings", startingBalance: "500.00" });
+    await api.createAccount({ name: "Card", kind: "credit", startingBalance: "-300.00" });
+
+    render(<Dashboard api={api} />);
+    const summary = await screen.findByRole("table", { name: "Net worth summary" });
+
+    // Assets = $1,000 + $500 = $1,500; liabilities = −$300 (credit, kept negative).
+    const assetsRow = within(summary).getByRole("row", { name: /Total assets/ });
+    expect(within(assetsRow).getByRole("cell").textContent).toBe("$1,500.00");
+    const liabilitiesRow = within(summary).getByRole("row", { name: /Total liabilities/ });
+    expect(within(liabilitiesRow).getByRole("cell").textContent).toBe("-$300.00");
+    // Net = assets + liabilities = $1,500 − $300 = $1,200 (agrees with the NetWorthView convention).
+    const netRow = within(summary).getByRole("row", { name: /Net worth/ });
+    expect(within(netRow).getByRole("cell").textContent).toBe("$1,200.00");
+  });
+
+  test("net worth summary is hidden until there is an account (R4)", async () => {
+    render(<Dashboard api={makeFakeApi()} />);
+    await screen.findByText(/No accounts yet/i);
+    expect(screen.queryByRole("table", { name: "Net worth summary" })).toBeNull();
   });
 
   test("archiving an envelope moves it to the Archived section (FEAT-006)", async () => {

@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useState } from "react";
+import { isLiabilityKind } from "@budgeteer/domain";
 import {
   type AccountKind,
   type AccountView,
@@ -13,6 +14,7 @@ import { MoveMoneyForm } from "./MoveMoneyForm";
 
 const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "loan", "cash", "other"];
 const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
+const NUM: React.CSSProperties = { textAlign: "right" };
 
 export function Dashboard({
   api,
@@ -162,6 +164,7 @@ export function Dashboard({
           onArchive={(id) => void archiveAccount(id)}
           onUnarchive={(id) => void unarchiveAccount(id)}
         />
+        <NetWorthSummary accounts={accounts} />
       </section>
 
       <section aria-labelledby="envelopes-heading">
@@ -180,6 +183,46 @@ export function Dashboard({
         />
       </section>
     </main>
+  );
+}
+
+/**
+ * R4 — Dashboard net worth snapshot: the current-snapshot sibling of the R9 NetWorthView trend.
+ * A pure front-end Σ over the already-loaded account list, split by account KIND (not by sign):
+ * liability kinds (credit/loan) carry their debt as a negative balance, so they sum into
+ * Liabilities (≤ 0) and Net = Assets + Liabilities falls out directly. Reuses the shared
+ * `isLiabilityKind` so this agrees with the NetWorthView's classification, and sums ALL accounts —
+ * active AND archived — to match R9's endpoint (which applies no archived filter; an archived
+ * account still holds its money/debt). Equal to the R9 endpoint totals by construction (same
+ * transactions via `v_account_balances`, same classifier), with no extra request.
+ */
+function NetWorthSummary({ accounts }: { accounts: AccountView[] | null }) {
+  if (accounts === null || accounts.length === 0) return null;
+  let assetsCents = 0;
+  let liabilitiesCents = 0;
+  for (const a of accounts) {
+    if (isLiabilityKind(a.kind)) liabilitiesCents += a.balanceCents;
+    else assetsCents += a.balanceCents;
+  }
+  const netCents = assetsCents + liabilitiesCents;
+  return (
+    <table>
+      <caption>Net worth summary</caption>
+      <tbody>
+        <tr>
+          <th scope="row">Total assets</th>
+          <td style={NUM}>{formatCents(assetsCents)}</td>
+        </tr>
+        <tr>
+          <th scope="row">Total liabilities</th>
+          <td style={NUM}>{formatCents(liabilitiesCents)}</td>
+        </tr>
+        <tr>
+          <th scope="row">Net worth</th>
+          <td style={NUM}>{formatCents(netCents)}</td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 

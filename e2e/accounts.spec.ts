@@ -37,6 +37,33 @@ test("archive and unarchive an account (R7)", async ({ page }) => {
   await expect(page.getByRole("button", { name: `Unarchive ${ACCOUNT}` })).toHaveCount(0);
 });
 
+// R4 — Dashboard net worth summary. The snapshot sums ALL household accounts (the shared e2e DB
+// accretes across parallel specs), so we assert the arithmetic INVARIANT (net = assets + liabilities)
+// off a single rendered snapshot — true at any render regardless of other tests' accounts. The exact
+// kind-based sums are covered deterministically by the Dashboard component test. We create both an
+// asset and a liability so both columns are exercised against the real client-side calc.
+test("net worth summary: net = assets + liabilities, classified by kind (R4)", async ({ page }) => {
+  const stamp = Date.now();
+  const CHECKING = `E2E NWS Checking ${stamp}`;
+  const CARD = `E2E NWS Card ${stamp}`;
+  await page.goto("/");
+  await createAccount(page, CHECKING, { balance: "1000.00" }); // an asset
+  await createAccount(page, CARD, { kind: "credit", balance: "-300.00" }); // a liability (owes $300)
+
+  const summary = page.getByRole("table", { name: "Net worth summary" });
+  const cents = async (label: RegExp): Promise<number> => {
+    const txt = await summary.getByRole("row", { name: label }).getByRole("cell").textContent();
+    return Math.round(parseFloat((txt ?? "").replace(/[^0-9.-]/g, "")) * 100);
+  };
+  const [assets, liabilities, net] = await Promise.all([
+    cents(/Total assets/),
+    cents(/Total liabilities/),
+    cents(/Net worth/),
+  ]);
+  // The invariant the snapshot rests on — proven end to end, agreeing with the NetWorthView split.
+  expect(net).toBe(assets + liabilities);
+});
+
 test("rename an account inline (R1)", async ({ page }) => {
   const stamp = Date.now();
   const ORIGINAL = `E2E Rename ${stamp}`;
