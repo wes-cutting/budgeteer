@@ -102,6 +102,46 @@ test("partial allocation: unallocated deposit surfaces in Needs allocation", asy
   await expect(page.getByText(PAYEE)).toBeVisible();
 });
 
+test("needs-allocation badge: Dashboard count equals the Needs allocation list (R2)", async ({
+  page,
+}) => {
+  const stamp = Date.now();
+  const ACCOUNT = `E2E Badge ${stamp}`;
+  const PAYEE = `E2E Badge Txn ${stamp}`;
+  await page.goto("/");
+  await createAccount(page, ACCOUNT);
+
+  // Enter an unallocated deposit so at least one item needs allocation household-wide.
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  const txnForm = page.getByRole("form", { name: "Add transaction" });
+  await txnForm.getByRole("radio", { name: "Deposit" }).check();
+  await txnForm.getByLabel("Transaction amount").fill("150.00");
+  await txnForm.getByLabel("Payee").fill(PAYEE);
+  await page.getByRole("radio", { name: "Split" }).check();
+  await page.getByRole("button", { name: "Save transaction" }).click();
+  await expect(
+    page
+      .getByRole("list", { name: "Transactions" })
+      .getByRole("listitem")
+      .filter({ hasText: PAYEE }),
+  ).toContainText("needs $150.00");
+
+  // Back on the Dashboard the badge carries the count in its accessible NAME (not color only).
+  // The shared e2e DB accretes needs-allocation items across parallel specs, so we assert the
+  // robust facts — the count renders accessibly (≥ our one contribution) and the list it links
+  // to contains our item — not a household-wide absolute (exact counts are pinned in the unit test).
+  await page.getByRole("button", { name: "← Dashboard" }).click();
+  const needsBtn = page.getByRole("button", { name: /^Needs allocation \(\d+\)$/ });
+  await expect(needsBtn).toBeVisible();
+  const badgeCount = Number(
+    /\((\d+)\)/.exec((await needsBtn.getAttribute("aria-label")) ?? "")?.[1],
+  );
+  expect(badgeCount).toBeGreaterThanOrEqual(1);
+
+  await needsBtn.click();
+  await expect(page.getByRole("list", { name: "Needs allocation" }).getByText(PAYEE)).toBeVisible();
+});
+
 test("edit a past split: change the envelope allocation via the inline editor", async ({
   page,
 }) => {

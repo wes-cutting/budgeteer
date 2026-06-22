@@ -15,6 +15,16 @@ import { MoveMoneyForm } from "./MoveMoneyForm";
 const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "loan", "cash", "other"];
 const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
 const NUM: React.CSSProperties = { textAlign: "right" };
+// R2 — needs-allocation count pill. White on dark red (~8.3:1, passes WCAG 2.2 AA).
+const BADGE: React.CSSProperties = {
+  marginLeft: "0.4em",
+  padding: "0 0.5em",
+  borderRadius: "999px",
+  backgroundColor: "#991b1b",
+  color: "#fff",
+  fontSize: "0.85em",
+  fontWeight: 600,
+};
 
 export function Dashboard({
   api,
@@ -45,6 +55,7 @@ export function Dashboard({
 }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
+  const [needsCount, setNeedsCount] = useState<number | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -57,6 +68,18 @@ export function Dashboard({
       })
       .catch((err: unknown) => {
         if (active) setLoadError(err instanceof Error ? err.message : "Couldn't load your data.");
+      });
+    // R2 — needs-allocation badge. Loaded independently of the core account/envelope fetch:
+    // it's auxiliary, so a failure here leaves the badge absent rather than blanking the
+    // Dashboard. Refreshes on the next Dashboard mount — App remounts the Dashboard on
+    // back-navigation, so completing an allocation and returning shows the new count.
+    api
+      .listNeedsAllocation()
+      .then((txns) => {
+        if (active) setNeedsCount(txns.length);
+      })
+      .catch(() => {
+        /* badge is auxiliary — leave it absent on error */
       });
     return () => {
       active = false;
@@ -122,8 +145,19 @@ export function Dashboard({
     <main>
       <header>
         <h1>Budgeteer</h1>
-        <button type="button" onClick={() => onOpenNeeds?.()}>
+        <button
+          type="button"
+          onClick={() => onOpenNeeds?.()}
+          aria-label={
+            needsCount !== null && needsCount > 0 ? `Needs allocation (${needsCount})` : undefined
+          }
+        >
           Needs allocation
+          {needsCount !== null && needsCount > 0 ? (
+            <span style={BADGE} aria-hidden="true">
+              {needsCount}
+            </span>
+          ) : null}
         </button>
         <button type="button" onClick={() => onOpenTemplates?.()}>
           Templates
