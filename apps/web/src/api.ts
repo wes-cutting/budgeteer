@@ -328,6 +328,23 @@ export interface DebtPayoffReport {
   payoffBps: number | null; // aggregate over loans with an original principal; null when none
 }
 
+// --- Analysis: net worth over time (FEAT-R9) ---
+
+export interface NetWorthPoint {
+  period: string; // "YYYY-MM" (month) or "YYYY" (year)
+  assetsCents: number; // cumulative Σ asset-account balances through this period
+  liabilitiesCents: number; // cumulative Σ liability-account balances (≤ 0 = debt)
+  netCents: number; // assets + liabilities (running net worth at period end)
+}
+
+export interface NetWorthReport {
+  grain: SpendGrain;
+  trend: NetWorthPoint[]; // ascending; one point per period with activity
+  assetsCents: number; // current Σ asset-account balances
+  liabilitiesCents: number; // current Σ liability-account balances (≤ 0)
+  netCents: number; // current net worth = assets + liabilities
+}
+
 /** Thrown on a non-2xx response, carrying the server's user-facing message. */
 export class ApiError extends Error {}
 
@@ -384,6 +401,7 @@ export interface Api {
   getDebtPayoff(): Promise<DebtPayoffReport>;
   setOriginalPrincipal(accountId: string, amount: string): Promise<LoanPrincipalView>;
   clearOriginalPrincipal(accountId: string): Promise<void>;
+  getNetWorth(grain: SpendGrain): Promise<NetWorthReport>;
 }
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -630,5 +648,8 @@ export const httpApi: Api = {
   },
   async clearOriginalPrincipal(accountId) {
     await request<unknown>(`/accounts/${accountId}/original-principal`, { method: "DELETE" });
+  },
+  async getNetWorth(grain) {
+    return (await request<{ report: NetWorthReport }>(`/analysis/net-worth?grain=${grain}`)).report;
   },
 };

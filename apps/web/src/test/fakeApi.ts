@@ -1,13 +1,16 @@
 import {
+  type AccountKind,
   type CreditAccountInput,
   type ForecastRule,
   type ForecastTarget,
   type LoanAccountInput,
+  type NetWorthFlow,
   anchorDayOf,
   cashFlowForecast,
   creditUtilization,
   debtPayoff,
   dueOccurrences,
+  netWorthOverTime,
   tryParseMoney,
 } from "@budgeteer/domain";
 import {
@@ -669,6 +672,25 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       if (account.kind !== "loan")
         throw new ApiError("An original principal applies only to loan accounts.");
       loanPrincipals.delete(accountId);
+    },
+    async getNetWorth(grain) {
+      // Mirror the server: sum every account's net balance flow per period, tagged with the
+      // account's kind, then run the SAME pure domain function. `txns` already carries opening rows
+      // and both transfer legs, so transfers net to zero exactly as they do server-side.
+      recompute();
+      const periodOf = (d: string) => (grain === "year" ? d.slice(0, 4) : d.slice(0, 7));
+      const byKey = new Map<string, NetWorthFlow>();
+      for (const t of txns) {
+        const account = accounts.find((a) => a.id === t.accountId);
+        if (!account) continue;
+        const period = periodOf(t.occurredOn);
+        const kind = account.kind as AccountKind;
+        const key = `${kind}|${period}`;
+        const flow = byKey.get(key) ?? { period, kind, netCents: 0 };
+        flow.netCents += t.amountCents;
+        byKey.set(key, flow);
+      }
+      return { grain, ...netWorthOverTime([...byKey.values()]) };
     },
     ...overrides,
   };

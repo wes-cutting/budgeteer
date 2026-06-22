@@ -125,6 +125,15 @@ test.describe("a11y — Analysis views", () => {
     ).toBeVisible();
     await assertNoViolations(page);
   });
+
+  test("net worth over time is accessible", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Net worth" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Analysis — net worth over time", level: 1 }),
+    ).toBeVisible();
+    await assertNoViolations(page);
+  });
 });
 
 test.describe("a11y — Envelope ledger", () => {

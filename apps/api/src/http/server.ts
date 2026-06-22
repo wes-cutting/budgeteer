@@ -638,6 +638,14 @@ export function buildServer(
     report: await analysis.debtPayoff(),
   }));
 
+  // --- Analysis: net worth over time (FEAT-R9) ---
+  app.get<SpendQuery>("/analysis/net-worth", async (req, reply) => {
+    const grain = req.query.grain ?? "month";
+    if (grain !== "month" && grain !== "year")
+      return fail(reply, 400, "grain must be 'month' or 'year'.");
+    return { report: await analysis.netWorth(grain) };
+  });
+
   // Set / clear a loan account's original principal (the reference number for FEAT-014b payoff).
   app.put<IdParams>("/accounts/:id/original-principal", async (req, reply) => {
     const parsed = setOriginalPrincipalBody.safeParse(req.body);

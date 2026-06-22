@@ -340,6 +340,27 @@ Household-scoped server-side.
 > — `'loan'` was added by FEAT-014b (the installment-debt account type that carries an original
 > principal for payoff). There is no edit-kind endpoint in V1, so a loan is created as `kind='loan'`.
 
+### Analysis: net worth over time (FEAT-R9)
+
+`NetWorthReport = { grain: "month"|"year", trend: NetWorthPoint[], assetsCents, liabilitiesCents,
+netCents }`; `NetWorthPoint = { period: "YYYY-MM"|"YYYY", assetsCents, liabilitiesCents, netCents }`.
+The account-level "how am I doing overall?" aggregate. Net worth is **`Σ` of all account balances**
+(signed): every account's balance is signed (ADR-0003), and a **liability** account (`kind ∈
+{credit, loan}`) carries its debt as a **negative** balance — the same `owed = −balance` convention
+as FEAT-014a/b — so net falls out as **`assetsCents + liabilitiesCents`** with `liabilitiesCents ≤ 0`
+normally. The decomposition is **by account kind** (stable over time), not by sign. Account↔account
+**transfer legs net to zero** across the two accounts, so they neither move net worth nor
+double-count; envelope reallocations never touch accounts and are irrelevant. The **trend** cumulates
+each period's net flow (`sum(amount_cents)` over **all** transactions, grouped by `to_char(occurred_on,
+fmt)` and account `kind`) into the period-end balances — one point per period **with activity**
+(between them net worth carries forward). `assetsCents/liabilitiesCents/netCents` at the top are the
+current totals (= the final trend point, or 0 when there is no activity). The math is a **pure domain
+function** (`netWorthOverTime`); the service feeds it I/O. **No new table** (read-only aggregate, same
+pattern as FEAT-011). Money is **integer cents**. Household-scoped server-side.
+
+- **`GET /analysis/net-worth?grain=month|year`** (default `month`) → `200 { report }`. A malformed
+  `grain` → `400`.
+
 ### Backup / export (FEAT-015a)
 
 Delivers a complete JSON snapshot of the household's data as a downloadable file. The

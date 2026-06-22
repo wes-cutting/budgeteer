@@ -26,6 +26,7 @@ export function Dashboard({
   onOpenForecast,
   onOpenCredit,
   onOpenPayoff,
+  onOpenNetWorth,
 }: {
   api: Api;
   onOpenAccount?: (account: AccountView) => void;
@@ -38,6 +39,7 @@ export function Dashboard({
   onOpenForecast?: () => void;
   onOpenCredit?: () => void;
   onOpenPayoff?: () => void;
+  onOpenNetWorth?: () => void;
 }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
@@ -141,6 +143,9 @@ export function Dashboard({
         </button>
         <button type="button" onClick={() => onOpenPayoff?.()}>
           Payoff
+        </button>
+        <button type="button" onClick={() => onOpenNetWorth?.()}>
+          Net worth
         </button>
         <a href={exportUrl}>Download backup</a>
       </header>

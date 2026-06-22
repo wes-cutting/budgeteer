@@ -1,5 +1,6 @@
 import { type Kysely, sql } from "kysely";
 import {
+  type AccountKind,
   type CreditAccountInput,
   type CreditUtilizationReport,
   type DebtPayoffReport,
@@ -7,10 +8,13 @@ import {
   type ForecastRule,
   type ForecastTarget,
   type LoanAccountInput,
+  type NetWorthFlow,
+  type NetWorthReport,
   type RecurringFrequency,
   cashFlowForecast as computeForecast,
   creditUtilization as computeCreditUtilization,
   debtPayoff as computeDebtPayoff,
+  netWorthOverTime as computeNetWorth,
 } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
@@ -71,6 +75,11 @@ export interface BudgetVsActualReport {
 export interface CashFlowForecast extends Forecast {
   accountId: string;
   accountName: string;
+}
+
+/** The pure-domain `NetWorthReport` plus the grain it was rolled up at (FEAT-R9). */
+export interface NetWorthRollup extends NetWorthReport {
+  grain: SpendGrain;
 }
 
 const HH = DEFAULT_HOUSEHOLD_ID;
@@ -503,6 +512,45 @@ export function makeAnalysisService(db: Kysely<DB>) {
       }
 
       return computeDebtPayoff(inputs);
+    },
+
+    /**
+     * Net worth over time (FEAT-R9) — the account-level "how am I doing overall?" aggregate the
+     * analysis area was missing. For each period it sums every account's net balance flow, split by
+     * the account's KIND into assets vs. liabilities (credit/loan), then cumulates ascending into a
+     * period-end Assets / Liabilities / Net trend. By the sign convention (ADR-0003), a liability's
+     * balance is negative (debt), so net = assets + liabilities falls out directly and account
+     * transfer legs net to zero across the two accounts (so they neither distort nor double-count).
+     *
+     * This read only **gathers** the inputs (per-period, per-kind net flows over ALL transactions —
+     * no kind/transfer exclusions, no envelope_transfers); the math is the pure domain
+     * `netWorthOverTime`. Read-only aggregate — **no schema change** — and the same monthly-grid
+     * pattern as #11. Money stays integer cents (summed in SQL, narrowed at the boundary). `grain` is
+     * a closed enum validated at the boundary, so the format is a safe literal.
+     */
+    async netWorth(grain: SpendGrain): Promise<NetWorthRollup> {
+      const fmt = grain === "year" ? "YYYY" : "YYYY-MM";
+      const periodExpr = sql<string>`to_char(t.occurred_on, ${sql.lit(fmt)})`;
+
+      const rows = await db
+        .selectFrom("transactions as t")
+        .innerJoin("accounts as a", "a.id", "t.account_id")
+        .where("t.household_id", "=", HH)
+        .select([
+          "a.kind as kind",
+          periodExpr.as("period"),
+          sql<string>`sum(t.amount_cents)`.as("net_cents"),
+        ])
+        .groupBy(["a.kind", periodExpr])
+        .execute();
+
+      const flows: NetWorthFlow[] = rows.map((r) => ({
+        period: r.period,
+        kind: r.kind as AccountKind,
+        netCents: Number(r.net_cents ?? 0),
+      }));
+
+      return { grain, ...computeNetWorth(flows) };
     },
   };
 }

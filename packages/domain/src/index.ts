@@ -9,4 +9,5 @@ export * from "./recurring";
 export * from "./forecast";
 export * from "./credit";
 export * from "./loan";
+export * from "./networth";
 export * from "./reconcile";

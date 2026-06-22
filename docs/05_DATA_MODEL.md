@@ -298,6 +298,12 @@ The two derived-balance views `v_account_balances` and `v_envelope_balances` are
 > `create table if not exists` + a unique index on `account_id`), the per-loan original principal. The
 > **payoff** half adds **no** schema: it is the same read as `#14a` (owed = −balance + a per-account
 > monthly net-flow trend) against the stored original. No balance-view change. Migrator stays idempotent.
+> **`R9`** (analysis, net worth over time; FEAT-R9) adds **no** schema at all — it is a read-only
+> aggregate of **all** transactions (`sum(amount_cents)` bucketed by `to_char(occurred_on,'YYYY-MM'|'YYYY')`
+> and account `kind`), cumulated into a period-end Assets / Liabilities / Net trend. Net worth = `Σ` of
+> all signed account balances; liabilities (`kind ∈ {credit, loan}`) sum in negative, so `net = assets +
+> liabilities` and transfer legs cancel across accounts. No new table, no balance-view change; the same
+> pattern as FEAT-011.
 
 ## 5. Seed / fixtures
 

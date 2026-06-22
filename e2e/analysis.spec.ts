@@ -138,3 +138,46 @@ test("debt payoff: set an original principal and see the payoff percentage", asy
   // (10,000 − 7,500) ÷ 10,000 = 25.0% paid off.
   await expect(page.getByText("25.0%").first()).toBeVisible();
 });
+
+// FEAT-R9 — net worth over time. A household-wide aggregate with no per-account row, and the e2e DB
+// accretes across parallel specs — so we assert the arithmetic INVARIANT (net = assets + liabilities)
+// off the rendered current totals, which holds at any render regardless of other tests' accounts.
+test("net worth: current totals satisfy net = assets + liabilities, and the month is in the trend", async ({
+  page,
+}) => {
+  const stamp = Date.now();
+  const CHECKING = `E2E NW Checking ${stamp}`;
+  const CARD = `E2E NW Card ${stamp}`;
+  await page.goto("/");
+  await createAccount(page, CHECKING, { balance: "1000.00" }); // an asset
+  await createAccount(page, CARD, { kind: "credit", balance: "-300.00" }); // a liability (owes $300)
+
+  await page.getByRole("button", { name: "Net worth", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Analysis — net worth over time", level: 1 }),
+  ).toBeVisible();
+
+  const totals = page.getByRole("table", { name: "Current totals" });
+  const cents = async (label: string): Promise<number> => {
+    const txt = await totals
+      .getByRole("row", { name: new RegExp(label) })
+      .getByRole("cell")
+      .textContent();
+    return Math.round(parseFloat((txt ?? "").replace(/[^0-9.-]/g, "")) * 100);
+  };
+  const [assets, liabilities, net] = await Promise.all([
+    cents("Assets"),
+    cents("Liabilities"),
+    cents("Net worth"),
+  ]);
+  // The invariant the whole feature rests on — proven end to end (data → API → domain → UI).
+  expect(net).toBe(assets + liabilities);
+
+  // The current month (the opening rows are dated today) appears in the over-time trend.
+  const month = new Date().toISOString().slice(0, 7);
+  await expect(
+    page
+      .getByRole("table", { name: /Net worth over time/ })
+      .getByRole("rowheader", { name: month }),
+  ).toBeVisible();
+});
