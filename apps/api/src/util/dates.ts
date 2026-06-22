@@ -6,6 +6,20 @@
 export const todayStr = (): string => new Date().toISOString().slice(0, 10);
 
 /**
+ * The first and last calendar day of the month containing today (UTC), as 'YYYY-MM-DD'
+ * strings — the default window for the account register (R8). Computed here so the HTTP
+ * boundary doesn't re-derive month arithmetic.
+ */
+export const currentMonthRange = (): { from: string; to: string } => {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth(); // 0-based
+  const pad = (n: number): string => String(n).padStart(2, "0");
+  const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return { from: `${y}-${pad(m + 1)}-01`, to: `${y}-${pad(m + 1)}-${pad(lastDay)}` };
+};
+
+/**
  * A nullable timestamp column → a full ISO-8601 string (e.g. `archivedAt`), or null. Accepts a
  * `Date` or a string row value (node-postgres returns `Date`; PGlite may return a string).
  */

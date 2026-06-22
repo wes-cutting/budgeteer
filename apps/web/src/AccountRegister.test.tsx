@@ -73,6 +73,48 @@ describe("AccountRegister (add transaction → allocate)", () => {
     expect(await screen.findByText(/needs \$40\.00/)).toBeTruthy();
   });
 
+  test("client-side search narrows the register by payee (R8)", async () => {
+    const api = makeFakeApi();
+    const account = await api.createAccount({
+      name: "Checking",
+      kind: "checking",
+      startingBalance: "0",
+    });
+    const rent = await api.createEnvelope({ name: "Rent", kind: "standard" });
+    await api.createTransaction(account.id, {
+      kind: "deposit",
+      amount: "100.00",
+      payee: "Paycheck",
+      allocations: [{ envelopeId: rent.id, amount: "100.00" }],
+    });
+    await api.createTransaction(account.id, {
+      kind: "withdrawal",
+      amount: "30.00",
+      payee: "Coffee Shop",
+      allocations: [{ envelopeId: rent.id, amount: "30.00" }],
+    });
+
+    const user = userEvent.setup();
+    render(
+      <AccountRegister
+        api={api}
+        accountId={account.id}
+        accountName="Checking"
+        onBack={() => {}}
+        onOpenNeeds={() => {}}
+      />,
+    );
+
+    // Both rows present before searching.
+    expect(await screen.findByText("Paycheck")).toBeTruthy();
+    expect(screen.getByText("Coffee Shop")).toBeTruthy();
+
+    // Searching narrows to the matching payee (case-insensitive).
+    await user.type(screen.getByLabelText("Search payee or memo"), "coffee");
+    expect(screen.queryByText("Paycheck")).toBeNull();
+    expect(screen.getByText("Coffee Shop")).toBeTruthy();
+  });
+
   test("archived envelopes are excluded from the allocation picker (FEAT-006)", async () => {
     const api = makeFakeApi();
     const account = await api.createAccount({

@@ -169,6 +169,38 @@ test("refund row: withdrawal with a refund results in the correct net spend", as
   await expect(txnRow).toContainText("-$80.00");
 });
 
+test("client-side search filters the register by payee", async ({ page }) => {
+  const stamp = Date.now();
+  const ACCOUNT = `E2E Account ${stamp}`;
+  const PAYEE_MATCH = `E2E Searchable ${stamp}`;
+  const PAYEE_OTHER = `E2E Unrelated ${stamp}`;
+  await page.goto("/");
+  await createAccount(page, ACCOUNT);
+
+  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  const txnForm = page.getByRole("form", { name: "Add transaction" });
+  const list = page.getByRole("list", { name: "Transactions" });
+
+  // Two unallocated deposits with distinct payees, both dated today → current-month window.
+  await txnForm.getByRole("radio", { name: "Deposit" }).check();
+  await page.getByRole("radio", { name: "Split" }).check();
+  await txnForm.getByLabel("Transaction amount").fill("50.00");
+  await txnForm.getByLabel("Payee").fill(PAYEE_MATCH);
+  await txnForm.getByRole("button", { name: "Save transaction" }).click();
+  // Wait for the first row to land (so the form has cleared) before entering the second.
+  await expect(list.getByRole("listitem").filter({ hasText: PAYEE_MATCH })).toBeVisible();
+
+  await txnForm.getByLabel("Transaction amount").fill("30.00");
+  await txnForm.getByLabel("Payee").fill(PAYEE_OTHER);
+  await txnForm.getByRole("button", { name: "Save transaction" }).click();
+  await expect(list.getByRole("listitem").filter({ hasText: PAYEE_OTHER })).toBeVisible();
+
+  // Searching by the unique payee hides the other row (client-side, no reload).
+  await page.getByLabel("Search payee or memo").fill(PAYEE_MATCH);
+  await expect(list.getByRole("listitem").filter({ hasText: PAYEE_MATCH })).toBeVisible();
+  await expect(list.getByRole("listitem").filter({ hasText: PAYEE_OTHER })).toHaveCount(0);
+});
+
 test("delete transaction: row disappears and balance reverts", async ({ page }) => {
   const stamp = Date.now();
   const ACCOUNT = `E2E Account ${stamp}`;

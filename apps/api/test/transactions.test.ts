@@ -159,9 +159,61 @@ describe("transactions & allocation API (FEAT-003)", () => {
       occurredOn: "2026-06-12",
       allocations: [{ envelopeId: env.Rent, amount: "20.00" }],
     });
-    const register = (await get(`/accounts/${accountId}/transactions`)).json().transactions;
+    // Explicit wide window so the assertion is independent of the run-date default (R8).
+    const register = (
+      await get(`/accounts/${accountId}/transactions?from=2000-01-01&to=2100-12-31`)
+    ).json().transactions;
     expect(register).toHaveLength(3); // opening(0) + two
     expect(register[0].occurredOn >= register[1].occurredOn).toBe(true);
+  });
+
+  test("the register defaults to the current calendar month; opening row always shows (R8)", async () => {
+    const { accountId, env } = await seed("0");
+    const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+    await post(`/accounts/${accountId}/transactions`, {
+      kind: "deposit",
+      amount: "20.00",
+      occurredOn: `${month}-15`,
+      allocations: [{ envelopeId: env.Rent, amount: "20.00" }],
+    });
+    await post(`/accounts/${accountId}/transactions`, {
+      kind: "withdrawal",
+      amount: "10.00",
+      occurredOn: "2020-01-15",
+      allocations: [{ envelopeId: env.Gas, amount: "10.00" }],
+    });
+    const register = (await get(`/accounts/${accountId}/transactions`)).json().transactions;
+    const dates = register.map((t: { occurredOn: string }) => t.occurredOn);
+    expect(register.some((t: { kind: string }) => t.kind === "opening")).toBe(true); // anchor kept
+    expect(dates).toContain(`${month}-15`); // this month is in-window
+    expect(dates).not.toContain("2020-01-15"); // the older row is hidden
+  });
+
+  test("an explicit ?from&to window filters rows but always keeps the opening balance (R8)", async () => {
+    const { accountId, env } = await seed("100.00");
+    await post(`/accounts/${accountId}/transactions`, {
+      kind: "withdrawal",
+      amount: "10.00",
+      occurredOn: "2020-06-15",
+      allocations: [{ envelopeId: env.Gas, amount: "10.00" }],
+    });
+    const register = (
+      await get(`/accounts/${accountId}/transactions?from=2020-01-01&to=2020-12-31`)
+    ).json().transactions;
+    // The 2020 row is in-window; the opening row (dated today) is out-of-window yet still shown.
+    expect(register).toHaveLength(2);
+    expect(register.some((t: { kind: string }) => t.kind === "opening")).toBe(true);
+    expect(register.some((t: { occurredOn: string }) => t.occurredOn === "2020-06-15")).toBe(true);
+  });
+
+  test("a malformed from/to query param is rejected with 400 (R8)", async () => {
+    const { accountId } = await seed("0");
+    expect(
+      (await get(`/accounts/${accountId}/transactions?from=2020-1-1&to=2020-12-31`)).statusCode,
+    ).toBe(400);
+    expect(
+      (await get(`/accounts/${accountId}/transactions?from=2020-01-01&to=nonsense`)).statusCode,
+    ).toBe(400);
   });
 
   test("editing a fully-allocated split (FEAT-005) replaces it and re-derives balances", async () => {

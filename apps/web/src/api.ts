@@ -345,7 +345,10 @@ export interface Api {
   createEnvelope(input: { name: string; kind: EnvelopeKind }): Promise<EnvelopeView>;
   archiveEnvelope(id: string): Promise<EnvelopeView>;
   unarchiveEnvelope(id: string): Promise<EnvelopeView>;
-  listTransactions(accountId: string): Promise<TransactionView[]>;
+  listTransactions(
+    accountId: string,
+    range?: { from?: string; to?: string },
+  ): Promise<TransactionView[]>;
   createTransaction(accountId: string, input: CreateTransactionInput): Promise<TransactionView>;
   deleteTransaction(id: string): Promise<void>;
   deleteTransfer(id: string): Promise<void>;
@@ -459,9 +462,15 @@ export const httpApi: Api = {
       await request<{ envelope: EnvelopeView }>(`/envelopes/${id}/unarchive`, { method: "POST" })
     ).envelope;
   },
-  async listTransactions(accountId) {
+  async listTransactions(accountId, range) {
+    const qs = new URLSearchParams();
+    if (range?.from) qs.set("from", range.from);
+    if (range?.to) qs.set("to", range.to);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return (
-      await request<{ transactions: TransactionView[] }>(`/accounts/${accountId}/transactions`)
+      await request<{ transactions: TransactionView[] }>(
+        `/accounts/${accountId}/transactions${suffix}`,
+      )
     ).transactions;
   },
   async createTransaction(accountId, input) {

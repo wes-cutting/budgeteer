@@ -78,7 +78,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
     amountCents: number,
     payee: string | null,
     allocations: { envelopeId: string; amountCents: number }[],
-    occurredOn = "2026-06-13",
+    occurredOn = new Date().toISOString().slice(0, 10),
     transfer: { id: string; counterpartName: string } | null = null,
   ): TransactionView {
     return {
@@ -167,9 +167,17 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       envelope.archivedAt = null;
       return { ...envelope };
     },
-    async listTransactions(accountId) {
+    async listTransactions(accountId, range) {
       recompute();
-      return txns.filter((t) => t.accountId === accountId).map(clone);
+      return txns
+        .filter((t) => t.accountId === accountId)
+        .filter((t) => {
+          if (!range?.from || !range?.to) return true;
+          // Opening rows always show (their balance anchor may predate the window) — R8.
+          if (t.kind === "opening") return true;
+          return t.occurredOn >= range.from && t.occurredOn <= range.to;
+        })
+        .map(clone);
     },
     async createTransaction(accountId, input) {
       const account = accounts.find((a) => a.id === accountId);
@@ -215,7 +223,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       const magnitude = tryParseMoney(amount) ?? 0;
       if (magnitude <= 0) throw new ApiError("Enter an amount greater than 0.");
       const id = newId("xfer");
-      const on = occurredOn ?? "2026-06-13";
+      const on = occurredOn ?? new Date().toISOString().slice(0, 10);
       const outLeg = makeTxn(from, "transfer", -magnitude, null, [], on, {
         id,
         counterpartName: to.name,
@@ -255,7 +263,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       if (magnitude <= 0) throw new ApiError("Enter an amount greater than 0.");
       const et: EnvelopeTransferView = {
         id: newId("etr"),
-        occurredOn: occurredOn ?? "2026-06-13",
+        occurredOn: occurredOn ?? new Date().toISOString().slice(0, 10),
         memo: memo ?? null,
         amountCents: magnitude,
         from: { envelopeId: from.id, envelopeName: from.name },

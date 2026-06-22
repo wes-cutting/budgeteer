@@ -21,6 +21,16 @@ interface Props {
   onOpenNeeds: () => void;
 }
 
+/** First/last day of the current calendar month as 'YYYY-MM-DD' — the register's default window (R8). */
+function currentMonthRange(): { from: string; to: string } {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth(); // 0-based
+  const pad = (n: number): string => String(n).padStart(2, "0");
+  const lastDay = new Date(y, m + 1, 0).getDate();
+  return { from: `${y}-${pad(m + 1)}-01`, to: `${y}-${pad(m + 1)}-${pad(lastDay)}` };
+}
+
 export function AccountRegister({ api, accountId, accountName, onBack, onOpenNeeds }: Props) {
   const [transactions, setTransactions] = useState<TransactionView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[]>([]);
@@ -31,11 +41,13 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [range, setRange] = useState(currentMonthRange);
+  const [search, setSearch] = useState("");
 
   async function load() {
     try {
       const [txns, envs, accounts, tpls] = await Promise.all([
-        api.listTransactions(accountId),
+        api.listTransactions(accountId, range),
         api.listEnvelopes(),
         api.listAccounts(),
         api.listTemplates(),
@@ -94,7 +106,20 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountId]);
+  }, [accountId, range.from, range.to]);
+
+  // Client-side payee/memo search over the date-windowed rows (R8).
+  const query = search.trim().toLowerCase();
+  const visible =
+    transactions === null
+      ? null
+      : query === ""
+        ? transactions
+        : transactions.filter(
+            (t) =>
+              (t.payee?.toLowerCase().includes(query) ?? false) ||
+              (t.memo?.toLowerCase().includes(query) ?? false),
+          );
 
   return (
     <main>
@@ -139,13 +164,41 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
 
       <section aria-labelledby="register-heading">
         <h2 id="register-heading">Transactions</h2>
-        {transactions === null ? (
+
+        <form aria-label="Filter transactions" onSubmit={(e) => e.preventDefault()}>
+          <label htmlFor="register-from">From date</label>
+          <input
+            id="register-from"
+            type="date"
+            value={range.from}
+            onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
+          />
+          <label htmlFor="register-to">To date</label>
+          <input
+            id="register-to"
+            type="date"
+            value={range.to}
+            onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
+          />
+          <label htmlFor="register-search">Search payee or memo</label>
+          <input
+            id="register-search"
+            type="search"
+            placeholder="Search payee or memo"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </form>
+
+        {transactions === null || visible === null ? (
           <p>Loading…</p>
         ) : transactions.length === 0 ? (
           <p>No transactions yet — add your first one.</p>
+        ) : visible.length === 0 ? (
+          <p>No transactions match your search.</p>
         ) : (
           <ul aria-label="Transactions">
-            {transactions.map((t) =>
+            {visible.map((t) =>
               t.kind === "transfer" ? (
                 <li key={t.id}>
                   <span>{t.occurredOn}</span>{" "}

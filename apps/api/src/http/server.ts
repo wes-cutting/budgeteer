@@ -15,7 +15,7 @@ import {
   validateName,
 } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { todayStr } from "../util/dates";
+import { currentMonthRange, todayStr } from "../util/dates";
 import { makeAccountService } from "../services/accountService";
 import { makeEnvelopeService } from "../services/envelopeService";
 import { makeTransactionService } from "../services/transactionService";
@@ -136,6 +136,10 @@ function parseTemplateLines(
 /** Route param shapes — supplied as Fastify route generics so `req.params` is typed (no casts). */
 type IdParams = { Params: { id: string } };
 type AccountIdParams = { Params: { accountId: string } };
+type AccountTxnsRoute = {
+  Params: { accountId: string };
+  Querystring: { from?: string; to?: string };
+};
 type SpendQuery = { Querystring: { grain?: string } };
 type MonthQuery = { Querystring: { month?: string } };
 type ForecastQuery = {
@@ -328,10 +332,16 @@ export function buildServer(
     transactions: await transactions.needsAllocation(),
   }));
 
-  app.get<AccountIdParams>("/accounts/:accountId/transactions", async (req, reply) => {
+  app.get<AccountTxnsRoute>("/accounts/:accountId/transactions", async (req, reply) => {
     const { accountId } = req.params;
+    // Default the register to the current calendar month (R8); `opening` rows always show.
+    const def = currentMonthRange();
+    const from = req.query.from ?? def.from;
+    const to = req.query.to ?? def.to;
+    if (!DATE_RE.test(from) || !DATE_RE.test(to))
+      return fail(reply, 400, "from/to must be YYYY-MM-DD.");
     try {
-      return { transactions: await transactions.listByAccount(accountId) };
+      return { transactions: await transactions.listByAccount(accountId, { from, to }) };
     } catch (e) {
       if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
       throw e;

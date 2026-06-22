@@ -130,7 +130,11 @@ name, for the register label — FEAT-007). Transfer legs are **excluded** from 
   payee?, memo?, allocations?: [{ envelopeId, amount, refund? }] }`. → `201 { transaction }`.
   Errors: `400` (amount ≤ 0, bad date, over-allocation, net direction-flip, unknown/archived envelope); `404` (account).
 - **`GET /accounts/:accountId/transactions`** — the account register (newest-first).
-  → `200 { transactions: TransactionView[] }`; `404` if the account is missing.
+  Query: `?from=YYYY-MM-DD&to=YYYY-MM-DD` (inclusive date window over `occurredOn`); **defaults to
+  the current calendar month** when omitted (R8). `opening` rows are **always** included regardless
+  of the window, so the register keeps its balance anchor. Payee/memo search is **client-side** over
+  the windowed rows. → `200 { transactions: TransactionView[] }`; `400` if `from`/`to` is not
+  `YYYY-MM-DD`; `404` if the account is missing.
 - **`PUT /transactions/:id/allocations`** — replace a transaction's allocations (allocate-later
   **and edit a past split**, FEAT-005). Input: `{ allocations: [{ envelopeId, amount, refund? }] }`. →
   `200 { transaction }`. Errors: `400` (over-allocation, net direction-flip, unknown/archived envelope); `404` (transaction).

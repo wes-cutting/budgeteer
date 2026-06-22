@@ -233,7 +233,16 @@ export function makeTransactionService(db: Kysely<DB>) {
       return getView(db, id);
     },
 
-    async listByAccount(accountId: string): Promise<TransactionView[]> {
+    /**
+     * The account register, newest-first. An optional `from`/`to` window (inclusive,
+     * 'YYYY-MM-DD') bounds the list by `occurred_on` (R8) — but `opening` rows are always
+     * included so the register keeps its balance anchor even when its date predates the
+     * window. With no window, every row is returned.
+     */
+    async listByAccount(
+      accountId: string,
+      opts?: { from?: string; to?: string },
+    ): Promise<TransactionView[]> {
       const account = await db
         .selectFrom("accounts")
         .select("id")
@@ -241,8 +250,17 @@ export function makeTransactionService(db: Kysely<DB>) {
         .where("household_id", "=", HH)
         .executeTakeFirst();
       if (!account) throw new NotFoundError("account");
-      const rows = await selectTxns(db)
-        .where("t.account_id", "=", accountId)
+      let query = selectTxns(db).where("t.account_id", "=", accountId);
+      if (opts?.from && opts?.to) {
+        const { from, to } = opts;
+        query = query.where((eb) =>
+          eb.or([
+            eb("t.kind", "=", "opening"),
+            eb.and([eb("t.occurred_on", ">=", from), eb("t.occurred_on", "<=", to)]),
+          ]),
+        );
+      }
+      const rows = await query
         .orderBy("t.occurred_on", "desc")
         .orderBy("t.created_at", "desc")
         .execute();
