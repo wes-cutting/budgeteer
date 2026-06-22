@@ -81,6 +81,22 @@ export function Dashboard({
       setLoadError(err instanceof Error ? err.message : "Couldn't refresh envelopes.");
     }
   }
+  async function archiveAccount(id: string) {
+    try {
+      await api.archiveAccount(id);
+      await refreshAccounts();
+    } catch (err: unknown) {
+      setLoadError(err instanceof Error ? err.message : "Couldn't archive the account.");
+    }
+  }
+  async function unarchiveAccount(id: string) {
+    try {
+      await api.unarchiveAccount(id);
+      await refreshAccounts();
+    } catch (err: unknown) {
+      setLoadError(err instanceof Error ? err.message : "Couldn't unarchive the account.");
+    }
+  }
   async function archiveEnvelope(id: string) {
     try {
       await api.archiveEnvelope(id);
@@ -138,6 +154,8 @@ export function Dashboard({
           accounts={accounts}
           onOpen={onOpenAccount}
           onRename={(id, name) => void renameAccount(id, name)}
+          onArchive={(id) => void archiveAccount(id)}
+          onUnarchive={(id) => void unarchiveAccount(id)}
         />
       </section>
 
@@ -164,66 +182,109 @@ function AccountList({
   accounts,
   onOpen,
   onRename,
+  onArchive,
+  onUnarchive,
 }: {
   accounts: AccountView[] | null;
   onOpen?: (account: AccountView) => void;
   onRename?: (id: string, name: string) => void;
+  onArchive?: (id: string) => void;
+  onUnarchive?: (id: string) => void;
 }) {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
 
   if (accounts === null) return <p>Loading…</p>;
-  if (accounts.length === 0) {
+  const active = accounts.filter((a) => a.archivedAt === null);
+  const archived = accounts.filter((a) => a.archivedAt !== null);
+  if (active.length === 0 && archived.length === 0) {
     return <p>No accounts yet — add the bank, card, or cash accounts you use.</p>;
   }
-  return (
-    <ul aria-label="Accounts list">
-      {accounts.map((a) => (
-        <li key={a.id}>
-          {renamingId === a.id ? (
-            <span>
-              <input
-                aria-label={`Rename ${a.name}`}
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-              />
+
+  function renderRow(a: AccountView, isArchived: boolean) {
+    return (
+      <li key={a.id}>
+        {renamingId === a.id ? (
+          <span>
+            <input
+              aria-label={`Rename ${a.name}`}
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                onRename?.(a.id, renameValue);
+                setRenamingId(null);
+              }}
+            >
+              Save
+            </button>
+          </span>
+        ) : (
+          <>
+            {onOpen ? (
+              <button type="button" onClick={() => onOpen(a)}>
+                {a.name}
+              </button>
+            ) : (
+              <span>{a.name}</span>
+            )}{" "}
+            <span>{a.kind}</span> <span>{formatCents(a.balanceCents)}</span>
+            {!isArchived && onRename ? (
               <button
                 type="button"
+                aria-label={`Rename ${a.name}`}
                 onClick={() => {
-                  onRename?.(a.id, renameValue);
-                  setRenamingId(null);
+                  setRenamingId(a.id);
+                  setRenameValue(a.name);
                 }}
               >
-                Save
+                Rename
               </button>
-            </span>
-          ) : (
-            <>
-              {onOpen ? (
-                <button type="button" onClick={() => onOpen(a)}>
-                  {a.name}
-                </button>
-              ) : (
-                <span>{a.name}</span>
-              )}{" "}
-              <span>{a.kind}</span> <span>{formatCents(a.balanceCents)}</span>
-              {onRename ? (
-                <button
-                  type="button"
-                  aria-label={`Rename ${a.name}`}
-                  onClick={() => {
-                    setRenamingId(a.id);
-                    setRenameValue(a.name);
-                  }}
-                >
-                  Rename
-                </button>
-              ) : null}
-            </>
-          )}
-        </li>
-      ))}
-    </ul>
+            ) : null}
+            {!isArchived && onArchive ? (
+              <button
+                type="button"
+                aria-label={`Archive ${a.name}`}
+                onClick={() => onArchive(a.id)}
+              >
+                Archive
+              </button>
+            ) : null}
+            {isArchived && onUnarchive ? (
+              <button
+                type="button"
+                aria-label={`Unarchive ${a.name}`}
+                onClick={() => onUnarchive(a.id)}
+              >
+                Unarchive
+              </button>
+            ) : null}
+          </>
+        )}
+      </li>
+    );
+  }
+
+  return (
+    <>
+      <ul aria-label="Accounts list">{active.map((a) => renderRow(a, false))}</ul>
+      {archived.length > 0 ? (
+        <>
+          <button type="button" onClick={() => setShowArchived((v) => !v)}>
+            {showArchived ? "Hide archived" : "Show archived"}
+          </button>
+          {showArchived ? (
+            <section aria-labelledby="archived-accounts-heading">
+              <h3 id="archived-accounts-heading">Archived accounts</h3>
+              <ul aria-label="Archived accounts">{archived.map((a) => renderRow(a, true))}</ul>
+            </section>
+          ) : null}
+        </>
+      ) : null}
+    </>
   );
 }
 

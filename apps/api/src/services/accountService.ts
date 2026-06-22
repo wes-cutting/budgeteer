@@ -124,5 +124,23 @@ export function makeAccountService(db: Kysely<DB>) {
         }),
       );
     },
+
+    async setArchived(id: string, archived: boolean): Promise<AccountView> {
+      const current = await db
+        .selectFrom("accounts")
+        .select("id")
+        .where("id", "=", id)
+        .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .executeTakeFirst();
+      if (!current) throw new NotFoundError("account");
+      await db
+        .updateTable("accounts")
+        .set({ archived_at: archived ? new Date() : null })
+        .where("id", "=", id)
+        .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .execute();
+      const row = await selectView(db).where("a.id", "=", id).executeTakeFirstOrThrow();
+      return toView(row);
+    },
   };
 }

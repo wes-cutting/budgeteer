@@ -128,6 +128,18 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       account.name = name;
       return { ...account };
     },
+    async archiveAccount(id) {
+      const account = accounts.find((a) => a.id === id);
+      if (!account) throw new ApiError("Account not found.");
+      account.archivedAt = new Date().toISOString();
+      return { ...account };
+    },
+    async unarchiveAccount(id) {
+      const account = accounts.find((a) => a.id === id);
+      if (!account) throw new ApiError("Account not found.");
+      account.archivedAt = null;
+      return { ...account };
+    },
     async listEnvelopes() {
       recompute();
       return envelopes.map((e) => ({ ...e }));

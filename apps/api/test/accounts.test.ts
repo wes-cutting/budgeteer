@@ -9,7 +9,7 @@ afterEach(async () => {
   await closeTestApp(ctx);
 });
 
-const post = (url: string, body: Record<string, unknown>) =>
+const post = (url: string, body?: Record<string, unknown>) =>
   ctx.app.inject({ method: "POST", url, payload: body });
 const patch = (url: string, body: Record<string, unknown>) =>
   ctx.app.inject({ method: "PATCH", url, payload: body });
@@ -80,6 +80,24 @@ describe("accounts API (FEAT-001)", () => {
         .map((a: { balanceCents: number }) => a.balanceCents)
         .sort((x: number, y: number) => x - y),
     ).toEqual([5000, 10000]);
+  });
+
+  test("archive sets archivedAt; unarchive clears it; missing id → 404", async () => {
+    const a = (
+      await post("/accounts", { name: "A", kind: "checking", startingBalance: "0" })
+    ).json().account;
+
+    const archived = await post(`/accounts/${a.id}/archive`);
+    expect(archived.statusCode).toBe(200);
+    expect(archived.json().account.archivedAt).not.toBeNull();
+
+    const unarchived = await post(`/accounts/${a.id}/unarchive`);
+    expect(unarchived.statusCode).toBe(200);
+    expect(unarchived.json().account.archivedAt).toBeNull();
+
+    expect((await post("/accounts/00000000-0000-0000-0000-0000000000ff/archive")).statusCode).toBe(
+      404,
+    );
   });
 
   test("rename updates the name; duplicate rename → 409; missing → 404", async () => {

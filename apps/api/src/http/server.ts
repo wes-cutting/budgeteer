@@ -239,6 +239,26 @@ export function buildServer(
     }
   });
 
+  app.post<IdParams>("/accounts/:id/archive", async (req, reply) => {
+    const { id } = req.params;
+    try {
+      return { account: await accounts.setArchived(id, true) };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
+      throw e;
+    }
+  });
+
+  app.post<IdParams>("/accounts/:id/unarchive", async (req, reply) => {
+    const { id } = req.params;
+    try {
+      return { account: await accounts.setArchived(id, false) };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
+      throw e;
+    }
+  });
+
   // --- Envelopes (FEAT-002) ---
   app.get("/envelopes", async () => ({ envelopes: await envelopes.list() }));
 

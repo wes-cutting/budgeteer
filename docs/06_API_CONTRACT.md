@@ -75,6 +75,13 @@ The error handler **preserves the original 4xx status** (e.g. a malformed/empty 
 - **Input:** `{ name: string }`. **Output:** `200 { "account": AccountView }`.
 - **Errors:** `400` (empty name); `404` (no such account); `409` (duplicate name).
 
+### `POST /accounts/:id/archive` · `POST /accounts/:id/unarchive` (R7)
+- **Purpose:** soft-delete / restore an account (history + balance preserved).
+- **Output:** `200 { "account": AccountView }` (`archivedAt` set / `null`); `404` if missing.
+- `GET /accounts` returns **all** accounts (active + archived) with `archivedAt`. Archived
+  accounts remain fully viewable (register, transactions, delete still work) — only **new**
+  transfers into/out of them are rejected `400` (the existing transfer-create guard).
+
 ### `GET /envelopes`
 - **Output:** `200 { "envelopes": EnvelopeView[] }`.
 - `EnvelopeView = { id, name, kind, balanceCents, archivedAt }`; `kind ∈ {standard, sinking_fund}`; `balanceCents` **derived** from allocations **plus net envelope-transfer flow** (ADR-0004 B).

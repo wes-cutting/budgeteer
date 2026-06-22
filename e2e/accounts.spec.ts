@@ -19,6 +19,24 @@ test("create a checking account and open its register", async ({ page }) => {
   await expect(page.getByText("Balance: $0.00", { exact: true })).toBeVisible();
 });
 
+test("archive and unarchive an account (R7)", async ({ page }) => {
+  const stamp = Date.now();
+  const ACCOUNT = `E2E Archive ${stamp}`;
+  await page.goto("/");
+  await createAccount(page, ACCOUNT);
+
+  await page.getByRole("button", { name: `Archive ${ACCOUNT}` }).click();
+  await expect(page.getByRole("button", { name: ACCOUNT, exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Show archived" }).click();
+  await expect(page.getByRole("heading", { name: "Archived accounts" })).toBeVisible();
+  await expect(page.getByRole("button", { name: `Unarchive ${ACCOUNT}` })).toBeVisible();
+
+  await page.getByRole("button", { name: `Unarchive ${ACCOUNT}` }).click();
+  await expect(page.getByRole("button", { name: ACCOUNT, exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: `Unarchive ${ACCOUNT}` })).toHaveCount(0);
+});
+
 test("rename an account inline (R1)", async ({ page }) => {
   const stamp = Date.now();
   const ORIGINAL = `E2E Rename ${stamp}`;
