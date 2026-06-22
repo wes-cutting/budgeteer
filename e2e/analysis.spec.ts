@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope } from "./setup";
+import { createAccount, createEnvelope, openAnalysis } from "./setup";
 
 async function fundEnvelope(
   page: Parameters<typeof createAccount>[0],
@@ -29,7 +29,7 @@ test("spend by envelope: allocated deposit appears in the monthly grid", async (
   await createEnvelope(page, ENVELOPE);
   await fundEnvelope(page, ACCOUNT, ENVELOPE, PAYEE);
 
-  await page.getByRole("button", { name: "Analysis", exact: true }).click();
+  await openAnalysis(page, "Spend");
   await expect(
     page.getByRole("heading", { name: "Analysis — spend by envelope", level: 1 }),
   ).toBeVisible();
@@ -50,7 +50,7 @@ test("budget vs. actual: set a monthly target and see it against spend", async (
   await createEnvelope(page, ENVELOPE);
   await fundEnvelope(page, ACCOUNT, ENVELOPE, PAYEE);
 
-  await page.getByRole("button", { name: "Budget", exact: true }).click();
+  await openAnalysis(page, "Budget");
   await expect(
     page.getByRole("heading", { name: "Analysis — budget vs. actual", level: 1 }),
   ).toBeVisible();
@@ -78,12 +78,13 @@ test("cash-flow forecast: forward projection renders with expected spend", async
   await fundEnvelope(page, ACCOUNT, ENVELOPE, PAYEE);
 
   // Set a $200 monthly target so expected-spend appears in the forecast.
-  await page.getByRole("button", { name: "Budget", exact: true }).click();
+  await openAnalysis(page, "Budget");
   const budgetRow = page.getByRole("row").filter({ hasText: ENVELOPE });
   await budgetRow.getByLabel(`Monthly target for ${ENVELOPE}`).fill("200.00");
   await budgetRow.getByRole("button", { name: "Save" }).click();
+  await expect(budgetRow.getByRole("button", { name: "Clear" })).toBeVisible(); // target persisted
 
-  await page.getByRole("button", { name: "← Dashboard" }).click();
+  // Switch straight to the Forecast tab — no return to the Dashboard (the point of R3).
   await page.getByRole("button", { name: "Forecast", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Analysis — cash-flow forecast", level: 1 }),
@@ -103,7 +104,7 @@ test("credit utilization: set a limit and see the utilization percentage", async
   // Credit account already owing $300 (negative opening balance = owed).
   await createAccount(page, CARD, { kind: "credit", balance: "-300.00" });
 
-  await page.getByRole("button", { name: "Credit", exact: true }).click();
+  await openAnalysis(page, "Credit");
   await expect(
     page.getByRole("heading", { name: "Analysis — credit utilization", level: 1 }),
   ).toBeVisible();
@@ -125,7 +126,7 @@ test("debt payoff: set an original principal and see the payoff percentage", asy
   // Loan account owing $7,500 (negative balance = owed).
   await createAccount(page, LOAN, { kind: "loan", balance: "-7500.00" });
 
-  await page.getByRole("button", { name: "Payoff", exact: true }).click();
+  await openAnalysis(page, "Payoff");
   await expect(
     page.getByRole("heading", { name: "Analysis — debt payoff", level: 1 }),
   ).toBeVisible();
@@ -152,7 +153,7 @@ test("net worth: current totals satisfy net = assets + liabilities, and the mont
   await createAccount(page, CHECKING, { balance: "1000.00" }); // an asset
   await createAccount(page, CARD, { kind: "credit", balance: "-300.00" }); // a liability (owes $300)
 
-  await page.getByRole("button", { name: "Net worth", exact: true }).click();
+  await openAnalysis(page, "Net worth");
   await expect(
     page.getByRole("heading", { name: "Analysis — net worth over time", level: 1 }),
   ).toBeVisible();

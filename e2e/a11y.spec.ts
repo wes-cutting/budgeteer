@@ -7,7 +7,7 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { createAccount, createEnvelope, goToDashboard } from "./setup";
+import { createAccount, createEnvelope, goToDashboard, openAnalysis } from "./setup";
 
 const ACCOUNT = `A11y-Acct-${Date.now()}`;
 const ENVELOPE = `A11y-Env-${Date.now()}`;
@@ -83,7 +83,7 @@ test.describe("a11y — Recurring", () => {
 test.describe("a11y — Analysis views", () => {
   test("spend analysis is accessible", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Analysis" }).click();
+    await openAnalysis(page, "Spend");
     await expect(
       page.getByRole("heading", { name: "Analysis — spend by envelope", level: 1 }),
     ).toBeVisible();
@@ -92,7 +92,7 @@ test.describe("a11y — Analysis views", () => {
 
   test("budget vs actual is accessible", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Budget" }).click();
+    await openAnalysis(page, "Budget");
     await expect(
       page.getByRole("heading", { name: "Analysis — budget vs. actual", level: 1 }),
     ).toBeVisible();
@@ -101,7 +101,7 @@ test.describe("a11y — Analysis views", () => {
 
   test("cash-flow forecast is accessible", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Forecast" }).click();
+    await openAnalysis(page, "Forecast");
     await expect(
       page.getByRole("heading", { name: "Analysis — cash-flow forecast", level: 1 }),
     ).toBeVisible();
@@ -110,7 +110,7 @@ test.describe("a11y — Analysis views", () => {
 
   test("credit utilization is accessible", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Credit" }).click();
+    await openAnalysis(page, "Credit");
     await expect(
       page.getByRole("heading", { name: "Analysis — credit utilization", level: 1 }),
     ).toBeVisible();
@@ -119,7 +119,7 @@ test.describe("a11y — Analysis views", () => {
 
   test("debt payoff is accessible", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Payoff" }).click();
+    await openAnalysis(page, "Payoff");
     await expect(
       page.getByRole("heading", { name: "Analysis — debt payoff", level: 1 }),
     ).toBeVisible();
@@ -128,7 +128,7 @@ test.describe("a11y — Analysis views", () => {
 
   test("net worth over time is accessible", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Net worth" }).click();
+    await openAnalysis(page, "Net worth");
     await expect(
       page.getByRole("heading", { name: "Analysis — net worth over time", level: 1 }),
     ).toBeVisible();

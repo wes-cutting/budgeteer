@@ -23,6 +23,13 @@ export async function createEnvelope(page: Page, name: string) {
   await expect(page.getByRole("list", { name: "Envelopes list" }).getByText(name)).toBeVisible();
 }
 
+// R3 — the analysis views are grouped under a single Dashboard "Analysis" entry with an
+// in-section sub-nav. From the Dashboard, open the section and switch to the named tab.
+export async function openAnalysis(page: Page, tab: string) {
+  await page.getByRole("button", { name: "Analysis", exact: true }).click();
+  await page.getByRole("button", { name: tab, exact: true }).click();
+}
+
 export async function goToDashboard(page: Page) {
   const btn = page.getByRole("button", { name: "← Dashboard" });
   if (await btn.isVisible()) await btn.click();

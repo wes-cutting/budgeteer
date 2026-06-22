@@ -34,11 +34,6 @@ export function Dashboard({
   onOpenTemplates,
   onOpenRecurring,
   onOpenAnalysis,
-  onOpenBudget,
-  onOpenForecast,
-  onOpenCredit,
-  onOpenPayoff,
-  onOpenNetWorth,
 }: {
   api: Api;
   onOpenAccount?: (account: AccountView) => void;
@@ -47,11 +42,6 @@ export function Dashboard({
   onOpenTemplates?: () => void;
   onOpenRecurring?: () => void;
   onOpenAnalysis?: () => void;
-  onOpenBudget?: () => void;
-  onOpenForecast?: () => void;
-  onOpenCredit?: () => void;
-  onOpenPayoff?: () => void;
-  onOpenNetWorth?: () => void;
 }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
@@ -167,21 +157,6 @@ export function Dashboard({
         </button>
         <button type="button" onClick={() => onOpenAnalysis?.()}>
           Analysis
-        </button>
-        <button type="button" onClick={() => onOpenBudget?.()}>
-          Budget
-        </button>
-        <button type="button" onClick={() => onOpenForecast?.()}>
-          Forecast
-        </button>
-        <button type="button" onClick={() => onOpenCredit?.()}>
-          Credit
-        </button>
-        <button type="button" onClick={() => onOpenPayoff?.()}>
-          Payoff
-        </button>
-        <button type="button" onClick={() => onOpenNetWorth?.()}>
-          Net worth
         </button>
         <a href={exportUrl}>Download backup</a>
       </header>

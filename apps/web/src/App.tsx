@@ -6,12 +6,7 @@ import { EnvelopeLedger } from "./EnvelopeLedger";
 import { NeedsAllocation } from "./NeedsAllocation";
 import { TemplatesView } from "./TemplatesView";
 import { RecurringView } from "./RecurringView";
-import { AnalysisView } from "./AnalysisView";
-import { BudgetVsActualView } from "./BudgetVsActualView";
-import { ForecastView } from "./ForecastView";
-import { CreditView } from "./CreditView";
-import { PayoffView } from "./PayoffView";
-import { NetWorthView } from "./NetWorthView";
+import { AnalysisSection } from "./AnalysisSection";
 
 type View =
   | { name: "dashboard" }
@@ -20,12 +15,7 @@ type View =
   | { name: "needs" }
   | { name: "templates" }
   | { name: "recurring" }
-  | { name: "analysis" }
-  | { name: "budget" }
-  | { name: "forecast" }
-  | { name: "credit" }
-  | { name: "payoff" }
-  | { name: "networth" };
+  | { name: "analysis" };
 
 export function App({ api }: { api: Api }) {
   const [view, setView] = useState<View>({ name: "dashboard" });
@@ -60,22 +50,7 @@ export function App({ api }: { api: Api }) {
     return <RecurringView api={api} onBack={() => setView({ name: "dashboard" })} />;
   }
   if (view.name === "analysis") {
-    return <AnalysisView api={api} onBack={() => setView({ name: "dashboard" })} />;
-  }
-  if (view.name === "budget") {
-    return <BudgetVsActualView api={api} onBack={() => setView({ name: "dashboard" })} />;
-  }
-  if (view.name === "forecast") {
-    return <ForecastView api={api} onBack={() => setView({ name: "dashboard" })} />;
-  }
-  if (view.name === "credit") {
-    return <CreditView api={api} onBack={() => setView({ name: "dashboard" })} />;
-  }
-  if (view.name === "payoff") {
-    return <PayoffView api={api} onBack={() => setView({ name: "dashboard" })} />;
-  }
-  if (view.name === "networth") {
-    return <NetWorthView api={api} onBack={() => setView({ name: "dashboard" })} />;
+    return <AnalysisSection api={api} onBack={() => setView({ name: "dashboard" })} />;
   }
   return (
     <Dashboard
@@ -88,11 +63,6 @@ export function App({ api }: { api: Api }) {
       onOpenTemplates={() => setView({ name: "templates" })}
       onOpenRecurring={() => setView({ name: "recurring" })}
       onOpenAnalysis={() => setView({ name: "analysis" })}
-      onOpenBudget={() => setView({ name: "budget" })}
-      onOpenForecast={() => setView({ name: "forecast" })}
-      onOpenCredit={() => setView({ name: "credit" })}
-      onOpenPayoff={() => setView({ name: "payoff" })}
-      onOpenNetWorth={() => setView({ name: "networth" })}
     />
   );
 }
