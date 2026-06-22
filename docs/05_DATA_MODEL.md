@@ -11,11 +11,12 @@ migrations in the same change. Money = BIGINT integer cents (ADR-0003).
 | Status       | Accepted                                |
 | Owner        | Wesley Cutting                          |
 | Datastore    | PostgreSQL (per [`ADR-0002`](adr/ADR-0002-datastore.md)) |
-| Last updated | 2026-06-16                              |
+| Last updated | 2026-06-21                              |
 
 ## 1. Overview
 
-Direct mapping of [`04_DOMAIN_MODEL`](04_DOMAIN_MODEL.md) to five tables. Money is **`BIGINT`
+Direct mapping of [`04_DOMAIN_MODEL`](04_DOMAIN_MODEL.md) to **15 tables** (the foundation's five — households, accounts, envelopes,
+transactions, allocations — grown by the later slices; the full list is §2). Money is **`BIGINT`
 integer cents** (ADR-0003) — never `numeric`/`float`. Balances are **derived** (not stored):
 served by SQL aggregates (`v_account_balances`, `v_envelope_balances` views) over indexed
 foreign keys; data volume is small (fresh start), so no materialization in V1.
@@ -256,10 +257,12 @@ seeded household** in V1 (no auth/RLS yet).
 
 ## 4. Migrations
 
-Versioned SQL migrations (Kysely migrator) committed in the repo under
-`server/migrations/`. **Rule:** a schema change ships with this doc and the code in the
-**same change**. Views `v_account_balances` and `v_envelope_balances` (derived balances) are
-created as migrations alongside the tables.
+A single **idempotent** migration function ([`apps/api/src/db/migrate.ts`](../apps/api/src/db/migrate.ts)),
+applied at startup: every statement is `create … if not exists` / `add column if not exists` /
+drop-then-add (no plpgsql), so it is safe to re-run and the dev/test in-process PGlite path doubles
+as the migrator. **Rule:** a schema change ships with this doc and the code in the **same change**.
+The two derived-balance views `v_account_balances` and `v_envelope_balances` are (re)created with
+`create or replace view` alongside the tables.
 
 > **ADR-0004 evolution (transfers):** the forward migration adds the `transfers` table, the
 > nullable `transactions.transfer_id` FK, and evolves the `kind` check to allow `'transfer'`
@@ -298,8 +301,10 @@ created as migrations alongside the tables.
 
 ## 5. Seed / fixtures
 
-- A **synthetic** seed in code (reviewable): one `households` row, a couple of sample
-  accounts, and the **22 envelope names** lifted from `FEATURE_BREAKDOWN.md` (names are
-  non-sensitive). Amounts are synthetic.
+- A **synthetic** seed in code ([`apps/api/src/db/seed.ts`](../apps/api/src/db/seed.ts), reviewable):
+  one `households` row, **4 sample accounts** (checking · savings · credit · loan), **22 envelopes**
+  (16 standard + 6 sinking funds), **3 months of transactions** with full allocations, plus 8 envelope
+  targets, a credit limit, a loan principal, and 2 recurring rules — enough to populate every view.
+  All names and amounts are invented and non-sensitive.
 - **No real/confidential data** is ever committed; tests build fixtures in code
   (`SECURITY.md`, spine §8). The repo's `.gitignore` excludes real data files and `.env`.

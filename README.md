@@ -9,8 +9,9 @@ The core guarantee: a transaction's allocations always sum exactly to its amount
 envelope balances are **derived** from that ledger — so the books are penny-exact by construction,
 not by hand.
 
-> **Status:** V1 in progress (single-user, local-first). The domain is built and gate-green; the
-> analysis area, hardening, and multi-user are still ahead. See
+> **Status:** V1 in progress (single-user, local-first). The domain, the full analysis area, and
+> hardening (a11y/perf budgets, CI gate, backup/export) are built and gate-green; restore/import
+> and multi-user (auth + household isolation) are still ahead. See
 > [`docs/03_ROADMAP.md`](docs/03_ROADMAP.md) for the live plan.
 
 ---
@@ -31,6 +32,11 @@ not by hand.
   **Post due** to generate everything that's come due (idempotent).
 - **Reconcile to bank** — compare an account's derived balance to your real bank balance, see the
   difference, and record the reconciliation (with history).
+- **Envelope ledger** — click any envelope to drill into every transaction that funded or spent
+  from it, newest-first.
+- **Analysis** — spend by envelope over time, budget vs. actual against monthly targets, a
+  per-account pay-period cash-flow forecast, credit-card utilization, and installment-loan payoff %.
+- **Backup** — download a complete JSON snapshot of all your data in one click.
 
 ## Tech stack
 

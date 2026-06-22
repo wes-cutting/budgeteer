@@ -7,10 +7,10 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
 
 | Field        | Value                          |
 | ------------ | ------------------------------ |
-| Status       | Implemented (Foundation slice) |
+| Status       | Implemented (through R7)       |
 | Owner        | Wesley Cutting                 |
 | Style        | HTTP / JSON (REST-ish)         |
-| Last updated | 2026-06-17                     |
+| Last updated | 2026-06-21                     |
 
 ## 1. Conventions
 
