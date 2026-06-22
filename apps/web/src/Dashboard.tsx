@@ -5,6 +5,7 @@ import {
   type AccountView,
   type Api,
   ApiError,
+  type BudgetVsActualRow,
   type EnvelopeKind,
   type EnvelopeView,
   exportUrl,
@@ -15,6 +16,9 @@ import { MoveMoneyForm } from "./MoveMoneyForm";
 const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "loan", "cash", "other"];
 const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
 const NUM: React.CSSProperties = { textAlign: "right" };
+// R5 — current calendar month ("YYYY-MM") for the inline envelope-target join (the budget endpoint
+// keys targets/spend by month). Matches BudgetVsActualView's default month.
+const currentMonth = (): string => new Date().toISOString().slice(0, 7);
 // R2 — needs-allocation count pill. White on dark red (~8.3:1, passes WCAG 2.2 AA).
 const BADGE: React.CSSProperties = {
   marginLeft: "0.4em",
@@ -46,6 +50,9 @@ export function Dashboard({
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
   const [needsCount, setNeedsCount] = useState<number | null>(null);
+  const [budgetByEnvelope, setBudgetByEnvelope] = useState<Map<string, BudgetVsActualRow> | null>(
+    null,
+  );
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,6 +77,19 @@ export function Dashboard({
       })
       .catch(() => {
         /* badge is auxiliary — leave it absent on error */
+      });
+    // R5 — inline envelope targets. Fetched independently of the core load (same rationale as the
+    // R2 badge): a failure here leaves each row's target/spent/remaining absent rather than blanking
+    // the Dashboard. Default month = the current calendar month. Freshness is automatic — App
+    // remounts the Dashboard on back-navigation, so setting a target in the Budget view and
+    // returning re-fetches these figures.
+    api
+      .getBudgetVsActual(currentMonth())
+      .then((report) => {
+        if (active) setBudgetByEnvelope(new Map(report.rows.map((r) => [r.envelopeId, r])));
+      })
+      .catch(() => {
+        /* inline targets are auxiliary — leave them absent on error */
       });
     return () => {
       active = false;
@@ -181,6 +201,7 @@ export function Dashboard({
         <AddEnvelopeForm api={api} onCreated={(e) => setEnvelopes((cur) => [...(cur ?? []), e])} />
         <EnvelopeList
           envelopes={envelopes}
+          budgetByEnvelope={budgetByEnvelope}
           onOpen={onOpenEnvelope}
           onArchive={(id) => void archiveEnvelope(id)}
           onUnarchive={(id) => void unarchiveEnvelope(id)}
@@ -345,13 +366,34 @@ function AccountList({
   );
 }
 
+/**
+ * R5 — inline envelope target: surfaces an active envelope's monthly target, spend, and remaining
+ * (target − spent) right in its Dashboard row, so the daily-use view answers "how's this envelope
+ * doing this month?" without a hop into the Budget vs. Actual analysis view. Figures come from the
+ * budget endpoint (joined by envelopeId in the Dashboard). Rendered ONLY when a target is set — an
+ * envelope with no target shows nothing extra (no faked $0). Money via `formatCents`; plain labelled
+ * text (not colour-coded), and `remaining` keeps its sign (negative = over budget).
+ */
+function EnvelopeBudgetInline({ row }: { row: BudgetVsActualRow | null }) {
+  if (row === null || row.targetCents === null) return null;
+  return (
+    <span>
+      {" "}
+      Target: {formatCents(row.targetCents)} · Spent: {formatCents(row.spentCents)} · Remaining:{" "}
+      {row.remainingCents === null ? "—" : formatCents(row.remainingCents)}
+    </span>
+  );
+}
+
 function EnvelopeList({
   envelopes,
+  budgetByEnvelope,
   onOpen,
   onArchive,
   onUnarchive,
 }: {
   envelopes: EnvelopeView[] | null;
+  budgetByEnvelope?: Map<string, BudgetVsActualRow> | null;
   onOpen?: (envelope: EnvelopeView) => void;
   onArchive?: (id: string) => void;
   onUnarchive?: (id: string) => void;
@@ -375,6 +417,7 @@ function EnvelopeList({
               <span>{e.name}</span>
             )}{" "}
             <span>{e.kind}</span> <span>{formatCents(e.balanceCents)}</span>
+            <EnvelopeBudgetInline row={budgetByEnvelope?.get(e.id) ?? null} />
             {onArchive ? (
               <button type="button" onClick={() => onArchive(e.id)}>
                 Archive

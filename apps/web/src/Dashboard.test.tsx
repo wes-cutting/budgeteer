@@ -116,6 +116,44 @@ describe("Dashboard (Foundation UX)", () => {
     expect(screen.queryByRole("button", { name: /Needs allocation \(/ })).toBeNull();
   });
 
+  test("active envelope row shows its inline monthly target, spent, and remaining (R5)", async () => {
+    const api = makeFakeApi();
+    const acct = await api.createAccount({
+      name: "Checking",
+      kind: "checking",
+      startingBalance: "0.00",
+    });
+    const env = await api.createEnvelope({ name: "Groceries", kind: "standard" });
+    await api.setEnvelopeTarget(env.id, "200.00");
+    // A withdrawal this month allocated to the envelope → spent $40.00, remaining $160.00.
+    await api.createTransaction(acct.id, {
+      kind: "withdrawal",
+      amount: "40.00",
+      payee: "Store",
+      allocations: [{ envelopeId: env.id, amount: "40.00" }],
+    });
+
+    render(<Dashboard api={api} />);
+    // The inline figures come from a separate async fetch — wait for them to land.
+    expect(await screen.findByText(/Target: \$200\.00/)).toBeTruthy();
+    expect(screen.getByText(/Spent: \$40\.00/)).toBeTruthy();
+    expect(screen.getByText(/Remaining: \$160\.00/)).toBeTruthy();
+  });
+
+  test("an envelope with no target shows no inline budget figures (R5)", async () => {
+    const api = makeFakeApi();
+    const budgeted = await api.createEnvelope({ name: "Groceries", kind: "standard" });
+    await api.setEnvelopeTarget(budgeted.id, "100.00");
+    await api.createEnvelope({ name: "Fun", kind: "standard" });
+
+    render(<Dashboard api={api} />);
+    const list = await screen.findByRole("list", { name: "Envelopes list" });
+    // Wait until the (independent) budget fetch has populated the budgeted row…
+    await within(list).findByText(/Target: \$100\.00/);
+    // …then exactly one row shows a target — "Fun" gets no faked $0 target.
+    expect(within(list).getAllByText(/Target:/)).toHaveLength(1);
+  });
+
   test("archiving an envelope moves it to the Archived section (FEAT-006)", async () => {
     const api = makeFakeApi();
     await api.createEnvelope({ name: "Vacation", kind: "sinking_fund" });
