@@ -1,0 +1,589 @@
+# =============================================================================
+# Budgeteer — System Data Schema Map
+# =============================================================================
+# PURPOSE
+#   A single self-contained "Rosetta Stone" describing Budgeteer's complete data
+#   model so a *different* agent can extract data from an arbitrary spreadsheet
+#   (whose columns, value formats, and structure will NOT match this system) and
+#   transform it into rows this system can ingest.
+#
+#   Read this file top to bottom once, then use:
+#     - `conventions`  to normalize every value (money -> integer cents, dates,
+#                       signs, names).
+#     - `enums`        to map free-text categories to the system's fixed vocabularies.
+#     - `entities`     as the target tables; each lists `source_aliases` (likely
+#                       spreadsheet header names) and `mapping_notes`.
+#     - `transforms`   for the structural reshapes (a flat sheet rarely maps 1:1).
+#     - `do_not_import` for computed/derived values you must SKIP (re-derived by
+#                       the system) — importing them corrupts the ledger.
+#     - `import_order` + `validation_checklist` before emitting anything.
+#
+# AUTHORITY
+#   This map is DERIVED from, and subordinate to, the authoritative sources:
+#     - docs/05_DATA_MODEL.md   (physical schema — the source of truth)
+#     - docs/04_DOMAIN_MODEL.md (entities, invariants, lifecycles)
+#     - docs/06_API_CONTRACT.md (the JSON import surface; see `ingestion_targets`)
+#     - apps/api/src/db/schema.ts (Kysely table interfaces)
+#     - packages/domain/src/{money,naming,allocation}.ts (parse/validate rules)
+#   If this file ever disagrees with those, those win. Do not treat this map as a
+#   second source of truth — regenerate it if the schema changes.
+#
+# SYSTEM SUMMARY
+#   Budgeteer is an envelope-budgeting ledger. Money lives in ACCOUNTS (real
+#   bank/card/cash/loan). Budget lives in ENVELOPES (categories). They connect
+#   ONLY through a TRANSACTION's ALLOCATIONS (splits): an account's transaction
+#   fans its amount out across one or more envelopes. Almost everything else
+#   (balances, "spent", utilization, net worth) is DERIVED, never stored.
+# =============================================================================
+
+meta:
+  schema_name: budgeteer
+  schema_version: "V1"
+  generated_for: spreadsheet-to-system data extraction
+  datastore: PostgreSQL (table + view names below are physical)
+  table_count: 15
+  view_count: 2
+  money_unit: integer minor units (US cents)
+
+# -----------------------------------------------------------------------------
+# 1. GLOBAL CONVENTIONS — apply to EVERY value before it becomes a row.
+# -----------------------------------------------------------------------------
+conventions:
+
+  money:
+    storage: BIGINT integer cents. NEVER a float, NEVER a decimal, NEVER dollars.
+    rule: "$12.34 -> 1234 ;  $-5 -> -500 ;  $0.07 -> 7"
+    # The system's exact parser (packages/domain/src/money.ts):
+    accepted_input_regex: '^-?\d+(\.\d{1,2})?$'   # optional leading '-', up to 2 decimals
+    parse_algorithm: |
+      Strip surrounding whitespace. Reject anything not matching the regex.
+      cents = sign * (whole_dollars * 100 + two_decimal_padded_to_2)
+      "12"   -> 1200    "12.3" -> 1230    "12.34" -> 1234    "-5" -> -500
+    extraction_cleanup:
+      # Spreadsheets carry junk the regex will reject; strip it FIRST, then parse.
+      - Remove currency symbols and codes ($, USD, €).
+      - Remove thousands separators ("1,234.56" -> "1234.56").
+      - "Parenthesized negatives are debits: \"(45.00)\" -> \"-45.00\"."
+      - Trailing "CR"/"DR" or "credit"/"debit" -> sign (see `signs`).
+      - Blank / "-" / "n/a" -> treat as 0 ONLY where a 0 amount is valid, else as "no value".
+    max_safe: ~$90 trillion (cents ride a JS number; exact below 2^53-1). Beyond V1 scope.
+
+  signs:
+    description: |
+      A transaction's `amount_cents` is SIGNED. Its allocations share that sign
+      (a refund row is the documented exception — opposite sign). Many other
+      tables store a POSITIVE MAGNITUDE only (see each field's `sign`).
+    transaction_amount:
+      positive: inflow  / deposit / credit-to-account / income / money in
+      negative: outflow / withdrawal / debit / spend / payment / money out
+    spreadsheet_sign_resolution:
+      # Pick the FIRST rule that applies to the source sheet:
+      - "Two columns (Inflow/Outflow or Credit/Debit/Deposit/Withdrawal): inflow column -> positive, outflow column -> negative; exactly one is populated per row."
+      - "Single signed Amount column: use the sign as-is."
+      - "Single unsigned Amount + a Type column (debit/withdrawal/payment -> negative; credit/deposit/income -> positive)."
+      - "Liability accounts (credit/loan): a CHARGE/spend makes the balance MORE negative; a PAYMENT makes it less negative. Owed is read as -balance later (see do_not_import)."
+
+  dates:
+    storage: PostgreSQL `date` for business dates; `timestamptz` for created_at/updated_at.
+    business_date_format: "YYYY-MM-DD"   # occurred_on, anchor_on, next_occurrence_on, reconciled_on
+    rule: Parse any source date (MM/DD/YYYY, "Jan 3 2026", serial numbers, etc.) to ISO YYYY-MM-DD.
+    month_bucket_format: "YYYY-MM"        # used by targets-derived analysis, not stored on rows
+    created_at_updated_at: Server-defaulted to now(). DO NOT import; omit and let the DB set them.
+
+  ids:
+    type: uuid
+    rule: |
+      Server-generated on insert — DO NOT invent or import UUIDs for primary keys.
+      Resolve foreign keys by NAME instead: keep an in-memory map of
+      account_name -> account_id and envelope_name -> envelope_id as you insert
+      parents, then reference them when inserting children. (Names are unique per
+      household, case-insensitive — see `naming`.)
+
+  naming:
+    applies_to: [accounts.name, envelopes.name, templates.name]
+    normalize: trim ends AND collapse internal whitespace runs to one space.
+    rules:
+      - non-empty after normalize (a row with a blank name is invalid).
+      - max length 100 characters.
+      - "unique per household, CASE-INSENSITIVE (DB key: lower(btrim(name)))."
+    dedupe: |
+      Two source rows whose names match case-insensitively after normalize are the
+      SAME entity — merge them (do not create duplicates). This is how you collapse
+      a register sheet's repeated "Groceries" category into one envelope.
+
+  household:
+    note: |
+      V1 is a single implicit household. Every top-level row carries
+      household_id = '00000000-0000-0000-0000-000000000001'
+      (constant DEFAULT_HOUSEHOLD_ID). There is no auth/multi-tenant yet. Set this
+      same value on every households-scoped row; the source sheet will not have it.
+
+# -----------------------------------------------------------------------------
+# 2. ENUMS — fixed vocabularies. Map free-text source values onto these EXACT
+#    canonical strings (lowercase, as written). Unknowns get a fallback.
+# -----------------------------------------------------------------------------
+enums:
+
+  account_kind:
+    canonical: [checking, savings, credit, loan, cash, other]
+    fallback: other
+    synonyms:
+      checking:  [checking, chequing, current account, debit, bank, "dda"]
+      savings:   [savings, save, money market, "mmsa", high yield, hysa]
+      credit:    [credit, credit card, card, "cc", visa, mastercard, amex, discover, line of credit]
+      loan:      [loan, mortgage, auto loan, student loan, installment, note, financing]
+      cash:      [cash, wallet, petty cash, physical]
+      other:     [other, investment, brokerage, retirement, "401k", ira, asset, misc]
+    note: |
+      `credit` and `loan` are LIABILITY accounts — their balance is normally
+      negative (debt). `loan` specifically carries an original principal (debt
+      payoff); `credit` carries a credit limit (utilization). There is no
+      edit-kind operation, so pick the kind correctly at extraction time.
+
+  envelope_kind:
+    canonical: [standard, sinking_fund]
+    default: standard
+    synonyms:
+      standard:     [standard, category, expense, monthly, bill, spending]
+      sinking_fund: [sinking fund, sinking_fund, fund, goal, savings goal, save up, reserve, "future"]
+    note: |
+      A `sinking_fund` is a save-up-over-time bucket (Vacation, New Car). If the
+      sheet has no kind hint, use `standard`. Words like "Fund", "Goal", "Reserve"
+      in the category name suggest sinking_fund.
+
+  transaction_kind:
+    canonical: [opening, normal, transfer]
+    rules:
+      - "opening: the account's starting-balance row. At most ONE per account. See transforms.opening_balance."
+      - "transfer: a leg of an account<->account move. Created as a PAIR via the `transfers` parent. See transforms.account_transfer."
+      - "normal: everything else (income, spend, bills). Must be non-zero."
+    note: |
+      The INPUT verb for a normal/recurring transaction is "deposit" | "withdrawal"
+      (positive magnitude + direction), which the system signs. But the STORED
+      `kind` column is opening|normal|transfer. Don't confuse the two vocabularies.
+
+  recurring_direction:
+    canonical: [deposit, withdrawal]
+    synonyms:
+      deposit:    [deposit, income, paycheck, credit, inflow, "in"]
+      withdrawal: [withdrawal, payment, bill, debit, outflow, expense, "out"]
+
+  recurring_frequency:
+    canonical: [weekly, biweekly, monthly]
+    fallback: null   # if you cannot confidently map it, leave the rule out rather than guess.
+    synonyms:
+      weekly:   [weekly, every week, "1w", "7 days"]
+      biweekly: [biweekly, every two weeks, fortnightly, every other week, "2w", "14 days", semimonthly?]
+      monthly:  [monthly, every month, per month, "1m"]
+    note: "There is NO daily/quarterly/annual frequency in V1. Drop or flag rules that don't fit."
+
+# -----------------------------------------------------------------------------
+# 3. ENTITIES (the 15 stored tables). For each: target columns, source aliases
+#    (fuzzy-match spreadsheet headers against these), and mapping notes.
+#    `import_priority` = relative insert order (lower first); see `import_order`.
+# -----------------------------------------------------------------------------
+entities:
+
+  households:
+    table: households
+    import_priority: 0
+    purpose: Ownership boundary. V1 seeds exactly ONE row; you almost never create more.
+    fields:
+      id:         { type: uuid, generated: true }
+      name:       { type: text, required: true, example: "Default household" }
+      created_at: { type: timestamptz, generated: true }
+    mapping_notes:
+      - Usually NOT present in a source sheet. Reuse the constant DEFAULT_HOUSEHOLD_ID
+        and do not create a new household unless the sheet truly represents separate ones.
+
+  accounts:
+    table: accounts
+    import_priority: 1
+    purpose: A real place money lives (bank/card/cash/loan). Source of transactions.
+    fields:
+      id:           { type: uuid, generated: true }
+      household_id: { type: uuid, required: true, fk: households.id, value: DEFAULT_HOUSEHOLD_ID }
+      name:         { type: text, required: true, normalize: naming, unique_per_household: true }
+      kind:         { type: text, required: true, enum: account_kind }
+      created_at:   { type: timestamptz, generated: true }
+      archived_at:  { type: timestamptz, nullable: true, note: "null = active; non-null = soft-deleted (history kept)" }
+    source_aliases:
+      name: [Account, Account Name, Bank, Card, Institution, Source]
+      kind: [Type, Account Type, Category]
+      archived_at: [Archived, Closed, Inactive, Status]
+    derived_companion: balance is NOT a column here — see transforms.opening_balance and do_not_import.account_balance.
+    mapping_notes:
+      - "A sheet's 'Balance'/'Current Balance' column is the account's CURRENT (derived) balance — do NOT store it as a field. Instead model the STARTING balance as an opening transaction (see transforms.opening_balance)."
+      - "If a sheet only gives a current balance and no history, the pragmatic import is one opening transaction equal to that balance (document the simplification)."
+
+  envelopes:
+    table: envelopes
+    import_priority: 1
+    purpose: A budget category that accumulates/drains via allocations.
+    fields:
+      id:           { type: uuid, generated: true }
+      household_id: { type: uuid, required: true, fk: households.id, value: DEFAULT_HOUSEHOLD_ID }
+      name:         { type: text, required: true, normalize: naming, unique_per_household: true }
+      kind:         { type: text, required: true, enum: envelope_kind, default: standard }
+      created_at:   { type: timestamptz, generated: true }
+      archived_at:  { type: timestamptz, nullable: true, note: "null = active. Archived envelopes reject NEW allocations." }
+    source_aliases:
+      name: [Category, Budget Category, Envelope, Bucket, Line Item, Group, Subcategory]
+      kind: [Type, Category Type]
+    mapping_notes:
+      - Collect the DISTINCT set of categories across the whole sheet; each distinct (normalized, case-insensitive) name is one envelope.
+      - Envelope balance is DERIVED — never a field here (see do_not_import.envelope_balance).
+
+  transactions:
+    table: transactions
+    import_priority: 3
+    purpose: One movement of money in ONE account (the core ledger row).
+    fields:
+      id:           { type: uuid, generated: true }
+      household_id: { type: uuid, required: true, fk: households.id, value: DEFAULT_HOUSEHOLD_ID }
+      account_id:   { type: uuid, required: true, fk: accounts.id, resolve_by: account name }
+      amount_cents: { type: bigint, required: true, sign: SIGNED, rule: "+ deposit / - withdrawal (conventions.signs)" }
+      kind:         { type: text, required: true, enum: transaction_kind }
+      occurred_on:  { type: date, required: true, format: "YYYY-MM-DD" }
+      payee:        { type: text, nullable: true }
+      memo:         { type: text, nullable: true }
+      transfer_id:  { type: uuid, nullable: true, fk: transfers.id, note: "set IFF kind='transfer'" }
+      recurring_id: { type: uuid, nullable: true, fk: recurring_transactions.id, note: "set if generated by a rule; usually null on import" }
+      created_at:   { type: timestamptz, generated: true }
+    constraints:
+      - "kind='normal' => amount_cents <> 0 (a normal txn cannot be zero)."
+      - "at most ONE kind='opening' transaction per account (partial unique index)."
+      - "kind='transfer' legs carry NO allocations and set transfer_id."
+    source_aliases:
+      occurred_on: [Date, Transaction Date, Posted Date, Posted, Day, When]
+      amount_cents: [Amount, Total, Value, Debit, Credit, Outflow, Inflow, Withdrawal, Deposit]
+      payee: [Payee, Description, Merchant, Vendor, Name, Details, "Memo/Payee"]
+      memo: [Memo, Note, Notes, Comment, Description]
+      account_id: [Account, Account Name, Card, Source]
+      kind: [Type, Transaction Type]
+    mapping_notes:
+      - "The CATEGORY column on a register row does NOT live here — it becomes an ALLOCATION (see allocations + transforms.split_from_row)."
+      - "If both Description and Memo exist, prefer the merchant-like value for payee and the freeform value for memo."
+      - "Resolve account_id by matching the row's account name to an inserted account (case-insensitive)."
+
+  allocations:
+    table: allocations
+    import_priority: 4
+    purpose: Assign a slice of a transaction to ONE envelope (the account<->envelope bridge).
+    fields:
+      id:             { type: uuid, generated: true }
+      transaction_id: { type: uuid, required: true, fk: transactions.id, on_delete: cascade }
+      envelope_id:    { type: uuid, required: true, fk: envelopes.id, resolve_by: envelope name }
+      amount_cents:   { type: bigint, required: true, sign: SIGNED, rule: "same sign as its transaction (refund row is opposite)" }
+    invariant:
+      name: split invariant (the heart of the model)
+      rule: |
+        For a transaction t: 0 <= |Σ allocation.amount_cents| <= |t.amount_cents|,
+        with the signed TOTAL in t's direction.
+        - Partial allocation is ALLOWED (remainder stays "unallocated"; valid to leave it).
+        - Over-allocation (|Σ| > |amount|) is REJECTED.
+        - A net direction-flip (deposit whose allocations net negative, or vice-versa) is REJECTED.
+        - Individual rows MAY be mixed sign: a refund row points opposite the txn
+          (e.g. a -$70 withdrawal split as -$100 spend + $30 refund). Refund rows
+          are tagged only on recurring_lines (`refund` flag); on plain allocations
+          the opposite sign IS the refund.
+    source_aliases:
+      envelope_id: [Category, Budget Category, Envelope, Bucket]
+      amount_cents: [Amount, Split Amount, Category Amount]
+    mapping_notes:
+      - "Single-category row: one allocation for the whole transaction amount (same sign)."
+      - "Multi-category row (a sheet with several category columns, or split rows): one allocation per category; their signed sum must satisfy the invariant. Leaving a remainder unallocated is fine."
+
+  transfers:
+    table: transfers
+    import_priority: 2
+    purpose: Parent linking the TWO legs of an account<->account transfer (double-entry, ADR-0004).
+    fields:
+      id:           { type: uuid, generated: true }
+      household_id: { type: uuid, required: true, fk: households.id, value: DEFAULT_HOUSEHOLD_ID }
+      occurred_on:  { type: date, required: true, format: "YYYY-MM-DD" }
+      memo:         { type: text, nullable: true }
+      created_at:   { type: timestamptz, generated: true }
+    mapping_notes:
+      - "Create the transfers parent FIRST, then its two kind='transfer' transaction legs (-X on source account, +X on destination), sharing this transfer_id. The legs sum to zero. See transforms.account_transfer."
+      - "Detect transfers in a sheet when a row's category/payee names another account, or a Type column says 'Transfer', or two mirror rows (+X / -X, same date) appear on two accounts."
+
+  envelope_transfers:
+    table: envelope_transfers
+    import_priority: 2
+    purpose: Re-budget money between two envelopes with NO account movement (ADR-0004 B).
+    fields:
+      id:               { type: uuid, generated: true }
+      household_id:     { type: uuid, required: true, fk: households.id, value: DEFAULT_HOUSEHOLD_ID }
+      from_envelope_id: { type: uuid, required: true, fk: envelopes.id, resolve_by: envelope name }
+      to_envelope_id:   { type: uuid, required: true, fk: envelopes.id, resolve_by: envelope name }
+      amount_cents:     { type: bigint, required: true, sign: POSITIVE_MAGNITUDE, constraint: "> 0" }
+      occurred_on:      { type: date, required: true, format: "YYYY-MM-DD" }
+      memo:             { type: text, nullable: true }
+      created_at:       { type: timestamptz, generated: true }
+    constraints:
+      - "from_envelope_id <> to_envelope_id."
+      - "amount_cents > 0 (a magnitude, not signed)."
+      - "destination must be non-archived (source may be archived)."
+    mapping_notes:
+      - Rare in source sheets. Only model this if the sheet explicitly moves budget BETWEEN categories with no bank movement. Otherwise ignore.
+
+  templates:
+    table: templates
+    import_priority: 1
+    purpose: A named, reusable set of fixed allocation lines (a saved split layout, FEAT-004).
+    fields:
+      id:           { type: uuid, generated: true }
+      household_id: { type: uuid, required: true, fk: households.id, value: DEFAULT_HOUSEHOLD_ID }
+      name:         { type: text, required: true, normalize: naming, unique_per_household: true }
+      created_at:   { type: timestamptz, generated: true }
+    mapping_notes:
+      - Only present if the sheet has a "split template" / "default paycheck split" concept. Usually skip.
+
+  template_lines:
+    table: template_lines
+    import_priority: 2
+    purpose: One fixed-amount line of a template.
+    fields:
+      id:          { type: uuid, generated: true }
+      template_id: { type: uuid, required: true, fk: templates.id, on_delete: cascade }
+      envelope_id: { type: uuid, required: true, fk: envelopes.id, resolve_by: envelope name }
+      amount_cents: { type: bigint, required: true, sign: POSITIVE_MAGNITUDE, constraint: "> 0" }
+      position:    { type: integer, required: true, note: "1-based display order" }
+
+  recurring_transactions:
+    table: recurring_transactions
+    import_priority: 2
+    purpose: A scheduled template transaction + a "next occurrence" cursor (FEAT-009).
+    fields:
+      id:                 { type: uuid, generated: true }
+      household_id:       { type: uuid, required: true, fk: households.id, value: DEFAULT_HOUSEHOLD_ID }
+      account_id:         { type: uuid, required: true, fk: accounts.id, resolve_by: account name }
+      direction:          { type: text, required: true, enum: recurring_direction }
+      amount_cents:       { type: bigint, required: true, sign: POSITIVE_MAGNITUDE, constraint: "> 0" }
+      payee:              { type: text, nullable: true }
+      memo:               { type: text, nullable: true }
+      frequency:          { type: text, required: true, enum: recurring_frequency }
+      anchor_on:          { type: date, required: true, format: "YYYY-MM-DD", note: "first occurrence; monthly steps off this day-of-month" }
+      next_occurrence_on: { type: date, required: true, format: "YYYY-MM-DD", note: "the cursor; start it at anchor_on (or the next future due date)" }
+      created_at:         { type: timestamptz, generated: true }
+    source_aliases:
+      amount_cents: [Amount, Recurring Amount, Scheduled Amount]
+      frequency: [Frequency, Repeat, Schedule, Cadence, Interval]
+      anchor_on: [Start Date, First Date, Begins, Next Date, Due Date]
+      payee: [Payee, Description, Name]
+    mapping_notes:
+      - "A recurring rule has >= 1 line (recurring_lines) forming a valid split, same invariant as a manual transaction."
+      - "amount_cents here is a POSITIVE magnitude; the `direction` carries the sign meaning."
+
+  recurring_lines:
+    table: recurring_lines
+    import_priority: 3
+    purpose: One split line of a recurring rule.
+    fields:
+      id:           { type: uuid, generated: true }
+      recurring_id: { type: uuid, required: true, fk: recurring_transactions.id, on_delete: cascade }
+      envelope_id:  { type: uuid, required: true, fk: envelopes.id, resolve_by: envelope name }
+      amount_cents: { type: bigint, required: true, sign: POSITIVE_MAGNITUDE, constraint: "> 0" }
+      refund:       { type: boolean, required: true, default: false, note: "true = this line OPPOSES the rule's direction (a refund line, FEAT-008)" }
+      position:     { type: integer, required: true, note: "1-based display order" }
+
+  reconciliations:
+    table: reconciliations
+    import_priority: 2
+    purpose: A recorded compare of an account's derived balance vs. the real bank statement (FEAT-010).
+    fields:
+      id:                      { type: uuid, generated: true }
+      household_id:            { type: uuid, required: true, fk: households.id, value: DEFAULT_HOUSEHOLD_ID }
+      account_id:              { type: uuid, required: true, fk: accounts.id, resolve_by: account name }
+      statement_balance_cents: { type: bigint, required: true, sign: SIGNED, note: "the real statement balance (may be negative for credit/loan)" }
+      derived_balance_cents:   { type: bigint, required: true, sign: SIGNED, note: "SNAPSHOT of the system-derived balance at reconcile time" }
+      reconciled_on:           { type: date, required: true, format: "YYYY-MM-DD" }
+      created_at:              { type: timestamptz, generated: true }
+    mapping_notes:
+      - "`difference = statement - derived` is DERIVED, never stored."
+      - "Rarely in a source sheet. If absent, skip entirely — it creates no ledger effect."
+
+  envelope_targets:
+    table: envelope_targets
+    import_priority: 2
+    purpose: Per-envelope RECURRING MONTHLY budget — the "budget" side of budget-vs-actual (FEAT-012).
+    fields:
+      id:                   { type: uuid, generated: true }
+      household_id:         { type: uuid, required: true, fk: households.id, value: DEFAULT_HOUSEHOLD_ID }
+      envelope_id:          { type: uuid, required: true, fk: envelopes.id, resolve_by: envelope name, unique: true }
+      monthly_target_cents: { type: bigint, required: true, sign: POSITIVE_MAGNITUDE, constraint: "> 0" }
+      created_at:           { type: timestamptz, generated: true }
+      updated_at:           { type: timestamptz, generated: true }
+    source_aliases:
+      monthly_target_cents: [Budget, Budgeted, Monthly Budget, Planned, Target, Goal, Allotted, Assigned]
+    constraints:
+      - "at most ONE target per envelope (unique on envelope_id)."
+      - "monthly_target_cents > 0 — a budget of 0 is expressed as NO ROW, not a zero."
+    mapping_notes:
+      - "A budget sheet's per-category 'Budgeted'/'Planned' column maps here (one row per category that has a planned amount)."
+      - "It is a SINGLE recurring monthly amount per envelope — NOT per-month / effective-dated. If the sheet has 12 monthly budget columns, pick one representative value (e.g. the latest, or the typical) and document the choice."
+      - "Do NOT import the 'spent'/'actual'/'remaining' columns here — those are DERIVED (see do_not_import.budget_vs_actual)."
+
+  credit_limits:
+    table: credit_limits
+    import_priority: 2
+    purpose: Per-credit-account credit limit — the denominator for utilization (FEAT-014a).
+    fields:
+      id:                 { type: uuid, generated: true }
+      household_id:       { type: uuid, required: true, fk: households.id, value: DEFAULT_HOUSEHOLD_ID }
+      account_id:         { type: uuid, required: true, fk: accounts.id, resolve_by: account name, unique: true }
+      credit_limit_cents: { type: bigint, required: true, sign: POSITIVE_MAGNITUDE, constraint: "> 0" }
+      created_at:         { type: timestamptz, generated: true }
+      updated_at:         { type: timestamptz, generated: true }
+    source_aliases:
+      credit_limit_cents: [Credit Limit, Limit, Max Credit, Credit Line]
+    constraints:
+      - "ONLY on accounts with kind='credit' (a limit on any other kind is rejected)."
+      - "at most ONE per account; no row = no limit; must be > 0."
+    mapping_notes:
+      - "owed and utilization are DERIVED (see do_not_import.credit_utilization). Store ONLY the limit."
+
+  loan_principals:
+    table: loan_principals
+    import_priority: 2
+    purpose: Per-loan-account original principal — the denominator for debt payoff (FEAT-014b).
+    fields:
+      id:                       { type: uuid, generated: true }
+      household_id:             { type: uuid, required: true, fk: households.id, value: DEFAULT_HOUSEHOLD_ID }
+      account_id:               { type: uuid, required: true, fk: accounts.id, resolve_by: account name, unique: true }
+      original_principal_cents: { type: bigint, required: true, sign: POSITIVE_MAGNITUDE, constraint: "> 0" }
+      created_at:               { type: timestamptz, generated: true }
+      updated_at:               { type: timestamptz, generated: true }
+    source_aliases:
+      original_principal_cents: [Original Principal, Original Loan Amount, Original Balance, Loan Amount, Principal]
+    constraints:
+      - "ONLY on accounts with kind='loan'."
+      - "at most ONE per account; no row = no principal; must be > 0."
+    mapping_notes:
+      - "owed, paid-down, and payoff% are DERIVED. Store ONLY the original principal. The CURRENT loan balance is modeled as the account's (negative) opening transaction / transactions."
+
+# -----------------------------------------------------------------------------
+# 4. DERIVED — DO NOT IMPORT. These are computed by the system from the stored
+#    rows above. A source sheet WILL contain many of them. Use them only to
+#    CROSS-CHECK your import (see validation_checklist); never insert them.
+# -----------------------------------------------------------------------------
+do_not_import:
+  views:
+    v_account_balances:  { columns: [account_id, balance_cents], note: "derived view; recomputed" }
+    v_envelope_balances: { columns: [envelope_id, balance_cents], note: "derived view; recomputed" }
+  account_balance:
+    formula: "Σ transaction.amount_cents for the account (incl. opening + transfer legs)."
+    source_columns_that_look_like_this: [Balance, Current Balance, Available Balance, Cleared Balance]
+  envelope_balance:
+    formula: "Σ allocation.amount_cents into the envelope + net envelope-transfer flow."
+    source_columns_that_look_like_this: [Available, Envelope Balance, Remaining in Envelope]
+  unallocated:        "transaction.amount_cents - Σ its allocations (a remainder, not stored)."
+  budget_vs_actual:   "actual spend = -Σ allocation on withdrawal txns in the month; remaining = target - actual. Only the TARGET is stored."
+  credit_utilization: "owed = -account_balance; utilization = owed / credit_limit (basis points). Only the LIMIT is stored."
+  debt_payoff:        "owed = -account_balance; payoff = 1 - owed/original_principal. Only the ORIGINAL PRINCIPAL is stored."
+  net_worth:          "Σ all signed account balances, decomposed by account kind. Fully derived."
+  cash_flow_forecast: "a forward projection over recurring rules + targets. Fully derived."
+  reconciliation_difference: "statement_balance - derived_balance. Derived, not stored."
+
+# -----------------------------------------------------------------------------
+# 5. TRANSFORMS — the structural reshapes. A flat spreadsheet row rarely maps to
+#    one system row; these recipes turn common shapes into correct rows.
+# -----------------------------------------------------------------------------
+transforms:
+
+  opening_balance:
+    when: A sheet gives an account a starting/initial/current balance.
+    do: |
+      Create the account, THEN insert ONE transaction with kind='opening',
+      account_id = that account, amount_cents = the balance (SIGNED — negative for
+      a credit/loan that owes money), occurred_on = the as-of/start date (or the
+      earliest known date). Leave it unallocated unless the sheet says how the
+      starting balance is budgeted. At most one opening txn per account.
+    why: The system has no stored starting-balance scalar — balances derive from transactions.
+
+  split_from_row:
+    when: A register row names a category (and possibly amounts) to budget the transaction.
+    do: |
+      Insert the transaction (signed amount), then ONE allocation per category with
+      the matching sign. Single category -> allocation = full amount. Multiple
+      categories must satisfy the split invariant (|Σ| <= |amount|, same direction);
+      a leftover may stay unallocated.
+    edge:
+      - "No category at all -> insert the transaction with NO allocations (valid; it will show as 'needs allocation')."
+      - "A row tagged as income/paycheck spread across many categories -> positive transaction + positive allocations."
+
+  account_transfer:
+    when: Money moves between two of the user's own accounts (Type='Transfer', or mirrored +/- rows, or a category that is another account name).
+    do: |
+      Insert a `transfers` parent (occurred_on, optional memo). Then insert TWO
+      transactions kind='transfer' sharing that transfer_id: -magnitude on the
+      source account, +magnitude on the destination. Both legs carry NO allocations.
+      They sum to zero.
+    avoid: Do NOT also create a category/allocation for transfer legs — relocated money is already budgeted.
+    dedupe: If the sheet lists BOTH sides as separate rows, collapse the pair into one transfer (don't double-count).
+
+  category_budget:
+    when: A budget sheet has a per-category planned/budgeted monthly amount.
+    do: "Map each category to an envelope; insert one envelope_targets row (monthly_target_cents > 0). Skip zero/blank budgets (= no target)."
+    avoid: Do not import the same sheet's 'spent'/'actual'/'remaining' — derived.
+
+  liability_balance:
+    when: A credit card or loan account has an amount owed.
+    do: |
+      Model the owed amount as a NEGATIVE account balance (via the opening
+      transaction and/or transactions). Separately, store the credit LIMIT
+      (credit_limits, kind='credit') or ORIGINAL PRINCIPAL (loan_principals,
+      kind='loan') if the sheet provides them. The system reads owed = -balance.
+
+# -----------------------------------------------------------------------------
+# 6. INGESTION TARGETS — how the rows you build actually enter the system.
+# -----------------------------------------------------------------------------
+ingestion_targets:
+  preferred: |
+    The HTTP API (docs/06_API_CONTRACT.md). Note the API input vocabulary differs
+    slightly from the stored columns:
+      - Money crosses the API as a DECIMAL STRING ("2140.00"), not cents.
+      - A transaction is POSTed as { kind: "deposit"|"withdrawal", amount: "<decimal>",
+        occurredOn, payee?, memo?, allocations:[{ envelopeId, amount, refund? }] } —
+        amounts are POSITIVE magnitudes; the server applies the sign and resolves the
+        stored kind ('normal'/'opening'/'transfer').
+      - Accounts: POST /accounts { name, kind, startingBalance?: "<decimal>" } creates
+        the account AND its opening transaction in one call.
+      - Transfers: POST /transfers { fromAccountId, toAccountId, amount, occurredOn?, memo? }.
+      - Targets/limits/principals: PUT /envelopes/:id/target, PUT /accounts/:id/credit-limit,
+        PUT /accounts/:id/original-principal — each { amount: "<decimal>" }.
+    Going through the API gets you the split-invariant + name-uniqueness + kind
+    validation FOR FREE — prefer it over raw inserts.
+  alternative: |
+    The backup/restore JSON shape (GET /export -> BudgeteerBackup) is the closest
+    thing to a bulk load. Its `tables` object holds RAW rows (cents as integers,
+    dates as ISO strings) for all 15 tables. If a bulk importer exists, match that
+    shape: cents (not decimal strings), and provide foreign keys consistently.
+  note: Confirm with the human which path (API per-row vs. bulk/raw rows) the target import uses; the value formats differ (decimal-string vs. integer-cents).
+
+# -----------------------------------------------------------------------------
+# 7. IMPORT ORDER — insert parents before children so FK resolution by name works.
+# -----------------------------------------------------------------------------
+import_order:
+  - households                                  # (reuse the single default; rarely created)
+  - [accounts, envelopes, templates]            # name -> id maps built here
+  - [transfers, recurring_transactions]         # parents that own legs/lines
+  - [transactions]                              #   incl. opening + the two transfer legs (set transfer_id)
+  - [allocations, recurring_lines, template_lines]
+  - [envelope_targets, credit_limits, loan_principals, reconciliations, envelope_transfers]
+
+# -----------------------------------------------------------------------------
+# 8. VALIDATION CHECKLIST — run before declaring an extraction done.
+# -----------------------------------------------------------------------------
+validation_checklist:
+  - All money is integer cents (or decimal strings if going via the API) — no floats anywhere.
+  - All business dates are YYYY-MM-DD.
+  - Every account/envelope/template name is non-empty, <=100 chars, unique per household (case-insensitive after normalize).
+  - Each account kind ∈ {checking,savings,credit,loan,cash,other}; each envelope kind ∈ {standard,sinking_fund}.
+  - At most ONE opening transaction per account; no normal transaction has amount 0.
+  - Every transaction's allocations satisfy the split invariant (|Σ| <= |amount|, same direction, no net flip).
+  - Transfer legs come in zero-sum pairs sharing a transfer_id and carry no allocations.
+  - credit_limits only on kind='credit'; loan_principals only on kind='loan'; each target/limit/principal amount > 0.
+  - NO derived value was imported as a field (balances, spent, owed, utilization, payoff, net worth, forecast, reconcile difference).
+  - "CROSS-CHECK (don't store): for each account, Σ its transaction amounts should equal any 'current balance' the sheet showed. For each envelope, Σ allocations should match any 'available' it showed. Mismatches flag an extraction error to surface to the human."
