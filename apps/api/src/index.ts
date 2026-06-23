@@ -16,5 +16,5 @@ await migrateToLatest(db);
 const corsOrigins = config.CORS_ORIGINS.split(",")
   .map((o) => o.trim())
   .filter(Boolean);
-const app = buildServer(db, { logger: true, corsOrigins });
+const app = buildServer(db, { logger: { level: config.LOG_LEVEL }, corsOrigins });
 await app.listen({ port: config.PORT, host: "0.0.0.0" });

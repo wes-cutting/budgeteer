@@ -3,7 +3,10 @@ import { z } from "zod";
 const schema = z.object({
   APP_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3001),
-  LOG_LEVEL: z.string().default("info"),
+  // Pino log levels, most→least severe (`silent` disables output). Validated to a closed set here
+  // so a typo fails loudly at startup (spine §8) instead of throwing deep inside pino. Threaded to
+  // the Fastify logger in `buildServer` for dev-vs-prod verbosity.
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   // Unset in dev/test → in-process PGlite; set in production → real PostgreSQL (ADR-0002).
   DATABASE_URL: z.string().optional(),
   // Optional: persist the PGlite store to a directory so data survives restarts and `npm run seed`

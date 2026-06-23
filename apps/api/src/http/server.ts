@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyServerOptions } from "fastify";
 import cors from "@fastify/cors";
 import type { Kysely } from "kysely";
 import type { DB } from "../db/schema";
@@ -28,8 +28,14 @@ import { backupRoutes } from "./routes/backup";
 
 export function buildServer(
   db: Kysely<DB>,
-  opts: { logger?: boolean; corsOrigins?: string[] } = {},
+  opts: { logger?: FastifyServerOptions["logger"]; corsOrigins?: string[] } = {},
 ): FastifyInstance {
+  // Structured request/response/error logging via Fastify's bundled pino (R13). `index.ts` passes
+  // `{ logger: { level } }` (level from the validated `LOG_LEVEL`); tests omit it → `false` → quiet
+  // and deterministic. We deliberately keep pino's DEFAULT serializers: they log only
+  // method/url/status/responseTime + the error type/message/stack — never request bodies or
+  // headers. So financial bodies (transaction memo/payee/amount, the /export snapshot) never reach
+  // the logs; adding a body serializer here would leak them (SECURITY.md §1/§5). Do not.
   const app = Fastify({ logger: opts.logger ?? false });
 
   // Browsers call this API cross-origin (web on :5173, API on :3001), so it must send CORS
