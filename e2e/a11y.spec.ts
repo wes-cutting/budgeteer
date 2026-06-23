@@ -136,6 +136,20 @@ test.describe("a11y — Analysis views", () => {
   });
 });
 
+test.describe("a11y — Error boundary fallback", () => {
+  test("the render-crash fallback is accessible", async ({ page }) => {
+    // R12 — the dev-only ?boom hook forces a render crash so the top-level boundary's fallback
+    // (a new user-facing surface) is reachable for the axe sweep.
+    await page.goto("/?boom=1");
+    await expect(
+      page.getByRole("heading", { name: "Something went wrong", level: 1 }),
+    ).toBeVisible();
+    await assertNoViolations(page);
+    // Leave the crash state so the shared afterEach (goToDashboard) finds the real app.
+    await page.goto("/");
+  });
+});
+
 test.describe("a11y — Envelope ledger", () => {
   test("envelope ledger panel is accessible", async ({ page }) => {
     await page.goto("/");

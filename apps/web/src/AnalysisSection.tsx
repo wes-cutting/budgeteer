@@ -6,6 +6,7 @@ import { ForecastView } from "./ForecastView";
 import { CreditView } from "./CreditView";
 import { PayoffView } from "./PayoffView";
 import { NetWorthView } from "./NetWorthView";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 /**
  * R3 — unified Analysis section. Groups the six analysis views (spend-by-envelope, budget vs.
@@ -52,12 +53,18 @@ export function AnalysisSection({ api, onBack }: { api: Api; onBack: () => void 
           </button>
         ))}
       </nav>
-      {tab === "spend" ? <AnalysisView api={api} onBack={onBack} /> : null}
-      {tab === "budget" ? <BudgetVsActualView api={api} onBack={onBack} /> : null}
-      {tab === "forecast" ? <ForecastView api={api} onBack={onBack} /> : null}
-      {tab === "credit" ? <CreditView api={api} onBack={onBack} /> : null}
-      {tab === "payoff" ? <PayoffView api={api} onBack={onBack} /> : null}
-      {tab === "networth" ? <NetWorthView api={api} onBack={onBack} /> : null}
+      {/* R12 — a per-view boundary so a render crash in one analysis view shows a recoverable
+          fallback while the sub-nav above stays usable, instead of blanking the whole app. `key`
+          is the active tab, so switching tabs mounts a fresh, error-free boundary; the fallback's
+          recovery action is the section exit (← Dashboard). */}
+      <ErrorBoundary key={tab} resetLabel="← Dashboard" onReset={onBack}>
+        {tab === "spend" ? <AnalysisView api={api} onBack={onBack} /> : null}
+        {tab === "budget" ? <BudgetVsActualView api={api} onBack={onBack} /> : null}
+        {tab === "forecast" ? <ForecastView api={api} onBack={onBack} /> : null}
+        {tab === "credit" ? <CreditView api={api} onBack={onBack} /> : null}
+        {tab === "payoff" ? <PayoffView api={api} onBack={onBack} /> : null}
+        {tab === "networth" ? <NetWorthView api={api} onBack={onBack} /> : null}
+      </ErrorBoundary>
     </>
   );
 }
