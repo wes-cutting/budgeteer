@@ -1,0 +1,74 @@
+/*
+ * Design tokens — the styling foundation (FEAT-UX4 · ADR-0005).
+ * Plain CSS custom properties; dark mode falls out of one prefers-color-scheme query.
+ * Semantic names on top; values tuned so every text/background pair meets WCAG 2.2 AA.
+ */
+:root {
+  /* color — light */
+  --color-bg: #ffffff;
+  --color-surface: #f4f6f9;
+  --color-surface-2: #eaeef3;
+  --color-text: #161a1e;
+  --color-text-muted: #4f5c6a; /* ~6.4:1 on --color-bg */
+  --color-border: #d3dae1;
+  --color-border-strong: #b6bfc9;
+
+  --color-accent: #1b5fb8; /* ~5.3:1 on white */
+  --color-accent-hover: #174f9b;
+  --color-on-accent: #ffffff;
+
+  --color-success: #15702e; /* positive money; dark enough to clear 4.5:1 on its pale badge fill */
+  --color-danger: #b42318; /* negative money / destructive */
+  --color-warning: #8a5a00;
+
+  --color-focus: #1b5fb8;
+
+  /* spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* type */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --text-sm: 0.85rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.6rem;
+
+  /* radius / elevation */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --shadow-1: 0 1px 2px rgba(16, 25, 36, 0.08);
+  --shadow-2: 0 8px 24px rgba(16, 25, 36, 0.16);
+
+  --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-focus);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #14171a;
+    --color-surface: #1d2228;
+    --color-surface-2: #262d34;
+    --color-text: #e9eef3;
+    --color-text-muted: #a6b2bf; /* ~7.6:1 on --color-bg */
+    --color-border: #323a43;
+    --color-border-strong: #46505b;
+
+    --color-accent: #6fa8ff; /* lighter so text/icons read on the dark bg */
+    --color-accent-hover: #8bbaff;
+    --color-on-accent: #08111c;
+
+    --color-success: #54c06e;
+    --color-danger: #f3736f;
+    --color-warning: #e2b341;
+
+    --color-focus: #6fa8ff;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+}

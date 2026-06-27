@@ -12,6 +12,8 @@ import { AddTransactionForm } from "./AddTransactionForm";
 import { TransferForm } from "./TransferForm";
 import { ReconcilePanel } from "./ReconcilePanel";
 import { InlineAllocationEditor } from "./InlineAllocationEditor";
+import { Alert, Badge, Button, Card, EmptyState, Field, Input, Skeleton } from "./ui";
+import styles from "./AccountRegister.module.css";
 
 interface Props {
   api: Api;
@@ -123,18 +125,21 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
 
   return (
     <main>
-      <header>
+      <header className={styles.header}>
         <h1>{accountName}</h1>
-        {balanceCents !== null ? <p>Balance: {formatCents(balanceCents)}</p> : null}
-        <button type="button" onClick={onBack}>
+        {balanceCents !== null ? (
+          <p className={styles.balance}>Balance: {formatCents(balanceCents)}</p>
+        ) : null}
+        <span className={styles.spacer} />
+        <Button variant="ghost" onClick={onBack}>
           ← Dashboard
-        </button>
-        <button type="button" onClick={onOpenNeeds}>
+        </Button>
+        <Button variant="ghost" onClick={onOpenNeeds}>
           Needs allocation
-        </button>
+        </Button>
       </header>
 
-      {error ? <p role="alert">{error}</p> : null}
+      {error ? <Alert>{error}</Alert> : null}
 
       <AddTransactionForm
         api={api}
@@ -165,91 +170,116 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
       <section aria-labelledby="register-heading">
         <h2 id="register-heading">Transactions</h2>
 
-        <form aria-label="Filter transactions" onSubmit={(e) => e.preventDefault()}>
-          <label htmlFor="register-from">From date</label>
-          <input
-            id="register-from"
-            type="date"
-            value={range.from}
-            onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
-          />
-          <label htmlFor="register-to">To date</label>
-          <input
-            id="register-to"
-            type="date"
-            value={range.to}
-            onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
-          />
-          <label htmlFor="register-search">Search payee or memo</label>
-          <input
-            id="register-search"
-            type="search"
-            placeholder="Search payee or memo"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </form>
+        <Card>
+          <form
+            className={styles.filter}
+            aria-label="Filter transactions"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <Field label="From date" htmlFor="register-from">
+              <Input
+                id="register-from"
+                type="date"
+                value={range.from}
+                onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
+              />
+            </Field>
+            <Field label="To date" htmlFor="register-to">
+              <Input
+                id="register-to"
+                type="date"
+                value={range.to}
+                onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
+              />
+            </Field>
+            <Field label="Search payee or memo" htmlFor="register-search">
+              <Input
+                id="register-search"
+                type="search"
+                placeholder="Search payee or memo"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </Field>
+          </form>
 
-        {transactions === null || visible === null ? (
-          <p>Loading…</p>
-        ) : transactions.length === 0 ? (
-          <p>No transactions yet — add your first one.</p>
-        ) : visible.length === 0 ? (
-          <p>No transactions match your search.</p>
-        ) : (
-          <ul aria-label="Transactions">
-            {visible.map((t) =>
-              t.kind === "transfer" ? (
-                <li key={t.id}>
-                  <span>{t.occurredOn}</span>{" "}
-                  <span>
-                    {t.amountCents < 0 ? "Transfer to " : "Transfer from "}
-                    {t.transferCounterpartName ?? "another account"}
-                  </span>{" "}
-                  <span>{formatCents(t.amountCents)}</span>
-                  <button
-                    type="button"
-                    disabled={deletingId === t.id}
-                    onClick={() => void deleteRow(t)}
-                    aria-label={`Delete transfer`}
-                  >
-                    {deletingId === t.id ? "Deleting…" : "Delete"}
-                  </button>
-                </li>
-              ) : (
-                <li key={t.id}>
-                  <span>{t.occurredOn}</span>{" "}
-                  <span>{t.payee ?? (t.kind === "opening" ? "Opening balance" : "—")}</span>{" "}
-                  <span>{formatCents(t.amountCents)}</span>{" "}
-                  <span>
-                    {t.unallocatedCents === 0
-                      ? "fully allocated"
-                      : `needs ${formatCents(Math.abs(t.unallocatedCents))}`}
-                  </span>
-                  <InlineAllocationEditor
-                    txn={t}
-                    envelopes={envelopes}
-                    templates={templates}
-                    open={editingId === t.id}
-                    submitting={savingId === t.id}
-                    toggleLabel="Edit split"
-                    saveLabel="Save split"
-                    onToggle={() => setEditingId((cur) => (cur === t.id ? null : t.id))}
-                    onSave={(allocs) => void saveSplit(t, allocs)}
-                  />
-                  <button
-                    type="button"
-                    disabled={deletingId === t.id}
-                    onClick={() => void deleteRow(t)}
-                    aria-label={`Delete transaction`}
-                  >
-                    {deletingId === t.id ? "Deleting…" : "Delete"}
-                  </button>
-                </li>
-              ),
-            )}
-          </ul>
-        )}
+          {transactions === null || visible === null ? (
+            <Skeleton rows={4} />
+          ) : transactions.length === 0 ? (
+            <EmptyState title="No transactions yet">
+              <p className={styles.muted}>Add your first one with the form above.</p>
+            </EmptyState>
+          ) : visible.length === 0 ? (
+            <p className={styles.muted}>No transactions match your search.</p>
+          ) : (
+            <ul className={styles.list} aria-label="Transactions">
+              {visible.map((t) =>
+                t.kind === "transfer" ? (
+                  <li key={t.id} className={styles.row}>
+                    <span className={styles.date}>{t.occurredOn}</span>
+                    <span className={styles.payee}>
+                      {t.amountCents < 0 ? "Transfer to " : "Transfer from "}
+                      {t.transferCounterpartName ?? "another account"}
+                    </span>
+                    <span
+                      className={`${styles.amount} ${t.amountCents < 0 ? styles.neg : styles.pos}`}
+                    >
+                      {formatCents(t.amountCents)}
+                    </span>
+                    <span className={styles.actions}>
+                      <Button
+                        variant="danger"
+                        disabled={deletingId === t.id}
+                        onClick={() => void deleteRow(t)}
+                        aria-label="Delete transfer"
+                      >
+                        {deletingId === t.id ? "Deleting…" : "Delete"}
+                      </Button>
+                    </span>
+                  </li>
+                ) : (
+                  <li key={t.id} className={styles.row}>
+                    <span className={styles.date}>{t.occurredOn}</span>
+                    <span className={styles.payee}>
+                      {t.payee ?? (t.kind === "opening" ? "Opening balance" : "—")}
+                    </span>
+                    <Badge tone={t.unallocatedCents === 0 ? "success" : "danger"}>
+                      {t.unallocatedCents === 0
+                        ? "fully allocated"
+                        : `needs ${formatCents(Math.abs(t.unallocatedCents))}`}
+                    </Badge>
+                    <span
+                      className={`${styles.amount} ${t.amountCents < 0 ? styles.neg : styles.pos}`}
+                    >
+                      {formatCents(t.amountCents)}
+                    </span>
+                    <span className={styles.actions}>
+                      <InlineAllocationEditor
+                        txn={t}
+                        envelopes={envelopes}
+                        templates={templates}
+                        open={editingId === t.id}
+                        submitting={savingId === t.id}
+                        toggleLabel="Edit split"
+                        saveLabel="Save split"
+                        onToggle={() => setEditingId((cur) => (cur === t.id ? null : t.id))}
+                        onSave={(allocs) => void saveSplit(t, allocs)}
+                      />
+                      <Button
+                        variant="danger"
+                        disabled={deletingId === t.id}
+                        onClick={() => void deleteRow(t)}
+                        aria-label="Delete transaction"
+                      >
+                        {deletingId === t.id ? "Deleting…" : "Delete"}
+                      </Button>
+                    </span>
+                  </li>
+                ),
+              )}
+            </ul>
+          )}
+        </Card>
       </section>
     </main>
   );

@@ -1,0 +1,115 @@
+/*
+ * Base layer (FEAT-UX4 · ADR-0005) — element-level styling on the tokens, so the whole app
+ * gains coherent type/spacing/controls without per-component churn. Absorbs the WCAG 2.5.8
+ * touch-target floor that used to live in index.css (min-height on interactive controls).
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--space-5);
+}
+
+h1 {
+  font-size: var(--text-xl);
+  line-height: 1.2;
+  margin: 0 0 var(--space-3);
+}
+h2 {
+  font-size: var(--text-lg);
+  margin: var(--space-5) 0 var(--space-3);
+}
+h3 {
+  font-size: var(--text-base);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Form controls — shared baseline (WCAG 2.5.8: min target height ≥ 24px). */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  min-height: 32px;
+}
+
+input,
+select,
+textarea {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+table {
+  border-collapse: collapse;
+}
+
+label {
+  color: var(--color-text);
+}
+
+/* Accessible-only text (e.g. a Skeleton's "Loading…" status for screen readers). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

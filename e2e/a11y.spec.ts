@@ -166,6 +166,27 @@ test.describe("a11y — Envelope ledger", () => {
   });
 });
 
+// UX4 — the design-system foundation adds dark mode (prefers-color-scheme). Re-scan the two
+// surfaces it restyles under an emulated dark scheme, so dark-mode token contrast is gated too.
+test.describe("a11y — dark mode (FEAT-UX4)", () => {
+  test.use({ colorScheme: "dark" });
+
+  test("dashboard is accessible in dark mode", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Budgeteer", level: 1 })).toBeVisible();
+    await assertNoViolations(page);
+  });
+
+  test("account register is accessible in dark mode", async ({ page }) => {
+    await page.goto("/");
+    const name = `Dark-Acct-${Date.now()}`;
+    await createAccount(page, name);
+    await page.getByRole("button", { name, exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
+    await assertNoViolations(page);
+  });
+});
+
 // Cleanup: return to Dashboard so subsequent tests (if any) start clean.
 test.afterEach(async ({ page }) => {
   await goToDashboard(page);

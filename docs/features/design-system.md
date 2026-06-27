@@ -9,7 +9,7 @@ in place. Status ladder: docs/00_WAYS_OF_WORKING.md §4.
 | Field        | Value                                                                 |
 | ------------ | --------------------------------------------------------------------- |
 | Feature ID   | FEAT-UX4                                                               |
-| Status       | Proposed                                                              |
+| Status       | Implemented ([status report](../status-reports/2026-06-25-ux4.md))    |
 | Owner        | Wesley Cutting                                                         |
 | Last updated | 2026-06-25                                                            |
 | Related      | [UX Uplift brief](../reviews/2026-06-25-ux-uplift-initiative.md) (`UX4`) · [`ADR-0005`](../adr/ADR-0005-frontend-design-system.md) · [`SPIKE-06`](../spikes/06-design-system-routing.md) · proof screen: [`AccountRegister.tsx`](../../apps/web/src/AccountRegister.tsx) |
@@ -31,9 +31,10 @@ and **proves them by restyling the Account Register in place** — gate-green an
   - **Token sheet** — color, space, type scale, radius, elevation as CSS custom properties; **dark
     mode** via one `prefers-color-scheme` query; `prefers-reduced-motion` honored globally. Absorbs
     the WCAG 2.5.8 touch-target floor currently in [`index.css`](../../apps/web/src/index.css).
-  - **Starter primitives** (the minimum the Account Register exercises) — see §3a inventory:
-    `Button`, `Field` (label+control), `Input`, `Select`, `Table`, `Badge`, `Dialog` (Radix),
-    `Alert`, `EmptyState`, `Skeleton`.
+  - **Starter primitives** (the minimum the Account Register exercises) — see §3a inventory.
+    **Built:** `Button`, `Field`/`Input`/`Select`, `Badge`, `Card`, `Alert`, `EmptyState`,
+    `Skeleton`. **Deferred** (seed-and-grow — no genuine modal/table on this screen): `Dialog`
+    (Radix) and `Table`.
   - **Proof:** restyle the **Account Register in place** onto tokens + primitives, with the
     **current** `view`-machine navigation unchanged.
   - **Conventions:** primitive location (`apps/web/src/ui/`), CSS-Module + token usage rules, and
@@ -52,9 +53,9 @@ and **proves them by restyling the Account Register in place** — gate-green an
 | `Button` | Edit split · Delete · Save · Cancel | real `<button>`; ≥24px target; visible focus; variants (default/accent/danger) differ by more than color |
 | `Field` + `Input` | From/To date, Search | `<label htmlFor>` tied to control; error text via `aria-describedby` |
 | `Select` | envelope picker (in dialog) | native `<select>` with a `<label>` |
-| `Table` | transactions list | `<caption>`, `<th scope>`; numeric cells right-aligned, monospaced |
-| `Badge` | "fully allocated" / "needs $X" | **text + shape**, never color alone; sufficient contrast |
-| `Dialog` (Radix) | allocation editor | focus trap, `Esc` closes, focus restore, `aria-modal`, `Dialog.Title` for the name |
+| `Table` | transactions list | **deferred** — the register's list stayed a styled `<ul>`/`<li>` (the unit test relies on `closest("li")`); a real `Table` lands with the cockpit/Insights |
+| `Badge` | "fully allocated" / "needs $X" | **text + shape**, never color alone; sufficient contrast (incl. dark) |
+| `Dialog` (Radix) | allocation editor | **deferred** — the editor is a *shared inline expand* (register + Needs-allocation); modal-izing it is a flow change, so `Dialog` lands at the first genuine modal (likely `UX7`) |
 | `Alert` | load/save error | `role="alert"`; text, not color alone |
 | `EmptyState` | "No transactions yet…" | heading + a clear next action |
 | `Skeleton` | loading | `aria-hidden` placeholder with an accessible "Loading…" status |
@@ -77,8 +78,8 @@ and **proves them by restyling the Account Register in place** — gate-green an
   **then** 0 violations.
 - **Given** allocation status, **then** it is conveyed by **text + shape**, not color alone
   (e.g. a "needs $X" badge reads its text).
-- **Given** the split dialog, **when** opened, **then** focus is trapped, `Esc` closes it, and focus
-  returns to the trigger.
+- *(Deferred with `Dialog`)* a modal's focus trap / `Esc` / focus-restore is validated when the
+  `Dialog` primitive lands at its first genuine modal.
 - **Given** the gate, **then** typecheck · lint · format · unit · e2e (incl. a11y) · build all pass;
   the existing Account Register e2e pass against the restyled DOM.
 - **No** data/API/domain change.
@@ -134,10 +135,12 @@ None — pure presentation. No domain/data-model doc changes.
 
 | Question | Owner | Status |
 | -------- | ----- | ------ |
-| Primitive location — `apps/web/src/ui/`? | Wesley + agent | proposed (confirm in build) |
-| Token naming — semantic (`--color-accent`) vs scale (`--blue-600`)? Lean semantic + a small scale underneath. | agent | open |
-| Add a dark-mode axe pass to `e2e/a11y.spec.ts`? Lean **yes**. | agent | open |
-| Delete `index.css` once the token base absorbs the touch-target floor? Lean **yes**. | agent | open |
+| Primitive location — `apps/web/src/ui/`? | Wesley + agent | **resolved: yes** (`apps/web/src/ui/`) |
+| Token naming — semantic vs scale? | agent | **resolved: semantic** (`--color-accent`, `--space-3`, …) |
+| Add a dark-mode axe pass to `e2e/a11y.spec.ts`? | agent | **resolved: yes** (+2 dark scans) |
+| Delete `index.css` once the token base absorbs the touch-target floor? | agent | **resolved: yes** (deleted; floor in `base.css`) |
 
-> **Status: `Proposed`.** Framing + scope owner-aligned (seed-and-grow; prove on the Account
-> Register in place). Becomes `Implemented` when the slice lands gate-green per §4.
+> **Status: `Implemented`** (gate-green 2026-06-25 — 283 Vitest + 49 e2e; axe light+dark). Built
+> the token sheet + base layer + the seed primitive set and restyled the Account Register in place;
+> `Dialog`/`Table` deferred per seed-and-grow. See the
+> [status report](../status-reports/2026-06-25-ux4.md).
