@@ -86,36 +86,6 @@ describe("Dashboard (Foundation UX)", () => {
     expect(screen.queryByRole("table", { name: "Net worth summary" })).toBeNull();
   });
 
-  test("needs-allocation badge shows the count in the button's accessible name (R2)", async () => {
-    const api = makeFakeApi();
-    const acct = await api.createAccount({
-      name: "Checking",
-      kind: "checking",
-      startingBalance: "0.00",
-    });
-    // Three unallocated deposits → three transactions needing allocation.
-    for (const amount of ["10.00", "20.00", "30.00"]) {
-      await api.createTransaction(acct.id, {
-        kind: "deposit",
-        amount,
-        payee: "x",
-        allocations: [],
-      });
-    }
-
-    render(<Dashboard api={api} />);
-    // The count is in the accessible NAME (not color/visual only).
-    expect(await screen.findByRole("button", { name: "Needs allocation (3)" })).toBeTruthy();
-  });
-
-  test("needs-allocation badge is hidden when nothing needs allocation (R2)", async () => {
-    render(<Dashboard api={makeFakeApi()} />);
-    await screen.findByText(/No accounts yet/i);
-    // The plain button is present; no count badge.
-    expect(screen.getByRole("button", { name: "Needs allocation" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Needs allocation \(/ })).toBeNull();
-  });
-
   test("active envelope row shows its inline monthly target, spent, and remaining (R5)", async () => {
     const api = makeFakeApi();
     const acct = await api.createAccount({

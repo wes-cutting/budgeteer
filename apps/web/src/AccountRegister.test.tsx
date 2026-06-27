@@ -15,15 +15,7 @@ describe("AccountRegister (add transaction → allocate)", () => {
     const gas = await api.createEnvelope({ name: "Gas", kind: "standard" });
 
     const user = userEvent.setup();
-    render(
-      <AccountRegister
-        api={api}
-        accountId={account.id}
-        accountName="Checking"
-        onBack={() => {}}
-        onOpenNeeds={() => {}}
-      />,
-    );
+    render(<AccountRegister api={api} accountId={account.id} accountName="Checking" />);
 
     await screen.findByText("Transactions");
     const form = screen.getByRole("form", { name: "Add transaction" });
@@ -52,15 +44,7 @@ describe("AccountRegister (add transaction → allocate)", () => {
     });
 
     const user = userEvent.setup();
-    render(
-      <AccountRegister
-        api={api}
-        accountId={account.id}
-        accountName="Checking"
-        onBack={() => {}}
-        onOpenNeeds={() => {}}
-      />,
-    );
+    render(<AccountRegister api={api} accountId={account.id} accountName="Checking" />);
 
     const depositRow = (await screen.findByText("$100.00")).closest("li") as HTMLElement;
     await user.click(within(depositRow).getByRole("button", { name: "Edit split" }));
@@ -95,15 +79,7 @@ describe("AccountRegister (add transaction → allocate)", () => {
     });
 
     const user = userEvent.setup();
-    render(
-      <AccountRegister
-        api={api}
-        accountId={account.id}
-        accountName="Checking"
-        onBack={() => {}}
-        onOpenNeeds={() => {}}
-      />,
-    );
+    render(<AccountRegister api={api} accountId={account.id} accountName="Checking" />);
 
     // Both rows present before searching.
     expect(await screen.findByText("Paycheck")).toBeTruthy();
@@ -126,15 +102,7 @@ describe("AccountRegister (add transaction → allocate)", () => {
     const vac = await api.createEnvelope({ name: "Vacation", kind: "sinking_fund" });
     await api.archiveEnvelope(vac.id);
 
-    render(
-      <AccountRegister
-        api={api}
-        accountId={account.id}
-        accountName="Checking"
-        onBack={() => {}}
-        onOpenNeeds={() => {}}
-      />,
-    );
+    render(<AccountRegister api={api} accountId={account.id} accountName="Checking" />);
     await screen.findByText("Transactions");
 
     const form = screen.getByRole("form", { name: "Add transaction" });

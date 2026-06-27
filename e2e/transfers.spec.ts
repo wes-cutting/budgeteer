@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope } from "./setup";
+import { createAccount, createEnvelope, goToDashboard } from "./setup";
 
 test("account transfer: move money between two accounts", async ({ page }) => {
   const stamp = Date.now();
@@ -49,7 +49,7 @@ test("envelope reallocation: move budgeted money between envelopes", async ({ pa
   await txnForm.getByRole("button", { name: "Save transaction" }).click();
 
   // Back on the dashboard, move $100 from ENVELOPE_A to ENVELOPE_B.
-  await page.getByRole("button", { name: "← Dashboard" }).click();
+  await goToDashboard(page);
   const moveForm = page.getByRole("form", { name: "Move money between envelopes" });
   await moveForm.getByLabel("From envelope").selectOption({ label: ENVELOPE_A });
   await moveForm.getByLabel("To envelope").selectOption({ label: ENVELOPE_B });

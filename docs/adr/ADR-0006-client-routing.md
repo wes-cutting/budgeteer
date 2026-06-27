@@ -7,10 +7,11 @@ docs/00_WAYS_OF_WORKING.md §4. Stay Proposed until a spike validates the assump
 
 | Field         | Value                                                              |
 | ------------- | ------------------------------------------------------------------ |
-| Status        | Validated                                                          |
-| Date          | 2026-06-25                                                         |
+| Status        | Accepted                                                          |
+| Date          | 2026-06-25 (Accepted 2026-06-27)                                  |
 | Deciders      | Wesley Cutting + agent                                             |
 | Validated by  | [`SPIKE-06`](../spikes/06-design-system-routing.md) (Account Register deep-link / back-forward / refresh + axe-clean; bundle measured) |
+| Realized by   | `UX3` ([status](../status-reports/2026-06-27-ux3.md)) — the whole app now runs on the data router behind a persistent shell; the SPIKE-06 throwaway harness was discarded (findings persist here + in the spike report) |
 
 ## Context
 

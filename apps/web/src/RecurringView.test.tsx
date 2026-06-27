@@ -14,7 +14,7 @@ describe("RecurringView (FEAT-009)", () => {
     const pay = await api.createEnvelope({ name: "Paycheck", kind: "standard" });
 
     const user = userEvent.setup();
-    render(<RecurringView api={api} onBack={() => {}} />);
+    render(<RecurringView api={api} />);
 
     // Fill the rule: a weekly deposit anchored 14 days ago (→ 3 occurrences due).
     const form = await screen.findByRole("form", { name: "New recurring rule" });

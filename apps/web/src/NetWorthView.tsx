@@ -11,7 +11,7 @@ const NUM: React.CSSProperties = { textAlign: "right" };
  * grain toggle switches monthly ⇄ annual. Read-only; the signed cents come from the API, formatting
  * is the web display concern (`formatCents`).
  */
-export function NetWorthView({ api, onBack }: { api: Api; onBack: () => void }) {
+export function NetWorthView({ api }: { api: Api }) {
   const [grain, setGrain] = useState<SpendGrain>("month");
   const [report, setReport] = useState<NetWorthReport | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +37,6 @@ export function NetWorthView({ api, onBack }: { api: Api; onBack: () => void }) 
     <main>
       <header>
         <h1>Analysis — net worth over time</h1>
-        <button type="button" onClick={onBack}>
-          ← Dashboard
-        </button>
       </header>
 
       <div role="radiogroup" aria-label="Grain">

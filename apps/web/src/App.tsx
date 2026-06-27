@@ -1,68 +1,20 @@
-import { useState } from "react";
-import { type AccountView, type Api, type EnvelopeView } from "./api";
-import { Dashboard } from "./Dashboard";
-import { AccountRegister } from "./AccountRegister";
-import { EnvelopeLedger } from "./EnvelopeLedger";
-import { NeedsAllocation } from "./NeedsAllocation";
-import { TemplatesView } from "./TemplatesView";
-import { RecurringView } from "./RecurringView";
-import { AnalysisSection } from "./AnalysisSection";
+import { useMemo } from "react";
+import { RouterProvider } from "react-router";
+import { type Api } from "./api";
+import { ApiProvider } from "./api-context";
+import { createAppRouter } from "./routes";
 
-type View =
-  | { name: "dashboard" }
-  | { name: "account"; accountId: string; accountName: string }
-  | { name: "envelope"; envelope: EnvelopeView }
-  | { name: "needs" }
-  | { name: "templates" }
-  | { name: "recurring" }
-  | { name: "analysis" };
-
+/**
+ * UX3 — the app is a React Router data router behind a persistent shell (ADR-0006), replacing the
+ * old hand-rolled `view` state machine. `api` is injected once (tests pass a fake) and provided via
+ * context so route elements can reach it; the router elements reference `useApi()` rather than
+ * closing over `api`, so the router is created once.
+ */
 export function App({ api }: { api: Api }) {
-  const [view, setView] = useState<View>({ name: "dashboard" });
-
-  if (view.name === "account") {
-    return (
-      <AccountRegister
-        api={api}
-        accountId={view.accountId}
-        accountName={view.accountName}
-        onBack={() => setView({ name: "dashboard" })}
-        onOpenNeeds={() => setView({ name: "needs" })}
-      />
-    );
-  }
-  if (view.name === "envelope") {
-    return (
-      <EnvelopeLedger
-        api={api}
-        envelope={view.envelope}
-        onBack={() => setView({ name: "dashboard" })}
-      />
-    );
-  }
-  if (view.name === "needs") {
-    return <NeedsAllocation api={api} onBack={() => setView({ name: "dashboard" })} />;
-  }
-  if (view.name === "templates") {
-    return <TemplatesView api={api} onBack={() => setView({ name: "dashboard" })} />;
-  }
-  if (view.name === "recurring") {
-    return <RecurringView api={api} onBack={() => setView({ name: "dashboard" })} />;
-  }
-  if (view.name === "analysis") {
-    return <AnalysisSection api={api} onBack={() => setView({ name: "dashboard" })} />;
-  }
+  const router = useMemo(() => createAppRouter(), []);
   return (
-    <Dashboard
-      api={api}
-      onOpenAccount={(a: AccountView) =>
-        setView({ name: "account", accountId: a.id, accountName: a.name })
-      }
-      onOpenEnvelope={(e: EnvelopeView) => setView({ name: "envelope", envelope: e })}
-      onOpenNeeds={() => setView({ name: "needs" })}
-      onOpenTemplates={() => setView({ name: "templates" })}
-      onOpenRecurring={() => setView({ name: "recurring" })}
-      onOpenAnalysis={() => setView({ name: "analysis" })}
-    />
+    <ApiProvider value={api}>
+      <RouterProvider router={router} />
+    </ApiProvider>
   );
 }

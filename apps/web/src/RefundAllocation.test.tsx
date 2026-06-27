@@ -17,15 +17,7 @@ describe("Refund row within a split (FEAT-008)", () => {
     const gas = await api.createEnvelope({ name: "Gas", kind: "standard" });
 
     const user = userEvent.setup();
-    render(
-      <AccountRegister
-        api={api}
-        accountId={account.id}
-        accountName="Checking"
-        onBack={() => {}}
-        onOpenNeeds={() => {}}
-      />,
-    );
+    render(<AccountRegister api={api} accountId={account.id} accountName="Checking" />);
 
     await screen.findByText("Transactions");
     const form = screen.getByRole("form", { name: "Add transaction" });
@@ -65,15 +57,7 @@ describe("Refund row within a split (FEAT-008)", () => {
     const gas = await api.createEnvelope({ name: "Gas", kind: "standard" });
 
     const user = userEvent.setup();
-    render(
-      <AccountRegister
-        api={api}
-        accountId={account.id}
-        accountName="Checking"
-        onBack={() => {}}
-        onOpenNeeds={() => {}}
-      />,
-    );
+    render(<AccountRegister api={api} accountId={account.id} accountName="Checking" />);
 
     await screen.findByText("Transactions");
     const form = screen.getByRole("form", { name: "Add transaction" });

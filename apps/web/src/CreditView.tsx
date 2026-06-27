@@ -25,7 +25,7 @@ const utilizationText = (bps: number | null): string =>
  * thin. a11y: real tables with captions + `scope`'d headers; every ratio is shown as TEXT (percent,
  * "over limit"), never colour or a bar alone (the consolidated contrast pass is #16).
  */
-export function CreditView({ api, onBack }: { api: Api; onBack: () => void }) {
+export function CreditView({ api }: { api: Api }) {
   const [report, setReport] = useState<CreditUtilizationReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -67,9 +67,6 @@ export function CreditView({ api, onBack }: { api: Api; onBack: () => void }) {
     <main>
       <header>
         <h1>Analysis — credit utilization</h1>
-        <button type="button" onClick={onBack}>
-          ← Dashboard
-        </button>
       </header>
 
       {error ? <p role="alert">{error}</p> : null}

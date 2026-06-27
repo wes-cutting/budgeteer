@@ -16,7 +16,7 @@ const principalForm = () => screen.getByRole("form", { name: "Original principal
 
 describe("PayoffView (FEAT-014b)", () => {
   test("setting an original principal inline reveals owed, paid-down and payoff, plus a trend", async () => {
-    render(<PayoffView api={await loanOwing("7500.00")} onBack={() => {}} />);
+    render(<PayoffView api={await loanOwing("7500.00")} />);
 
     // Before a principal, payoff is unknown (text, not colour) and prompts to set one.
     await screen.findByRole("form", { name: "Original principal for Car loan" });
@@ -39,7 +39,7 @@ describe("PayoffView (FEAT-014b)", () => {
   test("a settled loan (balance 0) reads 100% paid off", async () => {
     const api = makeFakeApi();
     await api.createAccount({ name: "Car loan", kind: "loan", startingBalance: "0" });
-    render(<PayoffView api={api} onBack={() => {}} />);
+    render(<PayoffView api={api} />);
     await screen.findByRole("form", { name: "Original principal for Car loan" });
     await userEvent.type(
       within(principalForm()).getByLabelText("Original principal for Car loan"),
@@ -53,7 +53,7 @@ describe("PayoffView (FEAT-014b)", () => {
   test("empty state when there are no loan accounts", async () => {
     const api = makeFakeApi();
     await api.createAccount({ name: "Checking", kind: "checking", startingBalance: "1000.00" });
-    render(<PayoffView api={api} onBack={() => {}} />);
+    render(<PayoffView api={api} />);
     expect(await screen.findByText(/No loan accounts yet/)).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
   });
@@ -62,7 +62,7 @@ describe("PayoffView (FEAT-014b)", () => {
     const api = makeFakeApi({
       getDebtPayoff: () => Promise.reject(new ApiError("Couldn't reach the server.")),
     });
-    render(<PayoffView api={api} onBack={() => {}} />);
+    render(<PayoffView api={api} />);
     await waitFor(() =>
       expect(screen.getByRole("alert").textContent).toContain("Couldn't reach the server."),
     );

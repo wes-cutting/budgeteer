@@ -7,7 +7,15 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { createAccount, createEnvelope, goToDashboard, openAnalysis } from "./setup";
+import {
+  createAccount,
+  createEnvelope,
+  goToDashboard,
+  openAnalysis,
+  openNeeds,
+  openRecurring,
+  openTemplates,
+} from "./setup";
 
 const ACCOUNT = `A11y-Acct-${Date.now()}`;
 const ENVELOPE = `A11y-Env-${Date.now()}`;
@@ -56,7 +64,7 @@ test.describe("a11y — Account register", () => {
 test.describe("a11y — Needs allocation", () => {
   test("needs-allocation view is accessible", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Needs allocation" }).click();
+    await openNeeds(page);
     await expect(page.getByRole("heading", { name: "Needs allocation", level: 1 })).toBeVisible();
     await assertNoViolations(page);
   });
@@ -65,7 +73,7 @@ test.describe("a11y — Needs allocation", () => {
 test.describe("a11y — Templates", () => {
   test("templates view is accessible", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Templates" }).click();
+    await openTemplates(page);
     await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
     await assertNoViolations(page);
   });
@@ -74,7 +82,7 @@ test.describe("a11y — Templates", () => {
 test.describe("a11y — Recurring", () => {
   test("recurring view is accessible", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Recurring" }).click();
+    await openRecurring(page);
     await expect(page.getByRole("heading", { name: "Recurring", level: 1 })).toBeVisible();
     await assertNoViolations(page);
   });

@@ -20,7 +20,7 @@ describe("NeedsAllocation (allocate-later)", () => {
     });
 
     const user = userEvent.setup();
-    render(<NeedsAllocation api={api} onBack={() => {}} />);
+    render(<NeedsAllocation api={api} />);
 
     expect(await screen.findByText(/needs \$1,000\.00/)).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Allocate" }));

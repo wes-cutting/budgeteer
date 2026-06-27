@@ -1,40 +1,51 @@
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { AnalysisSection } from "./AnalysisSection";
 import { makeFakeApi } from "./test/fakeApi";
 
 const TAB_LABELS = ["Spend", "Budget", "Forecast", "Credit", "Payoff", "Net worth"];
 
-describe("AnalysisSection (R3 — grouped analysis nav)", () => {
-  test("defaults to the spend view and exposes all six tabs, with the active one marked current", async () => {
-    render(<AnalysisSection api={makeFakeApi()} onBack={() => {}} />);
+// UX3 — the Insights area is now URL-driven (`/insights/:view`). Render it inside a router at a
+// given view so useParams resolves, with a `/` stub for the boundary's recovery target.
+function renderAt(view: string, api = makeFakeApi()) {
+  return render(
+    <MemoryRouter initialEntries={[`/insights/${view}`]}>
+      <Routes>
+        <Route path="/insights/:view" element={<AnalysisSection api={api} />} />
+        <Route path="/" element={<h1>Budgeteer</h1>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
 
-    // Default tab = spend.
+describe("AnalysisSection (UX3 — routed Insights nav)", () => {
+  test("renders the requested view and exposes all six tabs as links, active one marked current", async () => {
+    renderAt("spend");
+
     expect(
       await screen.findByRole("heading", { name: "Analysis — spend by envelope", level: 1 }),
     ).toBeTruthy();
 
     const nav = screen.getByRole("navigation", { name: "Analysis views" });
     for (const label of TAB_LABELS) {
-      // testing-library: a string `name` is an exact, full accessible-name match.
-      expect(within(nav).getByRole("button", { name: label })).toBeTruthy();
+      expect(within(nav).getByRole("link", { name: label })).toBeTruthy();
     }
-    // aria-current marks the active tab (not color/visual only).
-    expect(within(nav).getByRole("button", { name: "Spend" }).getAttribute("aria-current")).toBe(
+    // aria-current marks the active tab (set by NavLink — not colour/visual only).
+    expect(within(nav).getByRole("link", { name: "Spend" }).getAttribute("aria-current")).toBe(
       "page",
     );
-    expect(within(nav).getByRole("button", { name: "Budget" }).getAttribute("aria-current")).toBe(
+    expect(within(nav).getByRole("link", { name: "Budget" }).getAttribute("aria-current")).toBe(
       null,
     );
   });
 
-  test("switching tabs swaps the active view in place (previous view unmounts; onBack not called)", async () => {
-    const onBack = vi.fn();
-    render(<AnalysisSection api={makeFakeApi()} onBack={onBack} />);
+  test("clicking a tab navigates to that view and swaps the active page in place", async () => {
+    renderAt("spend");
     await screen.findByRole("heading", { name: "Analysis — spend by envelope", level: 1 });
 
-    await userEvent.click(screen.getByRole("button", { name: "Net worth" }));
+    await userEvent.click(screen.getByRole("link", { name: "Net worth" }));
     expect(
       await screen.findByRole("heading", { name: "Analysis — net worth over time", level: 1 }),
     ).toBeTruthy();
@@ -43,21 +54,17 @@ describe("AnalysisSection (R3 — grouped analysis nav)", () => {
     expect(
       screen.queryByRole("heading", { name: "Analysis — spend by envelope", level: 1 }),
     ).toBeNull();
-    // Switching stays inside the section — it does not exit to the Dashboard.
-    expect(onBack).not.toHaveBeenCalled();
 
     const nav = screen.getByRole("navigation", { name: "Analysis views" });
-    expect(
-      within(nav).getByRole("button", { name: "Net worth" }).getAttribute("aria-current"),
-    ).toBe("page");
+    expect(within(nav).getByRole("link", { name: "Net worth" }).getAttribute("aria-current")).toBe(
+      "page",
+    );
   });
 
-  test("the active view's ← Dashboard button exits the section via onBack", async () => {
-    const onBack = vi.fn();
-    render(<AnalysisSection api={makeFakeApi()} onBack={onBack} />);
-    await screen.findByRole("heading", { name: "Analysis — spend by envelope", level: 1 });
-
-    await userEvent.click(screen.getByRole("button", { name: "← Dashboard" }));
-    expect(onBack).toHaveBeenCalledTimes(1);
+  test("an unknown view falls back to the default (spend) view", async () => {
+    renderAt("bogus");
+    expect(
+      await screen.findByRole("heading", { name: "Analysis — spend by envelope", level: 1 }),
+    ).toBeTruthy();
   });
 });

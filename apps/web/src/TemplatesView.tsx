@@ -11,14 +11,13 @@ import { formatCents } from "./format";
 
 interface Props {
   api: Api;
-  onBack: () => void;
 }
 interface LineDraft {
   envelopeId: string;
   amount: string;
 }
 
-export function TemplatesView({ api, onBack }: Props) {
+export function TemplatesView({ api }: Props) {
   const [templates, setTemplates] = useState<TemplateView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[]>([]);
   const [name, setName] = useState("");
@@ -90,9 +89,6 @@ export function TemplatesView({ api, onBack }: Props) {
     <main>
       <header>
         <h1>Templates</h1>
-        <button type="button" onClick={onBack}>
-          ← Dashboard
-        </button>
       </header>
 
       {error ? <p role="alert">{error}</p> : null}

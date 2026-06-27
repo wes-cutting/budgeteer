@@ -15,7 +15,7 @@ import { AllocationEditor } from "./AllocationEditor";
 const FREQUENCIES: RecurringFrequency[] = ["weekly", "biweekly", "monthly"];
 
 /** Recurring rules (FEAT-009): define a scheduled transaction + split, and "Post due" to generate. */
-export function RecurringView({ api, onBack }: { api: Api; onBack: () => void }) {
+export function RecurringView({ api }: { api: Api }) {
   const [accounts, setAccounts] = useState<AccountView[]>([]);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[]>([]);
   const [rules, setRules] = useState<Rule[] | null>(null);
@@ -113,9 +113,6 @@ export function RecurringView({ api, onBack }: { api: Api; onBack: () => void })
     <main>
       <header>
         <h1>Recurring</h1>
-        <button type="button" onClick={onBack}>
-          ← Dashboard
-        </button>
         <button type="button" onClick={() => void postDue()}>
           Post due
         </button>

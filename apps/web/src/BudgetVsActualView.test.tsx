@@ -59,7 +59,7 @@ async function seeded() {
 
 describe("BudgetVsActualView (FEAT-012)", () => {
   test("shows target vs. outflow spend and remaining for the chosen month", async () => {
-    render(<BudgetVsActualView api={await seeded()} onBack={() => {}} />);
+    render(<BudgetVsActualView api={await seeded()} />);
     await screen.findByRole("table");
     await showMonth("2026-03");
 
@@ -88,7 +88,7 @@ describe("BudgetVsActualView (FEAT-012)", () => {
   });
 
   test("setting a target inline updates the remaining", async () => {
-    render(<BudgetVsActualView api={await seeded()} onBack={() => {}} />);
+    render(<BudgetVsActualView api={await seeded()} />);
     await screen.findByRole("table");
     await showMonth("2026-03");
 
@@ -101,7 +101,7 @@ describe("BudgetVsActualView (FEAT-012)", () => {
   });
 
   test("clearing a target removes it (remaining → em-dash, no Clear button)", async () => {
-    render(<BudgetVsActualView api={await seeded()} onBack={() => {}} />);
+    render(<BudgetVsActualView api={await seeded()} />);
     await screen.findByRole("table");
     await showMonth("2026-03");
 
@@ -117,7 +117,7 @@ describe("BudgetVsActualView (FEAT-012)", () => {
   });
 
   test("empty state when there are no envelopes to budget", async () => {
-    render(<BudgetVsActualView api={makeFakeApi()} onBack={() => {}} />);
+    render(<BudgetVsActualView api={makeFakeApi()} />);
     expect(await screen.findByText(/No envelopes to budget yet/)).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
   });
@@ -126,7 +126,7 @@ describe("BudgetVsActualView (FEAT-012)", () => {
     const api = makeFakeApi({
       getBudgetVsActual: () => Promise.reject(new ApiError("Couldn't reach the server.")),
     });
-    render(<BudgetVsActualView api={api} onBack={() => {}} />);
+    render(<BudgetVsActualView api={api} />);
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Couldn't reach the server.");
   });

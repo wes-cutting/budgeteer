@@ -10,9 +10,6 @@
   margin: 0;
   color: var(--color-text-muted);
 }
-.spacer {
-  flex: 1;
-}
 .filter {
   display: flex;
   gap: var(--space-3);

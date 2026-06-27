@@ -16,7 +16,7 @@ const limitForm = () => screen.getByRole("form", { name: "Credit limit for Visa"
 
 describe("CreditView (FEAT-014a)", () => {
   test("setting a credit limit inline reveals owed, available and utilization, plus a trend", async () => {
-    render(<CreditView api={await cardOwing("1500.00")} onBack={() => {}} />);
+    render(<CreditView api={await cardOwing("1500.00")} />);
 
     // Before a limit, utilization is unknown (text, not colour) and prompts to set one.
     await screen.findByRole("form", { name: "Credit limit for Visa" });
@@ -36,7 +36,7 @@ describe("CreditView (FEAT-014a)", () => {
 
   test("over-limit reads above 100% as text ('over limit'), not clamped", async () => {
     const api = await cardOwing("6000.00");
-    render(<CreditView api={api} onBack={() => {}} />);
+    render(<CreditView api={api} />);
     await screen.findByRole("form", { name: "Credit limit for Visa" });
     await userEvent.type(within(limitForm()).getByLabelText("Credit limit for Visa"), "5000.00");
     await userEvent.click(within(limitForm()).getByRole("button", { name: "Save" }));
@@ -46,7 +46,7 @@ describe("CreditView (FEAT-014a)", () => {
   test("empty state when there are no credit accounts", async () => {
     const api = makeFakeApi();
     await api.createAccount({ name: "Checking", kind: "checking", startingBalance: "1000.00" });
-    render(<CreditView api={api} onBack={() => {}} />);
+    render(<CreditView api={api} />);
     expect(await screen.findByText(/No credit accounts yet/)).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
   });
@@ -55,7 +55,7 @@ describe("CreditView (FEAT-014a)", () => {
     const api = makeFakeApi({
       getCreditUtilization: () => Promise.reject(new ApiError("Couldn't reach the server.")),
     });
-    render(<CreditView api={api} onBack={() => {}} />);
+    render(<CreditView api={api} />);
     await waitFor(() =>
       expect(screen.getByRole("alert").textContent).toContain("Couldn't reach the server."),
     );

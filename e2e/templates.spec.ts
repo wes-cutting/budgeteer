@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope } from "./setup";
+import { createAccount, createEnvelope, openTemplates } from "./setup";
 
 test("save a split as a template, then apply it to a second transaction", async ({ page }) => {
   const stamp = Date.now();
@@ -56,7 +56,7 @@ test("create a template directly in the Templates view, then rename it", async (
   await page.goto("/");
   await createEnvelope(page, ENVELOPE);
 
-  await page.getByRole("button", { name: "Templates" }).click();
+  await openTemplates(page);
   await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
 
   // Create a template with one line.

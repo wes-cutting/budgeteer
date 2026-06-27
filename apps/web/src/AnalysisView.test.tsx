@@ -46,7 +46,7 @@ describe("AnalysisView (FEAT-011)", () => {
   }
 
   test("renders the monthly grid with signed cells, archived rows, and footed totals", async () => {
-    render(<AnalysisView api={await seeded()} onBack={() => {}} />);
+    render(<AnalysisView api={await seeded()} />);
 
     await screen.findByRole("table");
     expect(screen.getByRole("columnheader", { name: "2026-03" })).toBeTruthy();
@@ -69,7 +69,7 @@ describe("AnalysisView (FEAT-011)", () => {
   });
 
   test("the grain toggle re-aggregates monthly ⇄ annual", async () => {
-    render(<AnalysisView api={await seeded()} onBack={() => {}} />);
+    render(<AnalysisView api={await seeded()} />);
     await screen.findByRole("table");
 
     await userEvent.click(screen.getByRole("radio", { name: "Annual" }));
@@ -82,7 +82,7 @@ describe("AnalysisView (FEAT-011)", () => {
   });
 
   test("empty state when there is nothing to analyze", async () => {
-    render(<AnalysisView api={makeFakeApi()} onBack={() => {}} />);
+    render(<AnalysisView api={makeFakeApi()} />);
     expect(await screen.findByText(/No spending to analyze yet/)).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
   });
@@ -91,7 +91,7 @@ describe("AnalysisView (FEAT-011)", () => {
     const api = makeFakeApi({
       getEnvelopeSpend: () => Promise.reject(new ApiError("Couldn't reach the server.")),
     });
-    render(<AnalysisView api={api} onBack={() => {}} />);
+    render(<AnalysisView api={api} />);
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Couldn't reach the server.");
   });

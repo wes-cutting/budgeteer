@@ -8,7 +8,6 @@ import {
   type BudgetVsActualRow,
   type EnvelopeKind,
   type EnvelopeView,
-  exportUrl,
 } from "./api";
 import { formatCents } from "./format";
 import { MoveMoneyForm } from "./MoveMoneyForm";
@@ -19,37 +18,18 @@ const NUM: React.CSSProperties = { textAlign: "right" };
 // R5 — current calendar month ("YYYY-MM") for the inline envelope-target join (the budget endpoint
 // keys targets/spend by month). Matches BudgetVsActualView's default month.
 const currentMonth = (): string => new Date().toISOString().slice(0, 7);
-// R2 — needs-allocation count pill. White on dark red (~8.3:1, passes WCAG 2.2 AA).
-const BADGE: React.CSSProperties = {
-  marginLeft: "0.4em",
-  padding: "0 0.5em",
-  borderRadius: "999px",
-  backgroundColor: "#991b1b",
-  color: "#fff",
-  fontSize: "0.85em",
-  fontWeight: 600,
-};
 
 export function Dashboard({
   api,
   onOpenAccount,
   onOpenEnvelope,
-  onOpenNeeds,
-  onOpenTemplates,
-  onOpenRecurring,
-  onOpenAnalysis,
 }: {
   api: Api;
   onOpenAccount?: (account: AccountView) => void;
   onOpenEnvelope?: (envelope: EnvelopeView) => void;
-  onOpenNeeds?: () => void;
-  onOpenTemplates?: () => void;
-  onOpenRecurring?: () => void;
-  onOpenAnalysis?: () => void;
 }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
-  const [needsCount, setNeedsCount] = useState<number | null>(null);
   const [budgetByEnvelope, setBudgetByEnvelope] = useState<Map<string, BudgetVsActualRow> | null>(
     null,
   );
@@ -66,23 +46,10 @@ export function Dashboard({
       .catch((err: unknown) => {
         if (active) setLoadError(err instanceof Error ? err.message : "Couldn't load your data.");
       });
-    // R2 — needs-allocation badge. Loaded independently of the core account/envelope fetch:
-    // it's auxiliary, so a failure here leaves the badge absent rather than blanking the
-    // Dashboard. Refreshes on the next Dashboard mount — App remounts the Dashboard on
-    // back-navigation, so completing an allocation and returning shows the new count.
-    api
-      .listNeedsAllocation()
-      .then((txns) => {
-        if (active) setNeedsCount(txns.length);
-      })
-      .catch(() => {
-        /* badge is auxiliary — leave it absent on error */
-      });
-    // R5 — inline envelope targets. Fetched independently of the core load (same rationale as the
-    // R2 badge): a failure here leaves each row's target/spent/remaining absent rather than blanking
-    // the Dashboard. Default month = the current calendar month. Freshness is automatic — App
-    // remounts the Dashboard on back-navigation, so setting a target in the Budget view and
-    // returning re-fetches these figures.
+    // R5 — inline envelope targets. Fetched independently of the core load: a failure here leaves
+    // each row's target/spent/remaining absent rather than blanking the Dashboard. Default month =
+    // the current calendar month. Freshness is automatic — the app shell keys the route content by
+    // pathname, so the Dashboard remounts on back-navigation and re-fetches these figures.
     api
       .getBudgetVsActual(currentMonth())
       .then((report) => {
@@ -153,33 +120,7 @@ export function Dashboard({
 
   return (
     <main>
-      <header>
-        <h1>Budgeteer</h1>
-        <button
-          type="button"
-          onClick={() => onOpenNeeds?.()}
-          aria-label={
-            needsCount !== null && needsCount > 0 ? `Needs allocation (${needsCount})` : undefined
-          }
-        >
-          Needs allocation
-          {needsCount !== null && needsCount > 0 ? (
-            <span style={BADGE} aria-hidden="true">
-              {needsCount}
-            </span>
-          ) : null}
-        </button>
-        <button type="button" onClick={() => onOpenTemplates?.()}>
-          Templates
-        </button>
-        <button type="button" onClick={() => onOpenRecurring?.()}>
-          Recurring
-        </button>
-        <button type="button" onClick={() => onOpenAnalysis?.()}>
-          Analysis
-        </button>
-        <a href={exportUrl}>Download backup</a>
-      </header>
+      <h1>Budgeteer</h1>
 
       {loadError ? <p role="alert">{loadError}</p> : null}
 

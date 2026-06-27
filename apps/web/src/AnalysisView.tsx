@@ -10,7 +10,7 @@ const NUM: React.CSSProperties = { textAlign: "right" };
  * "18 Monthly" tab. Read-only; a grain toggle switches monthly ⇄ annual. Money formatting is the
  * web display concern (`formatCents`); the signed cents come from the API.
  */
-export function AnalysisView({ api, onBack }: { api: Api; onBack: () => void }) {
+export function AnalysisView({ api }: { api: Api }) {
   const [grain, setGrain] = useState<SpendGrain>("month");
   const [rollup, setRollup] = useState<EnvelopeSpendRollup | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,9 +36,6 @@ export function AnalysisView({ api, onBack }: { api: Api; onBack: () => void }) 
     <main>
       <header>
         <h1>Analysis — spend by envelope</h1>
-        <button type="button" onClick={onBack}>
-          ← Dashboard
-        </button>
       </header>
 
       <div role="radiogroup" aria-label="Grain">

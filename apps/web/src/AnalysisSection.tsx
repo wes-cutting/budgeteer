@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { type ReactElement } from "react";
+import { Navigate, NavLink, useNavigate, useParams } from "react-router";
 import { type Api } from "./api";
 import { AnalysisView } from "./AnalysisView";
 import { BudgetVsActualView } from "./BudgetVsActualView";
@@ -9,21 +10,14 @@ import { NetWorthView } from "./NetWorthView";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 /**
- * R3 — unified Analysis section. Groups the six analysis views (spend-by-envelope, budget vs.
- * actual, cash-flow forecast, credit utilization, debt payoff, net worth) behind a single
- * Dashboard "Analysis" entry with an in-section sub-nav, so you can switch between them WITHOUT
- * returning to the Dashboard — replacing the long flat row of header buttons.
+ * UX3 — the Insights area, now URL-addressable at `/insights/:view` (ADR-0006). Each of the six
+ * analysis views (spend-by-envelope, budget vs. actual, cash-flow forecast, credit utilization,
+ * debt payoff, net worth) is its own deep-linkable route; the sub-nav is `<NavLink>`s (which set
+ * `aria-current="page"` on the active one) instead of the old in-component tab state. The active
+ * view stays a self-contained full page with its own <h1> and data fetch, and only it is mounted.
  *
- * Each view stays a self-contained full page (its own <h1> and its own data fetch). Only the
- * ACTIVE view is mounted, so switching tabs unmounts the previous view and mounts the next —
- * each view's useEffect fetch runs exactly when its tab is shown (no eager fetch-all-six). The
- * view's own "← Dashboard" button remains the section exit (onBack); the sub-nav only switches
- * views.
- *
- * The sub-nav is a <nav> of plain buttons with aria-current="page" on the active one — the
- * semantically-correct-buttons option (native Tab order; no roving tabindex / arrow keys, which
- * belong to the role="tablist" pattern). No transition is added on switch, so there is nothing
- * for prefers-reduced-motion to gate.
+ * Each view keeps its own <h1>. The headings still read "Analysis — …"; the rename to "Insights"
+ * is UX8's job (Analysis → Insights migration), not this routing slice.
  */
 const TABS = [
   { id: "spend", label: "Spend" },
@@ -36,34 +30,45 @@ const TABS = [
 
 type AnalysisTab = (typeof TABS)[number]["id"];
 
-export function AnalysisSection({ api, onBack }: { api: Api; onBack: () => void }) {
-  const [tab, setTab] = useState<AnalysisTab>("spend");
+function renderView(view: AnalysisTab, api: Api): ReactElement {
+  switch (view) {
+    case "spend":
+      return <AnalysisView api={api} />;
+    case "budget":
+      return <BudgetVsActualView api={api} />;
+    case "forecast":
+      return <ForecastView api={api} />;
+    case "credit":
+      return <CreditView api={api} />;
+    case "payoff":
+      return <PayoffView api={api} />;
+    case "networth":
+      return <NetWorthView api={api} />;
+  }
+}
+
+export function AnalysisSection({ api }: { api: Api }) {
+  const { view } = useParams();
+  const navigate = useNavigate();
+  const active = TABS.find((t) => t.id === view)?.id;
+
+  // An unknown view (e.g. a stale or hand-typed URL) falls back to the default view.
+  if (active === undefined) return <Navigate to="/insights/spend" replace />;
 
   return (
     <>
       <nav aria-label="Analysis views">
         {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            aria-current={tab === t.id ? "page" : undefined}
-            onClick={() => setTab(t.id)}
-          >
+          <NavLink key={t.id} to={`/insights/${t.id}`} end>
             {t.label}
-          </button>
+          </NavLink>
         ))}
       </nav>
-      {/* R12 — a per-view boundary so a render crash in one analysis view shows a recoverable
-          fallback while the sub-nav above stays usable, instead of blanking the whole app. `key`
-          is the active tab, so switching tabs mounts a fresh, error-free boundary; the fallback's
-          recovery action is the section exit (← Dashboard). */}
-      <ErrorBoundary key={tab} resetLabel="← Dashboard" onReset={onBack}>
-        {tab === "spend" ? <AnalysisView api={api} onBack={onBack} /> : null}
-        {tab === "budget" ? <BudgetVsActualView api={api} onBack={onBack} /> : null}
-        {tab === "forecast" ? <ForecastView api={api} onBack={onBack} /> : null}
-        {tab === "credit" ? <CreditView api={api} onBack={onBack} /> : null}
-        {tab === "payoff" ? <PayoffView api={api} onBack={onBack} /> : null}
-        {tab === "networth" ? <NetWorthView api={api} onBack={onBack} /> : null}
+      {/* R12 — a per-view boundary so a render crash in one view shows a recoverable fallback while
+          the sub-nav stays usable. `key` is the active view, so switching mounts a fresh boundary;
+          recovery exits to the home/dashboard. */}
+      <ErrorBoundary key={active} resetLabel="← Dashboard" onReset={() => void navigate("/")}>
+        {renderView(active, api)}
       </ErrorBoundary>
     </>
   );

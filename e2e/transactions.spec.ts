@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope, goToDashboard } from "./setup";
+import { createAccount, createEnvelope, goToDashboard, openNeeds } from "./setup";
 
 test("single allocation: deposit fully allocated — balance derived end to end", async ({
   page,
@@ -31,7 +31,7 @@ test("single allocation: deposit fully allocated — balance derived end to end"
   await expect(page.getByText("Balance: $500.00", { exact: true })).toBeVisible();
 
   // Back on the dashboard: the envelope balance is derived from that allocation.
-  await page.getByRole("button", { name: "← Dashboard" }).click();
+  await goToDashboard(page);
   const envelopeRow = page
     .getByRole("list", { name: "Envelopes list" })
     .getByRole("listitem")
@@ -98,7 +98,7 @@ test("partial allocation: unallocated deposit surfaces in Needs allocation", asy
   await expect(txnRow).toContainText("needs $200.00");
 
   // It also surfaces in the Needs allocation view.
-  await page.getByRole("button", { name: "Needs allocation" }).click();
+  await openNeeds(page);
   await expect(page.getByText(PAYEE)).toBeVisible();
 });
 
@@ -126,19 +126,20 @@ test("needs-allocation badge: Dashboard count equals the Needs allocation list (
       .filter({ hasText: PAYEE }),
   ).toContainText("needs $150.00");
 
-  // Back on the Dashboard the badge carries the count in its accessible NAME (not color only).
-  // The shared e2e DB accretes needs-allocation items across parallel specs, so we assert the
-  // robust facts — the count renders accessibly (≥ our one contribution) and the list it links
-  // to contains our item — not a household-wide absolute (exact counts are pinned in the unit test).
-  await page.getByRole("button", { name: "← Dashboard" }).click();
-  const needsBtn = page.getByRole("button", { name: /^Needs allocation \(\d+\)$/ });
-  await expect(needsBtn).toBeVisible();
+  // The needs-allocation badge lives in the persistent shell nav (UX3) and carries the count in
+  // its accessible NAME (not colour only). The shell refetches the count on navigation, so a hop
+  // back to the dashboard refreshes it. The shared e2e DB accretes needs-allocation items across
+  // parallel specs, so we assert the robust facts — the count renders accessibly (≥ our one
+  // contribution) and the list it links to contains our item — not a household-wide absolute.
+  await goToDashboard(page);
+  const needsLink = page.getByRole("link", { name: /^Needs allocation \(\d+\)$/ });
+  await expect(needsLink).toBeVisible();
   const badgeCount = Number(
-    /\((\d+)\)/.exec((await needsBtn.getAttribute("aria-label")) ?? "")?.[1],
+    /\((\d+)\)/.exec((await needsLink.getAttribute("aria-label")) ?? "")?.[1],
   );
   expect(badgeCount).toBeGreaterThanOrEqual(1);
 
-  await needsBtn.click();
+  await needsLink.click();
   await expect(page.getByRole("list", { name: "Needs allocation" }).getByText(PAYEE)).toBeVisible();
 });
 

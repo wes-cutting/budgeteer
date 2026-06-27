@@ -47,7 +47,7 @@ async function seededScheduled(): Promise<Api> {
 
 describe("ForecastView (FEAT-013)", () => {
   test("projects scheduled events into a running-balance table with the headline summary", async () => {
-    render(<ForecastView api={await seededScheduled()} onBack={() => {}} />);
+    render(<ForecastView api={await seededScheduled()} />);
     await screen.findByRole("table");
 
     // Rent dips the balance below zero at +5; the paycheck recovers it at +10.
@@ -71,7 +71,7 @@ describe("ForecastView (FEAT-013)", () => {
     const groceries = await api.createEnvelope({ name: "Groceries", kind: "standard" });
     await api.setEnvelopeTarget(groceries.id, "400.00"); // discretionary, not scheduled
 
-    render(<ForecastView api={api} onBack={() => {}} />);
+    render(<ForecastView api={api} />);
     // Default ON: expected discretionary spend appears (no scheduled rules, so it's the only activity).
     await screen.findByRole("table");
     expect(screen.getAllByText("Expected discretionary spend").length).toBeGreaterThan(0);
@@ -82,7 +82,7 @@ describe("ForecastView (FEAT-013)", () => {
   });
 
   test("empty state when there are no accounts", async () => {
-    render(<ForecastView api={makeFakeApi()} onBack={() => {}} />);
+    render(<ForecastView api={makeFakeApi()} />);
     expect(await screen.findByText(/Add an account first/)).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
   });
@@ -92,7 +92,7 @@ describe("ForecastView (FEAT-013)", () => {
       getCashFlowForecast: () => Promise.reject(new ApiError("Couldn't reach the server.")),
     });
     await api.createAccount({ name: "Checking", kind: "checking", startingBalance: "0" });
-    render(<ForecastView api={api} onBack={() => {}} />);
+    render(<ForecastView api={api} />);
     await waitFor(() =>
       expect(screen.getByRole("alert").textContent).toContain("Couldn't reach the server."),
     );

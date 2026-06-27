@@ -14,7 +14,7 @@ const thisMonth = (): string => new Date().toISOString().slice(0, 7);
  * money formatting is the web display concern (`formatCents`). a11y: real table with caption +
  * `scope`'d headers + totals `<tfoot>`; sign shown as text, never colour alone.
  */
-export function BudgetVsActualView({ api, onBack }: { api: Api; onBack: () => void }) {
+export function BudgetVsActualView({ api }: { api: Api }) {
   const [month, setMonth] = useState<string>(thisMonth);
   const [report, setReport] = useState<BudgetVsActualReport | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,9 +56,6 @@ export function BudgetVsActualView({ api, onBack }: { api: Api; onBack: () => vo
     <main>
       <header>
         <h1>Analysis — budget vs. actual</h1>
-        <button type="button" onClick={onBack}>
-          ← Dashboard
-        </button>
       </header>
 
       <label>

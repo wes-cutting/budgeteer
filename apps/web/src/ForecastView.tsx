@@ -16,7 +16,7 @@ const signedCents = (c: number): string => (c > 0 ? "+" : "") + formatCents(c);
  * is a pure domain function fed by the analysis read; this view is thin. a11y: real table with caption
  * + `scope`'d headers; the negative warning is text, never colour alone; controls are labelled.
  */
-export function ForecastView({ api, onBack }: { api: Api; onBack: () => void }) {
+export function ForecastView({ api }: { api: Api }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [accountId, setAccountId] = useState<string>("");
   const [horizonDays, setHorizonDays] = useState<number>(90);
@@ -66,9 +66,6 @@ export function ForecastView({ api, onBack }: { api: Api; onBack: () => void }) 
     <main>
       <header>
         <h1>Analysis — cash-flow forecast</h1>
-        <button type="button" onClick={onBack}>
-          ← Dashboard
-        </button>
       </header>
 
       {accounts !== null && accounts.length === 0 ? (

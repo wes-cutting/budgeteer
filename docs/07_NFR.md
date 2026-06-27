@@ -31,6 +31,7 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 | `GET /analysis/envelope-spend` (monthly grid) | < 200 ms p95 | 10 envelopes × 120 txns¹ | **3.4 ms** | `apps/api/test/perf.test.ts` · same |
 | `GET /export` (backup snapshot) | < 500 ms p95 | 5 accounts + 5 envelopes + 200 txns | **11.5 ms** | `apps/api/test/perf.test.ts` · same |
 | Web initial load (LCP) | < 2.5 s | Cold load, production build | < 1 s² | Manual Lighthouse on `vite build` output |
+| Web initial JS bundle (gz) | < 120 KB gz | Production `vite build`, single chunk | **91.4 KB gz** (+ 2.2 KB gz CSS)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
 
 > ¹ Half-scale of the original budget (2 yrs × 20 env × 100/mo = 48 000 txns); PGlite performance
 >   at full scale is expected to remain well under budget given the measured p95 at half-scale.
@@ -38,6 +39,11 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >
 > ² All assets are bundled into a single Vite chunk; cold LCP on localhost with a production build
 >   is sub-second. No CDN or network latency in V1's local-only deployment model.
+>
+> ³ Budget set in `UX3` from the first shell build (SPIKE-06 follow-up). React Router added
+>   ~31 KB gz over the pre-router 60.5 KB gz (UX4). The **< 120 KB gz** budget leaves headroom for
+>   the cockpit (`UX5`) and the hand-rolled SVG charts (`UX2`/`UX8`–`UX11`, no chart-lib dependency);
+>   revisit if a slice pushes past it. No code-splitting yet — a single chunk is fine at this size.
 
 ---
 

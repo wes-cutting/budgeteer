@@ -11,10 +11,9 @@ import { InlineAllocationEditor } from "./InlineAllocationEditor";
 
 interface Props {
   api: Api;
-  onBack: () => void;
 }
 
-export function NeedsAllocation({ api, onBack }: Props) {
+export function NeedsAllocation({ api }: Props) {
   const [items, setItems] = useState<TransactionView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[]>([]);
   const [templates, setTemplates] = useState<TemplateView[]>([]);
@@ -60,9 +59,6 @@ export function NeedsAllocation({ api, onBack }: Props) {
     <main>
       <header>
         <h1>Needs allocation</h1>
-        <button type="button" onClick={onBack}>
-          ← Dashboard
-        </button>
       </header>
 
       {error ? <p role="alert">{error}</p> : null}

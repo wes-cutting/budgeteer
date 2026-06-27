@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope, openAnalysis } from "./setup";
+import { createAccount, createEnvelope, goToDashboard, openAnalysis } from "./setup";
 
 async function fundEnvelope(
   page: Parameters<typeof createAccount>[0],
@@ -15,7 +15,7 @@ async function fundEnvelope(
   await txnForm.getByLabel("Payee").fill(payee);
   await txnForm.getByLabel("Envelope", { exact: true }).selectOption({ label: envelope });
   await txnForm.getByRole("button", { name: "Save transaction" }).click();
-  await page.getByRole("button", { name: "← Dashboard" }).click();
+  await goToDashboard(page);
 }
 
 // FEAT-011 — spend by envelope over time
@@ -84,8 +84,9 @@ test("cash-flow forecast: forward projection renders with expected spend", async
   await budgetRow.getByRole("button", { name: "Save" }).click();
   await expect(budgetRow.getByRole("button", { name: "Clear" })).toBeVisible(); // target persisted
 
-  // Switch straight to the Forecast tab — no return to the Dashboard (the point of R3).
-  await page.getByRole("button", { name: "Forecast", exact: true }).click();
+  // Switch straight to the Forecast tab — no return to the Dashboard (the point of R3). The
+  // sub-nav tabs are now deep-linkable NavLinks (UX3).
+  await page.getByRole("link", { name: "Forecast", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Analysis — cash-flow forecast", level: 1 }),
   ).toBeVisible();

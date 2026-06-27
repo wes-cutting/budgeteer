@@ -1,6 +1,5 @@
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { EnvelopeLedger } from "./EnvelopeLedger";
 import { makeFakeApi } from "./test/fakeApi";
 
@@ -21,7 +20,7 @@ describe("EnvelopeLedger (R15)", () => {
       allocations: [{ envelopeId: env.id, amount: "48.70" }],
     });
 
-    render(<EnvelopeLedger api={api} envelope={env} onBack={() => {}} />);
+    render(<EnvelopeLedger api={api} envelope={env} />);
 
     await screen.findByText("Whole Foods");
     expect(screen.getByText("Checking")).toBeTruthy();
@@ -33,7 +32,7 @@ describe("EnvelopeLedger (R15)", () => {
     const api = makeFakeApi();
     const env = await api.createEnvelope({ name: "Vacation", kind: "sinking_fund" });
 
-    render(<EnvelopeLedger api={api} envelope={env} onBack={() => {}} />);
+    render(<EnvelopeLedger api={api} envelope={env} />);
 
     await screen.findByText("No transactions in this envelope yet.");
   });
@@ -43,21 +42,8 @@ describe("EnvelopeLedger (R15)", () => {
     const env = await api.createEnvelope({ name: "Old Fund", kind: "standard" });
     const archived = await api.archiveEnvelope(env.id);
 
-    render(<EnvelopeLedger api={api} envelope={archived} onBack={() => {}} />);
+    render(<EnvelopeLedger api={api} envelope={archived} />);
 
     await screen.findByText(/archived/);
-  });
-
-  test("back button calls onBack", async () => {
-    const api = makeFakeApi();
-    const env = await api.createEnvelope({ name: "Rent", kind: "standard" });
-    const onBack = vi.fn();
-    const user = userEvent.setup();
-
-    render(<EnvelopeLedger api={api} envelope={env} onBack={onBack} />);
-
-    await screen.findByText("No transactions in this envelope yet.");
-    await user.click(screen.getByRole("button", { name: "← Dashboard" }));
-    expect(onBack).toHaveBeenCalledOnce();
   });
 });

@@ -15,15 +15,7 @@ describe("Transfer money (FEAT-007)", () => {
     await api.createAccount({ name: "Savings", kind: "savings", startingBalance: "0" });
 
     const user = userEvent.setup();
-    render(
-      <AccountRegister
-        api={api}
-        accountId={checking.id}
-        accountName="Checking"
-        onBack={() => {}}
-        onOpenNeeds={() => {}}
-      />,
-    );
+    render(<AccountRegister api={api} accountId={checking.id} accountName="Checking" />);
 
     await screen.findByText("Transactions");
     const form = screen.getByRole("form", { name: "Transfer money" });
@@ -52,15 +44,7 @@ describe("Transfer money (FEAT-007)", () => {
     });
     await api.createAccount({ name: "Savings", kind: "savings", startingBalance: "0" });
 
-    render(
-      <AccountRegister
-        api={api}
-        accountId={checking.id}
-        accountName="Checking"
-        onBack={() => {}}
-        onOpenNeeds={() => {}}
-      />,
-    );
+    render(<AccountRegister api={api} accountId={checking.id} accountName="Checking" />);
     await screen.findByText("Transactions");
     const select = within(screen.getByRole("form", { name: "Transfer money" })).getByLabelText(
       "To account",

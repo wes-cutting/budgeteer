@@ -26,7 +26,7 @@ const payoffText = (bps: number | null): string =>
  * `scope`'d headers; every ratio is shown as TEXT (percent, "overpaid", "paid off"), never colour or a
  * bar alone (the consolidated contrast pass is #16). Sibling of the Credit view (#14a).
  */
-export function PayoffView({ api, onBack }: { api: Api; onBack: () => void }) {
+export function PayoffView({ api }: { api: Api }) {
   const [report, setReport] = useState<DebtPayoffReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -67,9 +67,6 @@ export function PayoffView({ api, onBack }: { api: Api; onBack: () => void }) {
     <main>
       <header>
         <h1>Analysis — debt payoff</h1>
-        <button type="button" onClick={onBack}>
-          ← Dashboard
-        </button>
       </header>
 
       {error ? <p role="alert">{error}</p> : null}

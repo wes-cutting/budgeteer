@@ -10,7 +10,7 @@ describe("TemplatesView", () => {
     const rent = await api.createEnvelope({ name: "Rent", kind: "standard" });
 
     const user = userEvent.setup();
-    render(<TemplatesView api={api} onBack={() => {}} />);
+    render(<TemplatesView api={api} />);
     await screen.findByText(/No templates yet/i);
 
     const form = screen.getByRole("form", { name: "New template" });

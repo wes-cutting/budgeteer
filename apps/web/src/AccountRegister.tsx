@@ -18,9 +18,9 @@ import styles from "./AccountRegister.module.css";
 interface Props {
   api: Api;
   accountId: string;
-  accountName: string;
-  onBack: () => void;
-  onOpenNeeds: () => void;
+  /** Optional: shown immediately if provided (tests, in-app navigation); otherwise the register
+   *  derives the name from the loaded account list so a deep link / refresh is name-safe. */
+  accountName?: string;
 }
 
 /** First/last day of the current calendar month as 'YYYY-MM-DD' — the register's default window (R8). */
@@ -33,7 +33,7 @@ function currentMonthRange(): { from: string; to: string } {
   return { from: `${y}-${pad(m + 1)}-01`, to: `${y}-${pad(m + 1)}-${pad(lastDay)}` };
 }
 
-export function AccountRegister({ api, accountId, accountName, onBack, onOpenNeeds }: Props) {
+export function AccountRegister({ api, accountId, accountName }: Props) {
   const [transactions, setTransactions] = useState<TransactionView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[]>([]);
   const [templates, setTemplates] = useState<TemplateView[]>([]);
@@ -123,20 +123,16 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
               (t.memo?.toLowerCase().includes(query) ?? false),
           );
 
+  const account = accounts.find((a) => a.id === accountId);
+  const title = accountName ?? account?.name ?? "Account";
+
   return (
     <main>
       <header className={styles.header}>
-        <h1>{accountName}</h1>
+        <h1>{title}</h1>
         {balanceCents !== null ? (
           <p className={styles.balance}>Balance: {formatCents(balanceCents)}</p>
         ) : null}
-        <span className={styles.spacer} />
-        <Button variant="ghost" onClick={onBack}>
-          ← Dashboard
-        </Button>
-        <Button variant="ghost" onClick={onOpenNeeds}>
-          Needs allocation
-        </Button>
       </header>
 
       {error ? <Alert>{error}</Alert> : null}
@@ -153,9 +149,9 @@ export function AccountRegister({ api, accountId, accountName, onBack, onOpenNee
       <TransferForm
         api={api}
         fromAccount={
-          accounts.find((a) => a.id === accountId) ?? {
+          account ?? {
             id: accountId,
-            name: accountName,
+            name: title,
             kind: "checking",
             balanceCents: balanceCents ?? 0,
             archivedAt: null,

@@ -12,7 +12,8 @@
   "dependencies": {
     "@budgeteer/domain": "*",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-router": "^7.18.0"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",

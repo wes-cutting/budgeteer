@@ -47,7 +47,7 @@ describe("NetWorthView (FEAT-R9)", () => {
   }
 
   test("renders current totals and a cumulative monthly trend (net = assets + liabilities)", async () => {
-    render(<NetWorthView api={await seeded()} onBack={() => {}} />);
+    render(<NetWorthView api={await seeded()} />);
     await screen.findByRole("table", { name: "Current totals" });
 
     // Headline: assets 1500, liabilities −200 (signed), net 1300.
@@ -63,7 +63,7 @@ describe("NetWorthView (FEAT-R9)", () => {
   });
 
   test("the grain toggle re-aggregates monthly ⇄ annual", async () => {
-    render(<NetWorthView api={await seeded()} onBack={() => {}} />);
+    render(<NetWorthView api={await seeded()} />);
     await screen.findByRole("table", { name: "Current totals" });
 
     await userEvent.click(screen.getByRole("radio", { name: "Annual" }));
@@ -75,7 +75,7 @@ describe("NetWorthView (FEAT-R9)", () => {
   });
 
   test("empty state when there is no account activity", async () => {
-    render(<NetWorthView api={makeFakeApi()} onBack={() => {}} />);
+    render(<NetWorthView api={makeFakeApi()} />);
     expect(await screen.findByText(/No account activity to analyze yet/)).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
   });
@@ -84,7 +84,7 @@ describe("NetWorthView (FEAT-R9)", () => {
     const api = makeFakeApi({
       getNetWorth: () => Promise.reject(new ApiError("Couldn't reach the server.")),
     });
-    render(<NetWorthView api={api} onBack={() => {}} />);
+    render(<NetWorthView api={api} />);
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Couldn't reach the server.");
   });

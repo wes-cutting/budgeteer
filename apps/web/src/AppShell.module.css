@@ -1,0 +1,72 @@
+/*
+ * UX3 — persistent app-shell chrome (ADR-0006), on the UX4 token sheet. Layout only; element
+ * styling (links, focus ring) comes from the base layer.
+ */
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3) var(--space-5);
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.brand {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+.brand:hover {
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3) var(--space-4);
+}
+
+/* The active route is marked by weight + underline (never colour alone — WCAG 1.4.1). NavLink
+   sets aria-current="page" on the active link. */
+.nav a[aria-current="page"] {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* Needs-allocation count pill — white on dark red (~8.3:1; passes WCAG 2.2 AA in light AND dark,
+   the proven R2 value). The accessible count lives in the link's aria-label; this is decorative. */
+.badge {
+  margin-left: 0.4em;
+  padding: 0 0.5em;
+  border-radius: 999px;
+  background-color: #991b1b;
+  color: #fff;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.content {
+  /* `main` provides its own max-width/padding; this wrapper just carries the route transition. */
+}
+
+/* A subtle slide-in on route change. Deliberately a TRANSFORM, not an opacity fade: a mid-flight
+   opacity < 1 blends descendant text toward the background and trips the axe contrast gate on
+   muted text. Transform never changes computed colour, so it is axe-safe. Honoured only when the
+   user has no reduced-motion preference (and the base layer's global reduce rule disables it too). */
+@media (prefers-reduced-motion: no-preference) {
+  .content {
+    animation: shell-slide-in 140ms ease-out;
+  }
+}
+
+@keyframes shell-slide-in {
+  from {
+    transform: translateY(6px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

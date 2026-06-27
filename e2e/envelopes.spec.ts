@@ -19,7 +19,7 @@ test("envelope ledger: click envelope name → view allocations → back to Dash
   await txnForm.getByLabel("Payee").fill("Whole Foods");
   await txnForm.getByLabel("Envelope", { exact: true }).selectOption({ label: ENVELOPE });
   await txnForm.getByRole("button", { name: "Save transaction" }).click();
-  await page.getByRole("button", { name: "← Dashboard" }).click();
+  await goToDashboard(page);
 
   // Click the envelope name to open the ledger
   await page
@@ -32,9 +32,8 @@ test("envelope ledger: click envelope name → view allocations → back to Dash
   await expect(page.getByText("Whole Foods")).toBeVisible();
   await expect(page.getByText(ACCOUNT)).toBeVisible();
 
-  // Back button returns to the Dashboard
-  await page.getByRole("button", { name: "← Dashboard" }).click();
-  await expect(page.getByRole("heading", { name: "Budgeteer", level: 1 })).toBeVisible();
+  // The shell's Home link returns to the Dashboard (the per-screen "← Dashboard" button is gone).
+  await goToDashboard(page);
 });
 
 test("envelope target set in the Budget view shows inline on the Dashboard row (R5)", async ({

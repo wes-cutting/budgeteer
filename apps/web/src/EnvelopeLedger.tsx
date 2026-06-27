@@ -5,10 +5,9 @@ import { formatCents } from "./format";
 interface Props {
   api: Api;
   envelope: EnvelopeView;
-  onBack: () => void;
 }
 
-export function EnvelopeLedger({ api, envelope, onBack }: Props) {
+export function EnvelopeLedger({ api, envelope }: Props) {
   const [rows, setRows] = useState<EnvelopeLedgerRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,9 +36,6 @@ export function EnvelopeLedger({ api, envelope, onBack }: Props) {
           {archivedLabel}
         </h1>
         <p>Balance: {formatCents(envelope.balanceCents)}</p>
-        <button type="button" onClick={onBack}>
-          ← Dashboard
-        </button>
       </header>
 
       {error ? (

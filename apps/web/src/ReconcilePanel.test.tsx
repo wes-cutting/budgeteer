@@ -14,15 +14,7 @@ describe("ReconcilePanel (FEAT-010)", () => {
     });
 
     const user = userEvent.setup();
-    render(
-      <AccountRegister
-        api={api}
-        accountId={account.id}
-        accountName="Checking"
-        onBack={() => {}}
-        onOpenNeeds={() => {}}
-      />,
-    );
+    render(<AccountRegister api={api} accountId={account.id} accountName="Checking" />);
 
     const panel = (await screen.findByRole("form", { name: "Reconcile" })).closest(
       "section",
@@ -51,15 +43,7 @@ describe("ReconcilePanel (FEAT-010)", () => {
     });
 
     const user = userEvent.setup();
-    render(
-      <AccountRegister
-        api={api}
-        accountId={account.id}
-        accountName="Checking"
-        onBack={() => {}}
-        onOpenNeeds={() => {}}
-      />,
-    );
+    render(<AccountRegister api={api} accountId={account.id} accountName="Checking" />);
 
     const panel = (await screen.findByRole("form", { name: "Reconcile" })).closest(
       "section",
