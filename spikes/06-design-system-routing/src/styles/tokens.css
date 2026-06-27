@@ -1,0 +1,59 @@
+/*
+ * Design tokens — the candidate styling foundation (Axis B, option 1).
+ * Plain CSS custom properties. Dark mode falls out of one media query; no JS, no runtime.
+ */
+:root {
+  --color-bg: #ffffff;
+  --color-surface: #f7f8fa;
+  --color-text: #16191d;
+  --color-text-muted: #5a6573;
+  --color-border: #d7dce2;
+  --color-accent: #1f5fbf;
+  --color-accent-text: #ffffff;
+  --color-danger: #991b1b;
+  --color-pos: #1a7f37;
+  --color-neg: #b42318;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+
+  --radius: 8px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --shadow: 0 8px 24px rgba(16, 25, 36, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #14171a;
+    --color-surface: #1d2125;
+    --color-text: #e8edf2;
+    --color-text-muted: #9aa6b2;
+    --color-border: #333a42;
+    --color-accent: #6aa3ff;
+    --color-accent-text: #0c1116;
+    --color-danger: #f1707a;
+    --color-pos: #4ac06a;
+    --color-neg: #f1707a;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+  }
+}
