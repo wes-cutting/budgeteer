@@ -15,6 +15,8 @@ test("the home cockpit shows the Overview panels and reconciles net worth (UX5)"
   await page.goto("/");
   await createAccount(page, `E2E Cockpit ${stamp}`, { balance: "1000.00" });
 
+  // createAccount lands on /accounts (UX6) — return to the cockpit home to read the Overview.
+  await goToDashboard(page);
   const overview = page.getByRole("region", { name: "Overview" });
   await expect(overview).toBeVisible();
   for (const title of [
@@ -52,6 +54,8 @@ test("cockpit panels deep-link to their detail routes (UX5)", async ({ page }) =
   await page.goto("/");
   await createAccount(page, ACCOUNT, { balance: "500.00" });
   await createEnvelope(page, ENVELOPE);
+  // The creates navigate to /accounts · /envelopes (UX6) — return to the cockpit to use its links.
+  await goToDashboard(page);
 
   // Forecast + net-worth links are present whenever a cash account exists.
   await page.getByRole("link", { name: "View forecast" }).click();

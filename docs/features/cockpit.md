@@ -35,6 +35,11 @@ it fan out?"* → **fan out first**). Every figure derives from the ledger and r
 
 ## 2. Boundaries — what stays on the home (UX5) vs. moves (UX6)
 
+> **Update (UX6, 2026-06-28):** management has **since been demoted** — the home (`/`) is now the
+> cockpit **only** (rendered by `Home.tsx`), and the Add-forms / lists / net-worth / Move-money moved
+> to `/accounts` · `/envelopes` · `/manage`. See [FEAT-UX6](manage.md). The boundary below is the
+> UX5-as-shipped record.
+
 This slice **reframes** the home; it does **not** demote management yet. Deliberately:
 
 - **Cockpit on top** as the headline (a named `Overview` region).
@@ -51,8 +56,9 @@ aria) and the app fully usable, while the cockpit becomes the main event.
 
 ## 3. Composition (data → UI)
 
-`apps/web/src/Cockpit.tsx` (rendered by `Dashboard.tsx`, inside its `<main>` so the home keeps one
-`<h1>`). It fans out to existing `api.ts` reads, each panel loading and degrading **independently**
+`apps/web/src/Cockpit.tsx` (rendered by `Home.tsx` since UX6 — was `Dashboard.tsx` in UX5 — inside
+its `<main>` so the home keeps one `<h1>`). It fans out to existing `api.ts` reads, each panel loading
+and degrading **independently**
 (R2/R5 pattern — a failed read shows an inline note, never blanks the cockpit):
 
 | Panel | Read | Notes |

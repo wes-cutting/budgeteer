@@ -46,6 +46,12 @@ export function AppShell() {
           <NavLink to="/" end>
             Home
           </NavLink>
+          <NavLink to="/accounts" end>
+            Accounts
+          </NavLink>
+          <NavLink to="/envelopes" end>
+            Envelopes
+          </NavLink>
           <NavLink
             to="/needs-allocation"
             aria-label={hasNeeds ? `Needs allocation (${needsCount})` : undefined}
@@ -60,6 +66,7 @@ export function AppShell() {
           <NavLink to="/templates">Templates</NavLink>
           <NavLink to="/recurring">Recurring</NavLink>
           <NavLink to="/insights">Insights</NavLink>
+          <NavLink to="/manage">Manage</NavLink>
           <a href={exportUrl}>Download backup</a>
         </nav>
       </header>

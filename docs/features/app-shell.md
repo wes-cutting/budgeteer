@@ -29,11 +29,17 @@ the home into a cockpit (UX5) are **out of scope**.
 
 The shell is a persistent root layout (`AppShell`) with the primary nav + a route `<Outlet>`.
 
+The table below is the route map **as of UX6** (the `/` home, the demoted list/hub routes, and the
+nav reflect UX5 + UX6; see [FEAT-UX5](cockpit.md) / [FEAT-UX6](manage.md)).
+
 | URL | Screen | Notes |
 | --- | ------ | ----- |
-| `/` | Dashboard (home) | accounts + envelopes + management, until the `UX5` cockpit reframes it |
+| `/` | Home (cockpit) | UX5 cockpit **only** since UX6 (management demoted) — [FEAT-UX6](manage.md) |
+| `/accounts` | Accounts list | UX6 — progressive Add + names as `<Link>`s + rename/archive |
 | `/accounts/:id` | Account register | name re-derived from the account list → refresh-safe |
+| `/envelopes` | Envelopes list | UX6 — progressive Add + names as `<Link>`s + R5 inline budget + archive |
 | `/envelopes/:id` | Envelope ledger | `EnvelopeLedgerRoute` resolves the id against the envelope list → refresh-safe |
+| `/manage` | Manage hub | UX6 — net-worth summary + Move-money + links to the list pages |
 | `/needs-allocation` | Needs-allocation queue | the count badge lives in the shell nav (R2) |
 | `/templates` | Templates | |
 | `/recurring` | Recurring | |
@@ -41,17 +47,18 @@ The shell is a persistent root layout (`AppShell`) with the primary nav + a rout
 | `/insights/:view` | Analysis views | `view ∈ {spend, budget, forecast, credit, payoff, networth}`; sub-nav is `NavLink`s; unknown view → `spend` |
 | `*` | → redirect → `/` | catch-all |
 
-**Deferred to their owning slices** (not built here, per the brief): the demoted `/manage` settings
-surface and the `/accounts` · `/envelopes` **list** routes (`UX6`), and the `/transactions/new`
-quick-add modal route (`UX7`). Account/envelope **list items navigate programmatically** (the
-Dashboard's existing `onOpen*` callbacks → `navigate(...)`) rather than becoming links yet, so the
-register/ledger are reachable by URL without reworking the management lists (that is `UX6`).
+**As shipped by UX3** the `/` home was the Dashboard (accounts + envelopes + management) and
+account/envelope list items navigated **programmatically** (the Dashboard's `onOpen*` callbacks →
+`navigate(...)`), with `/manage` + the `/accounts`·/envelopes list routes deferred. **`UX6` has since
+landed** those routes and turned the list items into `<Link>`s (the home is now the cockpit only); the
+`/transactions/new` quick-add modal route remains deferred to `UX7`.
 
 ## 3. Shell composition
 
 - `AppShell.tsx` / `AppShell.module.css` — a banner (`<header>`) with a brand link + a
-  `<nav aria-label="Primary">` of `NavLink`s (Home · Needs allocation · Templates · Recurring ·
-  Insights) + a Download-backup link, and the keyed route `<Outlet>`. Active links are marked by
+  `<nav aria-label="Primary">` of `NavLink`s (Home · Accounts · Envelopes · Needs allocation ·
+  Templates · Recurring · Insights · Manage — Accounts/Envelopes/Manage added in `UX6`) + a
+  Download-backup link, and the keyed route `<Outlet>`. Active links are marked by
   weight + underline **and** `aria-current="page"` (never colour alone). The **needs-allocation
   count badge** (moved from the Dashboard) is refetched on each path change, so completing an
   allocation and navigating refreshes it; the fetch is auxiliary (a failure leaves the badge absent).

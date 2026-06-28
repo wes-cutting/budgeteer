@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope, goToDashboard, openNeeds } from "./setup";
+import {
+  createAccount,
+  createEnvelope,
+  goToDashboard,
+  goToEnvelopes,
+  openAccount,
+  openNeeds,
+} from "./setup";
 
 test("single allocation: deposit fully allocated — balance derived end to end", async ({
   page,
@@ -13,7 +20,7 @@ test("single allocation: deposit fully allocated — balance derived end to end"
   await createEnvelope(page, ENVELOPE);
 
   // Open the account register and record a $500 deposit allocated to the envelope.
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  await openAccount(page, ACCOUNT);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("500.00");
@@ -31,7 +38,7 @@ test("single allocation: deposit fully allocated — balance derived end to end"
   await expect(page.getByText("Balance: $500.00", { exact: true })).toBeVisible();
 
   // Back on the dashboard: the envelope balance is derived from that allocation.
-  await goToDashboard(page);
+  await goToEnvelopes(page);
   const envelopeRow = page
     .getByRole("list", { name: "Envelopes list" })
     .getByRole("listitem")
@@ -50,7 +57,7 @@ test("split allocation: deposit split across two envelopes", async ({ page }) =>
   await createEnvelope(page, ENVELOPE_A);
   await createEnvelope(page, ENVELOPE_B);
 
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  await openAccount(page, ACCOUNT);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("100.00");
@@ -82,7 +89,7 @@ test("partial allocation: unallocated deposit surfaces in Needs allocation", asy
   await createAccount(page, ACCOUNT);
 
   // Enter a $200 deposit in Split mode with no allocation rows filled.
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  await openAccount(page, ACCOUNT);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("200.00");
@@ -112,7 +119,7 @@ test("needs-allocation badge: Dashboard count equals the Needs allocation list (
   await createAccount(page, ACCOUNT);
 
   // Enter an unallocated deposit so at least one item needs allocation household-wide.
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  await openAccount(page, ACCOUNT);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("150.00");
@@ -157,7 +164,7 @@ test("edit a past split: change the envelope allocation via the inline editor", 
   await createEnvelope(page, ENVELOPE_B);
 
   // Create a $100 deposit allocated to ENVELOPE_A.
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  await openAccount(page, ACCOUNT);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("100.00");
@@ -188,7 +195,7 @@ test("refund row: withdrawal with a refund results in the correct net spend", as
   await createEnvelope(page, ENVELOPE);
 
   // $80 withdrawal: ENVELOPE charged $100 (normal) + $20 refund back → net = $80.
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  await openAccount(page, ACCOUNT);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByLabel("Transaction amount").fill("80.00");
   await txnForm.getByLabel("Payee").fill(PAYEE);
@@ -218,7 +225,7 @@ test("client-side search filters the register by payee", async ({ page }) => {
   await page.goto("/");
   await createAccount(page, ACCOUNT);
 
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  await openAccount(page, ACCOUNT);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   const list = page.getByRole("list", { name: "Transactions" });
 
@@ -251,7 +258,7 @@ test("delete transaction: row disappears and balance reverts", async ({ page }) 
   await createAccount(page, ACCOUNT, { balance: "200.00" });
   await createEnvelope(page, ENVELOPE);
 
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  await openAccount(page, ACCOUNT);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("100.00");
@@ -273,7 +280,7 @@ test("delete transaction: row disappears and balance reverts", async ({ page }) 
   await expect(page.getByText("Balance: $200.00", { exact: true })).toBeVisible();
 
   // Envelope balance also reverts: verify on dashboard.
-  await goToDashboard(page);
+  await goToEnvelopes(page);
   const envelopeRow = page
     .getByRole("list", { name: "Envelopes list" })
     .getByRole("listitem")

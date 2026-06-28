@@ -20,7 +20,16 @@ describe("AppShell (UX3 — persistent nav)", () => {
   test("renders the primary navigation links", () => {
     renderShell();
     const nav = screen.getByRole("navigation", { name: "Primary" });
-    for (const name of ["Home", "Templates", "Recurring", "Insights", "Download backup"]) {
+    for (const name of [
+      "Home",
+      "Accounts",
+      "Envelopes",
+      "Templates",
+      "Recurring",
+      "Insights",
+      "Manage",
+      "Download backup",
+    ]) {
       expect(within(nav).getByRole("link", { name })).toBeTruthy();
     }
     // The Home brand link is present too.

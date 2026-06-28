@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope } from "./setup";
+import { createAccount, createEnvelope, openAccount } from "./setup";
 
 async function fundAccount(
   page: Parameters<typeof createAccount>[0],
@@ -7,7 +7,7 @@ async function fundAccount(
   envelope: string,
   payee: string,
 ) {
-  await page.getByRole("button", { name: account, exact: true }).click();
+  await openAccount(page, account);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill("500.00");

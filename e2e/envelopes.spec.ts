@@ -1,7 +1,15 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope, goToDashboard, openAnalysis } from "./setup";
+import {
+  createAccount,
+  createEnvelope,
+  goToDashboard,
+  goToEnvelopes,
+  openAccount,
+  openAnalysis,
+  openEnvelope,
+} from "./setup";
 
-test("envelope ledger: click envelope name → view allocations → back to Dashboard (R15)", async ({
+test("envelope ledger: click envelope name → view allocations → back home (R15)", async ({
   page,
 }) => {
   const stamp = Date.now();
@@ -12,31 +20,24 @@ test("envelope ledger: click envelope name → view allocations → back to Dash
   await createAccount(page, ACCOUNT, { balance: "500.00" });
   await createEnvelope(page, ENVELOPE);
 
-  // Open the account register and add a withdrawal allocated to the envelope
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  // Open the account register and add a withdrawal allocated to the envelope.
+  await openAccount(page, ACCOUNT);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByLabel("Transaction amount").fill("48.70");
   await txnForm.getByLabel("Payee").fill("Whole Foods");
   await txnForm.getByLabel("Envelope", { exact: true }).selectOption({ label: ENVELOPE });
   await txnForm.getByRole("button", { name: "Save transaction" }).click();
-  await goToDashboard(page);
 
-  // Click the envelope name to open the ledger
-  await page
-    .getByRole("list", { name: "Envelopes list" })
-    .getByRole("button", { name: ENVELOPE })
-    .click();
-
-  // Ledger heading and row content are visible
-  await expect(page.getByRole("heading", { name: new RegExp(ENVELOPE) })).toBeVisible();
+  // Open the ledger by clicking the envelope's <Link> on /envelopes (UX6 — was a button).
+  await openEnvelope(page, ENVELOPE);
   await expect(page.getByText("Whole Foods")).toBeVisible();
   await expect(page.getByText(ACCOUNT)).toBeVisible();
 
-  // The shell's Home link returns to the Dashboard (the per-screen "← Dashboard" button is gone).
+  // The shell's Home link returns to the cockpit home (the per-screen "← Dashboard" button is gone).
   await goToDashboard(page);
 });
 
-test("envelope target set in the Budget view shows inline on the Dashboard row (R5)", async ({
+test("envelope target set in the Budget view shows inline on the /envelopes row (R5)", async ({
   page,
 }) => {
   const stamp = Date.now();
@@ -53,8 +54,8 @@ test("envelope target set in the Budget view shows inline on the Dashboard row (
   // The Clear button only appears once a target is set — wait for the save to land.
   await expect(targetForm.getByRole("button", { name: "Clear" })).toBeVisible();
 
-  // Back on the Dashboard, the target shows inline on the envelope's row (no spend yet → remaining = target).
-  await goToDashboard(page);
+  // On /envelopes, the target shows inline on the envelope's row (no spend yet → remaining = target).
+  await goToEnvelopes(page);
   const row = page
     .getByRole("list", { name: "Envelopes list" })
     .getByRole("listitem")
@@ -67,7 +68,7 @@ test("create, archive, and unarchive an envelope", async ({ page }) => {
   const stamp = Date.now();
   const ENVELOPE = `E2E Envelope ${stamp}`;
   await page.goto("/");
-  await createEnvelope(page, ENVELOPE);
+  await createEnvelope(page, ENVELOPE); // leaves us on /envelopes
 
   const envelopeList = page.getByRole("list", { name: "Envelopes list" });
   const archivedList = page.getByRole("list", { name: "Archived envelopes" });
@@ -76,7 +77,7 @@ test("create, archive, and unarchive an envelope", async ({ page }) => {
   await envelopeList
     .getByRole("listitem")
     .filter({ hasText: ENVELOPE })
-    .getByRole("button", { name: "Archive" })
+    .getByRole("button", { name: `Archive ${ENVELOPE}`, exact: true })
     .click();
   await expect(envelopeList.getByText(ENVELOPE)).toHaveCount(0);
   await expect(archivedList.getByText(ENVELOPE)).toBeVisible();
@@ -85,7 +86,7 @@ test("create, archive, and unarchive an envelope", async ({ page }) => {
   await archivedList
     .getByRole("listitem")
     .filter({ hasText: ENVELOPE })
-    .getByRole("button", { name: "Unarchive" })
+    .getByRole("button", { name: `Unarchive ${ENVELOPE}`, exact: true })
     .click();
   await expect(envelopeList.getByText(ENVELOPE)).toBeVisible();
   await expect(archivedList.getByText(ENVELOPE)).toHaveCount(0);

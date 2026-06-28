@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope, goToDashboard, openAnalysis } from "./setup";
+import { createAccount, createEnvelope, goToDashboard, openAccount, openAnalysis } from "./setup";
 
 async function fundEnvelope(
   page: Parameters<typeof createAccount>[0],
@@ -8,7 +8,7 @@ async function fundEnvelope(
   payee: string,
   amount = "500.00",
 ) {
-  await page.getByRole("button", { name: account, exact: true }).click();
+  await openAccount(page, account);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
   await txnForm.getByRole("radio", { name: "Deposit" }).check();
   await txnForm.getByLabel("Transaction amount").fill(amount);

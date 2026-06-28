@@ -1,7 +1,10 @@
-import { createBrowserRouter, Navigate, useNavigate, useParams } from "react-router";
+import { createBrowserRouter, Navigate, useParams } from "react-router";
 import { useApi } from "./api-context";
 import { AppShell } from "./AppShell";
-import { Dashboard } from "./Dashboard";
+import { Home } from "./Home";
+import { AccountsList } from "./AccountsList";
+import { EnvelopesList } from "./EnvelopesList";
+import { ManageView } from "./ManageView";
 import { AccountRegister } from "./AccountRegister";
 import { EnvelopeLedgerRoute } from "./EnvelopeLedgerRoute";
 import { NeedsAllocation } from "./NeedsAllocation";
@@ -13,20 +16,25 @@ import { AnalysisSection } from "./AnalysisSection";
  * UX3 — the route map (ADR-0006), replacing the hand-rolled `view` state machine. The route
  * elements below are thin adapters: they read `api` from context and the URL params from the
  * router, then render the unchanged view components (which still take `api` as a prop so their
- * unit tests render them directly). Account/envelope list items navigate programmatically via
- * the Dashboard's existing `onOpen*` callbacks — the demoted `/accounts` · `/envelopes` list
- * routes and `/manage` land with UX6.
+ * unit tests render them directly).
+ *
+ * UX6 — the home is now the cockpit ONLY; account/envelope management moved to the `/accounts` ·
+ * `/envelopes` LIST routes (each name a `<Link>` to its detail) and the cross-cutting `/manage` hub.
  */
 function HomeRoute() {
-  const api = useApi();
-  const navigate = useNavigate();
-  return (
-    <Dashboard
-      api={api}
-      onOpenAccount={(a) => void navigate(`/accounts/${a.id}`)}
-      onOpenEnvelope={(e) => void navigate(`/envelopes/${e.id}`)}
-    />
-  );
+  return <Home api={useApi()} />;
+}
+
+function AccountsListRoute() {
+  return <AccountsList api={useApi()} />;
+}
+
+function EnvelopesListRoute() {
+  return <EnvelopesList api={useApi()} />;
+}
+
+function ManageRoute() {
+  return <ManageView api={useApi()} />;
 }
 
 function AccountRoute() {
@@ -62,8 +70,11 @@ export function createAppRouter() {
       element: <AppShell />,
       children: [
         { index: true, element: <HomeRoute /> },
+        { path: "accounts", element: <AccountsListRoute /> },
         { path: "accounts/:id", element: <AccountRoute /> },
+        { path: "envelopes", element: <EnvelopesListRoute /> },
         { path: "envelopes/:id", element: <EnvelopeRoute /> },
+        { path: "manage", element: <ManageRoute /> },
         { path: "needs-allocation", element: <NeedsRoute /> },
         { path: "templates", element: <TemplatesRoute /> },
         { path: "recurring", element: <RecurringRoute /> },

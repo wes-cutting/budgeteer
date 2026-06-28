@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope, goToDashboard, openRecurring } from "./setup";
+import { createAccount, createEnvelope, openAccount, openRecurring } from "./setup";
 
 test("create a monthly recurring rule and post due", async ({ page }) => {
   const stamp = Date.now();
@@ -33,8 +33,7 @@ test("create a monthly recurring rule and post due", async ({ page }) => {
   await expect(page.getByRole("status")).toContainText(/Posted \d+ transaction/);
 
   // Verify the generated transaction appears in the account register.
-  await goToDashboard(page);
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  await openAccount(page, ACCOUNT);
   const txnList = page.getByRole("list", { name: "Transactions" });
   await expect(txnList.getByRole("listitem").filter({ hasText: PAYEE }).first()).toBeVisible();
 });

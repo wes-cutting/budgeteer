@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope, openTemplates } from "./setup";
+import { createAccount, createEnvelope, openAccount, openTemplates } from "./setup";
 
 test("save a split as a template, then apply it to a second transaction", async ({ page }) => {
   const stamp = Date.now();
@@ -12,7 +12,7 @@ test("save a split as a template, then apply it to a second transaction", async 
   await createAccount(page, ACCOUNT);
   await createEnvelope(page, ENVELOPE);
 
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  await openAccount(page, ACCOUNT);
   const txnForm = page.getByRole("form", { name: "Add transaction" });
 
   // First transaction: $500 deposit in split mode → save as template.

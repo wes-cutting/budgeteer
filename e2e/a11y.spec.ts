@@ -1,6 +1,6 @@
 /**
  * #16 — consolidated WCAG 2.2 AA pass (axe-core automated scan).
- * Visits the Dashboard and each sub-view with synthetic data seeded; fails on any
+ * Visits the home cockpit and each sub-view with synthetic data seeded; fails on any
  * axe violation at the "serious" or "critical" impact level.
  *
  * Run with: npm run test:e2e -- e2e/a11y.spec.ts
@@ -11,7 +11,10 @@ import {
   createAccount,
   createEnvelope,
   goToDashboard,
+  goToManage,
+  openAccount,
   openAnalysis,
+  openEnvelope,
   openNeeds,
   openRecurring,
   openTemplates,
@@ -34,7 +37,7 @@ async function assertNoViolations(page: Page) {
   ).toEqual([]);
 }
 
-test.describe("a11y — Dashboard", () => {
+test.describe("a11y — home (cockpit)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Budgeteer", level: 1 })).toBeVisible();
@@ -44,9 +47,37 @@ test.describe("a11y — Dashboard", () => {
     await assertNoViolations(page);
   });
 
-  test("with account + envelope is accessible", async ({ page }) => {
-    await createAccount(page, ACCOUNT);
-    await createEnvelope(page, ENVELOPE);
+  test("populated cockpit is accessible", async ({ page }) => {
+    await createAccount(page, `${ACCOUNT}-home`, { balance: "1000.00" });
+    await goToDashboard(page);
+    await expect(page.getByRole("region", { name: "Overview" })).toBeVisible();
+    await assertNoViolations(page);
+  });
+});
+
+// UX6 — the demoted management surfaces (new this slice): the /accounts · /envelopes CRUD lists
+// (progressive Add affordance, name-as-Link items) and the /manage cross-cutting hub.
+test.describe("a11y — management surfaces (UX6)", () => {
+  test("accounts list is accessible", async ({ page }) => {
+    await page.goto("/");
+    await createAccount(page, `${ACCOUNT}-list`); // leaves us on /accounts
+    await assertNoViolations(page);
+  });
+
+  test("envelopes list is accessible", async ({ page }) => {
+    await page.goto("/");
+    await createEnvelope(page, `${ENVELOPE}-list`); // leaves us on /envelopes
+    await assertNoViolations(page);
+  });
+
+  test("manage hub is accessible", async ({ page }) => {
+    await page.goto("/");
+    await createAccount(page, `${ACCOUNT}-manage`, { balance: "500.00" });
+    await createEnvelope(page, `${ENVELOPE}-manage-a`);
+    await createEnvelope(page, `${ENVELOPE}-manage-b`);
+    await goToManage(page);
+    await expect(page.getByRole("table", { name: "Net worth summary" })).toBeVisible();
+    await expect(page.getByRole("form", { name: "Move money between envelopes" })).toBeVisible();
     await assertNoViolations(page);
   });
 });
@@ -55,8 +86,7 @@ test.describe("a11y — Account register", () => {
   test("account register view is accessible", async ({ page }) => {
     await page.goto("/");
     await createAccount(page, `${ACCOUNT}-reg`);
-    await page.getByRole("button", { name: `${ACCOUNT}-reg`, exact: true }).click();
-    await expect(page.getByRole("heading", { level: 1, name: `${ACCOUNT}-reg` })).toBeVisible();
+    await openAccount(page, `${ACCOUNT}-reg`);
     await assertNoViolations(page);
   });
 });
@@ -163,23 +193,17 @@ test.describe("a11y — Envelope ledger", () => {
     await page.goto("/");
     await createAccount(page, `${ACCOUNT}-ledger`);
     await createEnvelope(page, `${ENVELOPE}-ledger`);
-    await page
-      .getByRole("list", { name: "Envelopes list" })
-      .getByRole("button", { name: `${ENVELOPE}-ledger` })
-      .click();
-    await expect(
-      page.getByRole("heading", { name: `${ENVELOPE}-ledger (standard)`, level: 1 }),
-    ).toBeVisible();
+    await openEnvelope(page, `${ENVELOPE}-ledger`);
     await assertNoViolations(page);
   });
 });
 
-// UX4 — the design-system foundation adds dark mode (prefers-color-scheme). Re-scan the two
-// surfaces it restyles under an emulated dark scheme, so dark-mode token contrast is gated too.
-test.describe("a11y — dark mode (FEAT-UX4)", () => {
+// UX4 — dark mode (prefers-color-scheme). Re-scan the key surfaces under an emulated dark scheme so
+// dark-mode token contrast is gated too: the cockpit home and the UX6 management surfaces.
+test.describe("a11y — dark mode", () => {
   test.use({ colorScheme: "dark" });
 
-  test("dashboard is accessible in dark mode", async ({ page }) => {
+  test("home cockpit (empty) is accessible in dark mode", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Budgeteer", level: 1 })).toBeVisible();
     await assertNoViolations(page);
@@ -190,21 +214,44 @@ test.describe("a11y — dark mode (FEAT-UX4)", () => {
     // (cards, Badge tones, deep-links, dl figures) under the dark token set.
     await page.goto("/");
     await createAccount(page, `Dark-Cockpit-${Date.now()}`, { balance: "1200.00" });
+    await goToDashboard(page);
     await expect(page.getByRole("region", { name: "Overview" })).toBeVisible();
+    await assertNoViolations(page);
+  });
+
+  test("accounts list is accessible in dark mode (UX6)", async ({ page }) => {
+    await page.goto("/");
+    await createAccount(page, `Dark-Acct-${Date.now()}`);
+    await assertNoViolations(page);
+  });
+
+  test("envelopes list is accessible in dark mode (UX6)", async ({ page }) => {
+    await page.goto("/");
+    await createEnvelope(page, `Dark-Env-${Date.now()}`);
+    await assertNoViolations(page);
+  });
+
+  test("manage hub is accessible in dark mode (UX6)", async ({ page }) => {
+    const stamp = Date.now();
+    await page.goto("/");
+    await createAccount(page, `Dark-Mng-${stamp}`, { balance: "800.00" });
+    await createEnvelope(page, `Dark-MngEnv-${stamp}-a`);
+    await createEnvelope(page, `Dark-MngEnv-${stamp}-b`);
+    await goToManage(page);
+    await expect(page.getByRole("table", { name: "Net worth summary" })).toBeVisible();
     await assertNoViolations(page);
   });
 
   test("account register is accessible in dark mode", async ({ page }) => {
     await page.goto("/");
-    const name = `Dark-Acct-${Date.now()}`;
+    const name = `Dark-Reg-${Date.now()}`;
     await createAccount(page, name);
-    await page.getByRole("button", { name, exact: true }).click();
-    await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
+    await openAccount(page, name);
     await assertNoViolations(page);
   });
 });
 
-// Cleanup: return to Dashboard so subsequent tests (if any) start clean.
+// Cleanup: return to the home so subsequent tests (if any) start clean.
 test.afterEach(async ({ page }) => {
   await goToDashboard(page);
 });

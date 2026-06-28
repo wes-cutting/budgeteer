@@ -1,12 +1,16 @@
 import { expect, test } from "@playwright/test";
-import { createAccount } from "./setup";
+import { createAccount, goToManage } from "./setup";
 
-test("dashboard loads against the real API", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Budgeteer", level: 1 })).toBeVisible();
-  // No error means initial GET /accounts + GET /envelopes both succeeded — the CORS-class check.
-  // A CORS misconfig surfaces here exactly as the shipped bug did.
-  await expect(page.getByText("Couldn't load your data.")).toHaveCount(0);
+test("the account and envelope lists load against the real API", async ({ page }) => {
+  // UX6 — the home is the cockpit; the account/envelope reads live on their list routes now. This is
+  // the CORS-class check: a CORS misconfig on GET /accounts or /envelopes surfaces here as it did
+  // for the shipped bug.
+  await page.goto("/accounts");
+  await expect(page.getByRole("heading", { name: "Accounts", level: 1 })).toBeVisible();
+  await expect(page.getByText("Couldn't load your accounts.")).toHaveCount(0);
+  await page.goto("/envelopes");
+  await expect(page.getByRole("heading", { name: "Envelopes", level: 1 })).toBeVisible();
+  await expect(page.getByText("Couldn't load your envelopes.")).toHaveCount(0);
 });
 
 test("create a checking account and open its register", async ({ page }) => {
@@ -14,7 +18,11 @@ test("create a checking account and open its register", async ({ page }) => {
   const ACCOUNT = `E2E Account ${stamp}`;
   await page.goto("/");
   await createAccount(page, ACCOUNT);
-  await page.getByRole("button", { name: ACCOUNT, exact: true }).click();
+  // The account name is now a <Link> on the /accounts list (UX6 — was a button).
+  await page
+    .getByRole("list", { name: "Accounts list" })
+    .getByRole("link", { name: ACCOUNT, exact: true })
+    .click();
   await expect(page.getByRole("heading", { name: ACCOUNT, level: 1 })).toBeVisible();
   await expect(page.getByText("Balance: $0.00", { exact: true })).toBeVisible();
 });
@@ -24,24 +32,24 @@ test("archive and unarchive an account (R7)", async ({ page }) => {
   const ACCOUNT = `E2E Archive ${stamp}`;
   await page.goto("/");
   await createAccount(page, ACCOUNT);
+  const list = page.getByRole("list", { name: "Accounts list" });
 
   await page.getByRole("button", { name: `Archive ${ACCOUNT}` }).click();
-  await expect(page.getByRole("button", { name: ACCOUNT, exact: true })).toHaveCount(0);
+  await expect(list.getByRole("link", { name: ACCOUNT, exact: true })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Show archived" }).click();
   await expect(page.getByRole("heading", { name: "Archived accounts" })).toBeVisible();
   await expect(page.getByRole("button", { name: `Unarchive ${ACCOUNT}` })).toBeVisible();
 
   await page.getByRole("button", { name: `Unarchive ${ACCOUNT}` }).click();
-  await expect(page.getByRole("button", { name: ACCOUNT, exact: true })).toBeVisible();
+  await expect(list.getByRole("link", { name: ACCOUNT, exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: `Unarchive ${ACCOUNT}` })).toHaveCount(0);
 });
 
-// R4 — Dashboard net worth summary. The snapshot sums ALL household accounts (the shared e2e DB
-// accretes across parallel specs), so we assert the arithmetic INVARIANT (net = assets + liabilities)
-// off a single rendered snapshot — true at any render regardless of other tests' accounts. The exact
-// kind-based sums are covered deterministically by the Dashboard component test. We create both an
-// asset and a liability so both columns are exercised against the real client-side calc.
+// R4 — net worth summary, relocated to /manage (UX6). The snapshot sums ALL household accounts (the
+// shared e2e DB accretes across parallel specs), so we assert the arithmetic INVARIANT (net = assets
+// + liabilities) off a single rendered snapshot — true at any render regardless of other tests'
+// accounts. The exact kind-based sums are covered deterministically by the ManageView component test.
 test("net worth summary: net = assets + liabilities, classified by kind (R4)", async ({ page }) => {
   const stamp = Date.now();
   const CHECKING = `E2E NWS Checking ${stamp}`;
@@ -50,6 +58,7 @@ test("net worth summary: net = assets + liabilities, classified by kind (R4)", a
   await createAccount(page, CHECKING, { balance: "1000.00" }); // an asset
   await createAccount(page, CARD, { kind: "credit", balance: "-300.00" }); // a liability (owes $300)
 
+  await goToManage(page);
   const summary = page.getByRole("table", { name: "Net worth summary" });
   const cents = async (label: RegExp): Promise<number> => {
     const txt = await summary.getByRole("row", { name: label }).getByRole("cell").textContent();
@@ -70,9 +79,10 @@ test("rename an account inline (R1)", async ({ page }) => {
   const RENAMED = `E2E Renamed ${stamp}`;
   await page.goto("/");
   await createAccount(page, ORIGINAL);
+  const list = page.getByRole("list", { name: "Accounts list" });
   await page.getByRole("button", { name: `Rename ${ORIGINAL}` }).click();
   await page.getByRole("textbox", { name: `Rename ${ORIGINAL}` }).fill(RENAMED);
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByRole("button", { name: RENAMED, exact: true })).toBeVisible();
+  await expect(list.getByRole("link", { name: RENAMED, exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: `Rename ${RENAMED}` })).toBeVisible();
 });

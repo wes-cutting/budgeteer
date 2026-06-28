@@ -1,21 +1,15 @@
-import { describe, expect, test } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { describe, expect, test, vi } from "vitest";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
-import { Dashboard } from "./Dashboard";
+import { MoveMoneyForm } from "./MoveMoneyForm";
+import { type Api } from "./api";
 import { makeFakeApi } from "./test/fakeApi";
 
-// The Dashboard renders the UX5 Cockpit (React Router <Link>s) → it needs a router in tests.
-function renderDashboard(api: ReturnType<typeof makeFakeApi>) {
-  return render(
-    <MemoryRouter>
-      <Dashboard api={api} />
-    </MemoryRouter>,
-  );
-}
+// UX6 — Move-money is now the cross-cutting tool on `/manage`; it takes the envelope list + an
+// onMoved callback as props, so it is unit-tested directly (no router needed — it renders no Links).
 
 /** Seed an account funded into two envelopes so they have balances to move. */
-async function seed(api: ReturnType<typeof makeFakeApi>) {
+async function seed(api: Api) {
   const account = await api.createAccount({
     name: "Checking",
     kind: "checking",
@@ -31,20 +25,17 @@ async function seed(api: ReturnType<typeof makeFakeApi>) {
       { envelopeId: vacation.id, amount: "400.00" },
     ],
   });
-  return { groceries, vacation };
 }
 
 describe("Move money between envelopes (FEAT-007 #7b)", () => {
-  test("reallocating updates both envelope balances on the Dashboard", async () => {
+  test("reallocating moves the balance and calls onMoved", async () => {
     const api = makeFakeApi();
     await seed(api);
+    const envelopes = await api.listEnvelopes();
+    const onMoved = vi.fn();
 
     const user = userEvent.setup();
-    renderDashboard(api);
-
-    const list = await screen.findByRole("list", { name: "Envelopes list" });
-    expect(within(list).getByText("$600.00")).toBeTruthy();
-    expect(within(list).getByText("$400.00")).toBeTruthy();
+    render(<MoveMoneyForm api={api} envelopes={envelopes} onMoved={onMoved} />);
 
     const form = screen.getByRole("form", { name: "Move money between envelopes" });
     await user.selectOptions(within(form).getByLabelText("From envelope"), "Groceries");
@@ -53,19 +44,22 @@ describe("Move money between envelopes (FEAT-007 #7b)", () => {
     await user.type(within(form).getByLabelText("Amount"), "150.00");
     await user.click(within(form).getByRole("button", { name: "Move money" }));
 
-    // Groceries $600 − $150 = $450; Vacation $400 + $150 = $550.
-    expect(await within(list).findByText("$450.00")).toBeTruthy();
-    expect(await within(list).findByText("$550.00")).toBeTruthy();
+    await waitFor(() => expect(onMoved).toHaveBeenCalled());
+    // Groceries $600 − $150 = $450; Vacation $400 + $150 = $550 (derived from the reallocation).
+    const after = await api.listEnvelopes();
+    expect(after.find((e) => e.name === "Groceries")?.balanceCents).toBe(45000);
+    expect(after.find((e) => e.name === "Vacation")?.balanceCents).toBe(55000);
   });
 
-  test("a server validation error is surfaced inline", async () => {
+  test("a client-side validation error is surfaced inline", async () => {
     const api = makeFakeApi();
     await seed(api);
+    const envelopes = await api.listEnvelopes();
 
     const user = userEvent.setup();
-    renderDashboard(api);
+    render(<MoveMoneyForm api={api} envelopes={envelopes} onMoved={() => {}} />);
 
-    const form = await screen.findByRole("form", { name: "Move money between envelopes" });
+    const form = screen.getByRole("form", { name: "Move money between envelopes" });
     // Same envelope on both sides → client-side guard message.
     await user.selectOptions(within(form).getByLabelText("From envelope"), "Groceries");
     await user.selectOptions(within(form).getByLabelText("To envelope"), "Groceries");
