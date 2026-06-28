@@ -10,6 +10,7 @@ import {
   type EnvelopeView,
 } from "./api";
 import { formatCents } from "./format";
+import { Cockpit } from "./Cockpit";
 import { MoveMoneyForm } from "./MoveMoneyForm";
 
 const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "loan", "cash", "other"];
@@ -123,6 +124,10 @@ export function Dashboard({
       <h1>Budgeteer</h1>
 
       {loadError ? <p role="alert">{loadError}</p> : null}
+
+      {/* UX5 — the budget + future-planning cockpit is the home's headline. Account/envelope
+          management stays below it (demoting that to /manage is UX6). */}
+      <Cockpit api={api} />
 
       <section aria-labelledby="accounts-heading">
         <h2 id="accounts-heading">Accounts</h2>

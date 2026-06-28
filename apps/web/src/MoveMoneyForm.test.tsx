@@ -1,8 +1,18 @@
 import { describe, expect, test } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 import { Dashboard } from "./Dashboard";
 import { makeFakeApi } from "./test/fakeApi";
+
+// The Dashboard renders the UX5 Cockpit (React Router <Link>s) → it needs a router in tests.
+function renderDashboard(api: ReturnType<typeof makeFakeApi>) {
+  return render(
+    <MemoryRouter>
+      <Dashboard api={api} />
+    </MemoryRouter>,
+  );
+}
 
 /** Seed an account funded into two envelopes so they have balances to move. */
 async function seed(api: ReturnType<typeof makeFakeApi>) {
@@ -30,7 +40,7 @@ describe("Move money between envelopes (FEAT-007 #7b)", () => {
     await seed(api);
 
     const user = userEvent.setup();
-    render(<Dashboard api={api} />);
+    renderDashboard(api);
 
     const list = await screen.findByRole("list", { name: "Envelopes list" });
     expect(within(list).getByText("$600.00")).toBeTruthy();
@@ -53,7 +63,7 @@ describe("Move money between envelopes (FEAT-007 #7b)", () => {
     await seed(api);
 
     const user = userEvent.setup();
-    render(<Dashboard api={api} />);
+    renderDashboard(api);
 
     const form = await screen.findByRole("form", { name: "Move money between envelopes" });
     // Same envelope on both sides → client-side guard message.

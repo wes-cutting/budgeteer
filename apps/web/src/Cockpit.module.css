@@ -1,0 +1,82 @@
+/*
+ * UX5 — the cockpit grid (on the UX4 token sheet). Layout only; element styling (links, focus
+ * ring, the Card surface) comes from the base layer + the design-system primitives. Desktop-first:
+ * a responsive auto-fit grid that stacks gracefully toward phone width. No animation here — the
+ * shell owns the (transform-based, reduced-motion-aware) route transition.
+ */
+.overview {
+  margin: var(--space-4) 0 var(--space-5);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* Beats the Card primitive's own block margin (single-class) so grid `gap` controls spacing. */
+.grid .panel {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.panelBody {
+  flex: 1;
+}
+
+.panelLink {
+  align-self: flex-start;
+  font-weight: 600;
+}
+
+.figures {
+  margin: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+.figures > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.figures dt {
+  color: var(--color-text-muted);
+}
+.figures dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.bigNumber {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}

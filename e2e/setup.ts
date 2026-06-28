@@ -41,7 +41,8 @@ export async function openTemplates(page: Page) {
 }
 
 export async function openRecurring(page: Page) {
-  await page.getByRole("link", { name: "Recurring" }).click();
+  // `exact` so this matches the shell nav's "Recurring" and not the cockpit's "Manage recurring".
+  await page.getByRole("link", { name: "Recurring", exact: true }).click();
 }
 
 // The Insights area is URL-addressable at /insights/:view; open it via the shell, then the sub-nav.

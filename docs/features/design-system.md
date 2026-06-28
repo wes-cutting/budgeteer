@@ -9,7 +9,7 @@ in place. Status ladder: docs/00_WAYS_OF_WORKING.md §4.
 | Field        | Value                                                                 |
 | ------------ | --------------------------------------------------------------------- |
 | Feature ID   | FEAT-UX4                                                               |
-| Status       | Implemented ([status report](../status-reports/2026-06-25-ux4.md))    |
+| Status       | Implemented ([status report](../status-reports/2026-06-26-ux4.md))    |
 | Owner        | Wesley Cutting                                                         |
 | Last updated | 2026-06-25                                                            |
 | Related      | [UX Uplift brief](../reviews/2026-06-25-ux-uplift-initiative.md) (`UX4`) · [`ADR-0005`](../adr/ADR-0005-frontend-design-system.md) · [`SPIKE-06`](../spikes/06-design-system-routing.md) · proof screen: [`AccountRegister.tsx`](../../apps/web/src/AccountRegister.tsx) |
@@ -143,4 +143,4 @@ None — pure presentation. No domain/data-model doc changes.
 > **Status: `Implemented`** (gate-green 2026-06-25 — 283 Vitest + 49 e2e; axe light+dark). Built
 > the token sheet + base layer + the seed primitive set and restyled the Account Register in place;
 > `Dialog`/`Table` deferred per seed-and-grow. See the
-> [status report](../status-reports/2026-06-25-ux4.md).
+> [status report](../status-reports/2026-06-26-ux4.md).

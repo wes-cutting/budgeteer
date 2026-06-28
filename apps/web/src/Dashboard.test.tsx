@@ -1,20 +1,31 @@
 import { describe, expect, test } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 import { Dashboard } from "./Dashboard";
-import { ApiError } from "./api";
+import { type Api, ApiError } from "./api";
 import { makeFakeApi } from "./test/fakeApi";
+
+// The Dashboard now renders the UX5 Cockpit, which uses React Router <Link>s — so it needs a
+// router in tests. (The Cockpit's own panels are covered in Cockpit.test.tsx.)
+function renderDashboard(api: Api = makeFakeApi()) {
+  return render(
+    <MemoryRouter>
+      <Dashboard api={api} />
+    </MemoryRouter>,
+  );
+}
 
 describe("Dashboard (Foundation UX)", () => {
   test("renders both empty states on first run", async () => {
-    render(<Dashboard api={makeFakeApi()} />);
+    renderDashboard();
     expect(await screen.findByText(/No accounts yet/i)).toBeTruthy();
     expect(await screen.findByText(/No envelopes yet/i)).toBeTruthy();
   });
 
   test("adding an account shows it with its formatted balance", async () => {
     const user = userEvent.setup();
-    render(<Dashboard api={makeFakeApi()} />);
+    renderDashboard();
     await screen.findByText(/No accounts yet/i);
 
     const form = screen.getByRole("form", { name: /add account/i });
@@ -32,7 +43,7 @@ describe("Dashboard (Foundation UX)", () => {
 
   test("adding an envelope shows it at $0.00", async () => {
     const user = userEvent.setup();
-    render(<Dashboard api={makeFakeApi()} />);
+    renderDashboard();
     await screen.findByText(/No envelopes yet/i);
 
     const form = screen.getByRole("form", { name: /add envelope/i });
@@ -50,7 +61,7 @@ describe("Dashboard (Foundation UX)", () => {
         throw new ApiError("An account with that name already exists.");
       },
     });
-    render(<Dashboard api={api} />);
+    renderDashboard(api);
     await screen.findByText(/No accounts yet/i);
 
     const form = screen.getByRole("form", { name: /add account/i });
@@ -67,7 +78,7 @@ describe("Dashboard (Foundation UX)", () => {
     await api.createAccount({ name: "Savings", kind: "savings", startingBalance: "500.00" });
     await api.createAccount({ name: "Card", kind: "credit", startingBalance: "-300.00" });
 
-    render(<Dashboard api={api} />);
+    renderDashboard(api);
     const summary = await screen.findByRole("table", { name: "Net worth summary" });
 
     // Assets = $1,000 + $500 = $1,500; liabilities = −$300 (credit, kept negative).
@@ -81,7 +92,7 @@ describe("Dashboard (Foundation UX)", () => {
   });
 
   test("net worth summary is hidden until there is an account (R4)", async () => {
-    render(<Dashboard api={makeFakeApi()} />);
+    renderDashboard();
     await screen.findByText(/No accounts yet/i);
     expect(screen.queryByRole("table", { name: "Net worth summary" })).toBeNull();
   });
@@ -103,7 +114,7 @@ describe("Dashboard (Foundation UX)", () => {
       allocations: [{ envelopeId: env.id, amount: "40.00" }],
     });
 
-    render(<Dashboard api={api} />);
+    renderDashboard(api);
     // The inline figures come from a separate async fetch — wait for them to land.
     expect(await screen.findByText(/Target: \$200\.00/)).toBeTruthy();
     expect(screen.getByText(/Spent: \$40\.00/)).toBeTruthy();
@@ -116,7 +127,7 @@ describe("Dashboard (Foundation UX)", () => {
     await api.setEnvelopeTarget(budgeted.id, "100.00");
     await api.createEnvelope({ name: "Fun", kind: "standard" });
 
-    render(<Dashboard api={api} />);
+    renderDashboard(api);
     const list = await screen.findByRole("list", { name: "Envelopes list" });
     // Wait until the (independent) budget fetch has populated the budgeted row…
     await within(list).findByText(/Target: \$100\.00/);
@@ -129,7 +140,7 @@ describe("Dashboard (Foundation UX)", () => {
     await api.createEnvelope({ name: "Vacation", kind: "sinking_fund" });
 
     const user = userEvent.setup();
-    render(<Dashboard api={api} />);
+    renderDashboard(api);
     await screen.findByText("Vacation");
 
     await user.click(screen.getByRole("button", { name: "Archive" }));

@@ -185,6 +185,15 @@ test.describe("a11y — dark mode (FEAT-UX4)", () => {
     await assertNoViolations(page);
   });
 
+  test("populated home cockpit is accessible in dark mode (UX5)", async ({ page }) => {
+    // Seed an account so the cockpit's net-worth + forecast panels render their figures/badges
+    // (cards, Badge tones, deep-links, dl figures) under the dark token set.
+    await page.goto("/");
+    await createAccount(page, `Dark-Cockpit-${Date.now()}`, { balance: "1200.00" });
+    await expect(page.getByRole("region", { name: "Overview" })).toBeVisible();
+    await assertNoViolations(page);
+  });
+
   test("account register is accessible in dark mode", async ({ page }) => {
     await page.goto("/");
     const name = `Dark-Acct-${Date.now()}`;
