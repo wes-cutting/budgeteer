@@ -87,6 +87,12 @@ export async function openEnvelope(page: Page, name: string) {
   await expect(page.getByRole("heading", { name: new RegExp(name), level: 1 })).toBeVisible();
 }
 
+/** UX7 — open the global quick-add transaction modal from the persistent shell nav. */
+export async function openQuickAdd(page: Page) {
+  await primaryNav(page).getByRole("link", { name: "Add transaction" }).click();
+  await expect(page.getByRole("dialog", { name: "Add a transaction" })).toBeVisible();
+}
+
 export async function openNeeds(page: Page) {
   // The link's accessible name gains a "(N)" count when items are pending — match the prefix.
   await page.getByRole("link", { name: /^Needs allocation/ }).click();

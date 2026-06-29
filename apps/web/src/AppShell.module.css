@@ -36,6 +36,21 @@
   text-decoration: underline;
 }
 
+/* UX7 — the global quick-add, styled as the nav's primary action (accent fill, on-accent text;
+   both token pairs clear WCAG 2.2 AA in light AND dark). A link, not a route indicator, so it
+   never takes the aria-current underline. */
+.addTxn {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 600;
+}
+.addTxn:hover {
+  background: var(--color-accent-hover);
+  text-decoration: none;
+}
+
 /* Needs-allocation count pill — white on dark red (~8.3:1; passes WCAG 2.2 AA in light AND dark,
    the proven R2 value). The accessible count lives in the link's aria-label; this is decorative. */
 .badge {

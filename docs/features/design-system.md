@@ -33,8 +33,8 @@ and **proves them by restyling the Account Register in place** — gate-green an
     the WCAG 2.5.8 touch-target floor currently in [`index.css`](../../apps/web/src/index.css).
   - **Starter primitives** (the minimum the Account Register exercises) — see §3a inventory.
     **Built:** `Button`, `Field`/`Input`/`Select`, `Badge`, `Card`, `Alert`, `EmptyState`,
-    `Skeleton`. **Deferred** (seed-and-grow — no genuine modal/table on this screen): `Dialog`
-    (Radix) and `Table`.
+    `Skeleton`. **Grown since (per slice):** `Dialog` (Radix) — added by `UX7`, the first genuine
+    modal ([FEAT-UX7](quick-add-transaction.md)). **Still deferred:** `Table` (no genuine table yet).
   - **Proof:** restyle the **Account Register in place** onto tokens + primitives, with the
     **current** `view`-machine navigation unchanged.
   - **Conventions:** primitive location (`apps/web/src/ui/`), CSS-Module + token usage rules, and
@@ -55,7 +55,7 @@ and **proves them by restyling the Account Register in place** — gate-green an
 | `Select` | envelope picker (in dialog) | native `<select>` with a `<label>` |
 | `Table` | transactions list | **deferred** — the register's list stayed a styled `<ul>`/`<li>` (the unit test relies on `closest("li")`); a real `Table` lands with the cockpit/Insights |
 | `Badge` | "fully allocated" / "needs $X" | **text + shape**, never color alone; sufficient contrast (incl. dark) |
-| `Dialog` (Radix) | allocation editor | **deferred** — the editor is a *shared inline expand* (register + Needs-allocation); modal-izing it is a flow change, so `Dialog` lands at the first genuine modal (likely `UX7`) |
+| `Dialog` (Radix) | allocation editor | **built (UX7)** — `@radix-ui/react-dialog` per ADR-0005; the first genuine modal is the global quick-add (`/transactions/new`). Radix supplies the focus trap / ESC / overlay-close / focus-restore / `role="dialog"` + `aria-labelledby`; axe-clean light **and** dark ([FEAT-UX7](quick-add-transaction.md)). +~12 KB gz (105.4 KB total < 120 KB budget) |
 | `Alert` | load/save error | `role="alert"`; text, not color alone |
 | `EmptyState` | "No transactions yet…" | heading + a clear next action |
 | `Skeleton` | loading | `aria-hidden` placeholder with an accessible "Loading…" status |
@@ -78,8 +78,8 @@ and **proves them by restyling the Account Register in place** — gate-green an
   **then** 0 violations.
 - **Given** allocation status, **then** it is conveyed by **text + shape**, not color alone
   (e.g. a "needs $X" badge reads its text).
-- *(Deferred with `Dialog`)* a modal's focus trap / `Esc` / focus-restore is validated when the
-  `Dialog` primitive lands at its first genuine modal.
+- *(Validated by `UX7`)* a modal's focus trap / `Esc` / focus-restore — the `Dialog` primitive
+  (Radix) landed at its first genuine modal (the global quick-add) and is axe-clean light **and** dark.
 - **Given** the gate, **then** typecheck · lint · format · unit · e2e (incl. a11y) · build all pass;
   the existing Account Register e2e pass against the restyled DOM.
 - **No** data/API/domain change.

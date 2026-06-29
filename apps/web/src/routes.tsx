@@ -6,6 +6,7 @@ import { AccountsList } from "./AccountsList";
 import { EnvelopesList } from "./EnvelopesList";
 import { ManageView } from "./ManageView";
 import { AccountRegister } from "./AccountRegister";
+import { QuickAddTransaction } from "./QuickAddTransaction";
 import { EnvelopeLedgerRoute } from "./EnvelopeLedgerRoute";
 import { NeedsAllocation } from "./NeedsAllocation";
 import { TemplatesView } from "./TemplatesView";
@@ -20,6 +21,10 @@ import { AnalysisSection } from "./AnalysisSection";
  *
  * UX6 — the home is now the cockpit ONLY; account/envelope management moved to the `/accounts` ·
  * `/envelopes` LIST routes (each name a `<Link>` to its detail) and the cross-cutting `/manage` hub.
+ *
+ * UX7 — `/transactions/new` is a MODAL route: a child of the shell that renders the global quick-add
+ * dialog over (and returns you to) wherever you were, so the common "add a transaction" case is no
+ * longer buried behind opening a register.
  */
 function HomeRoute() {
   return <Home api={useApi()} />;
@@ -40,6 +45,10 @@ function ManageRoute() {
 function AccountRoute() {
   const { id } = useParams();
   return <AccountRegister api={useApi()} accountId={id ?? ""} />;
+}
+
+function QuickAddRoute() {
+  return <QuickAddTransaction api={useApi()} />;
 }
 
 function EnvelopeRoute() {
@@ -70,6 +79,7 @@ export function createAppRouter() {
       element: <AppShell />,
       children: [
         { index: true, element: <HomeRoute /> },
+        { path: "transactions/new", element: <QuickAddRoute /> },
         { path: "accounts", element: <AccountsListRoute /> },
         { path: "accounts/:id", element: <AccountRoute /> },
         { path: "envelopes", element: <EnvelopesListRoute /> },

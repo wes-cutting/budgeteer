@@ -5,3 +5,4 @@ export { Badge } from "./Badge";
 export { Card } from "./Card";
 export { Alert, EmptyState, Skeleton } from "./Feedback";
 export { Field, Input, Select } from "./Field";
+export { Dialog } from "./Dialog";

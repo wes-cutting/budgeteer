@@ -43,6 +43,11 @@ export function AppShell() {
           Budgeteer
         </Link>
         <nav aria-label="Primary" className={styles.nav}>
+          {/* UX7 — the always-available global quick-add. A modal route, so it overlays and returns
+              to wherever you were; styled as the nav's primary action. */}
+          <Link to="/transactions/new" className={styles.addTxn}>
+            Add transaction
+          </Link>
           <NavLink to="/" end>
             Home
           </NavLink>

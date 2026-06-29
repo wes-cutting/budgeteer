@@ -1,0 +1,60 @@
+/*
+ * Modal dialog styling (FEAT-UX4 · UX7) on the UX4 token sheet, so light/dark fall out of the
+ * tokens. The overlay scrim carries no text (no contrast concern); the panel uses --color-bg /
+ * --color-text pairs that already clear WCAG 2.2 AA in both schemes.
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 14, 20, 0.55);
+}
+
+.content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 2 * var(--space-5)));
+  max-height: calc(100vh - 2 * var(--space-5));
+  overflow: auto;
+  padding: var(--space-5);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+}
+
+.title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+  line-height: 1.2;
+}
+
+.description {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+}
+
+/* The corner close affordance — its accessible name lives in aria-label="Close"; the glyph is
+   decorative. --color-text keeps it well above the contrast floor in light and dark. */
+.close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: var(--text-lg);
+  line-height: 1;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+.close:hover {
+  background: var(--color-surface);
+}

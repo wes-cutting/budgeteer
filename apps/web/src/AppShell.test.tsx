@@ -21,6 +21,7 @@ describe("AppShell (UX3 — persistent nav)", () => {
     renderShell();
     const nav = screen.getByRole("navigation", { name: "Primary" });
     for (const name of [
+      "Add transaction",
       "Home",
       "Accounts",
       "Envelopes",
@@ -32,6 +33,10 @@ describe("AppShell (UX3 — persistent nav)", () => {
     ]) {
       expect(within(nav).getByRole("link", { name })).toBeTruthy();
     }
+    // UX7 — the global quick-add points at the modal route.
+    expect(within(nav).getByRole("link", { name: "Add transaction" }).getAttribute("href")).toBe(
+      "/transactions/new",
+    );
     // The Home brand link is present too.
     expect(screen.getByRole("link", { name: "Budgeteer" })).toBeTruthy();
   });

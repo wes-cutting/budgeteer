@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Alert, Badge, Button, EmptyState, Field, Input, Select, Skeleton } from "./index";
+import { Alert, Badge, Button, Dialog, EmptyState, Field, Input, Select, Skeleton } from "./index";
 
 describe("ui primitives (FEAT-UX4)", () => {
   test("Button forwards aria-label + onClick and defaults to type=button", async () => {
@@ -71,5 +71,24 @@ describe("ui primitives (FEAT-UX4)", () => {
       </Field>,
     );
     expect((screen.getByLabelText("Envelope") as HTMLSelectElement).value).toBe("e2");
+  });
+
+  test("Dialog is a labelled, modal role=dialog and dismisses via ESC and the close button", async () => {
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <Dialog title="Add a transaction" description="Pick an account." onClose={onClose}>
+        <button type="button">Inside</button>
+      </Dialog>,
+    );
+    // role=dialog + an accessible name wired from the title (Radix sets aria-labelledby).
+    const dialog = screen.getByRole("dialog", { name: "Add a transaction" });
+    expect(dialog.getAttribute("aria-labelledby")).toBeTruthy();
+
+    await user.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(onClose).toHaveBeenCalledTimes(2);
   });
 });

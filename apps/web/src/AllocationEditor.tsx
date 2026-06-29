@@ -27,6 +27,9 @@ interface Props {
   initial?: AllocationDraft[];
   submitting?: boolean;
   saveLabel?: string;
+  /** An external gate ANDed into the save guard — e.g. the global quick-add (UX7) blocks Save until
+   *  an account is chosen. Defaults to false so the register / needs-allocation callers are unchanged. */
+  disabled?: boolean;
   onSave: (allocations: AllocationDraft[]) => void;
   onSaveAsTemplate?: (name: string, lines: AllocationDraft[]) => void;
 }
@@ -44,6 +47,7 @@ export function AllocationEditor({
   initial,
   submitting = false,
   saveLabel = "Save",
+  disabled = false,
   onSave,
   onSaveAsTemplate,
 }: Props) {
@@ -94,6 +98,7 @@ export function AllocationEditor({
     rows.some((r) => r.amount.trim() !== "" && tryParseMoney(r.amount) === null);
   const canSave =
     !submitting &&
+    !disabled &&
     magnitudeCents > 0 &&
     !over &&
     !under &&

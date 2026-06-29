@@ -16,6 +16,7 @@ import {
   openAnalysis,
   openEnvelope,
   openNeeds,
+  openQuickAdd,
   openRecurring,
   openTemplates,
 } from "./setup";
@@ -79,6 +80,21 @@ test.describe("a11y — management surfaces (UX6)", () => {
     await expect(page.getByRole("table", { name: "Net worth summary" })).toBeVisible();
     await expect(page.getByRole("form", { name: "Move money between envelopes" })).toBeVisible();
     await assertNoViolations(page);
+  });
+});
+
+// UX7 — the global quick-add transaction modal (Radix Dialog). Modal a11y is the slice's headline
+// risk: focus trap, ESC/overlay close, return-focus, role="dialog" + aria — scan it open.
+test.describe("a11y — Quick-add transaction (UX7)", () => {
+  test("the global quick-add modal is accessible", async ({ page }) => {
+    await page.goto("/");
+    await createAccount(page, `${ACCOUNT}-qa`);
+    await goToDashboard(page);
+    await openQuickAdd(page);
+    await expect(page.getByRole("dialog", { name: "Add a transaction" })).toBeVisible();
+    await assertNoViolations(page);
+    // Close so the shared afterEach (goToDashboard via the nav) isn't blocked by the open modal.
+    await page.keyboard.press("Escape");
   });
 });
 
@@ -248,6 +264,16 @@ test.describe("a11y — dark mode", () => {
     await createAccount(page, name);
     await openAccount(page, name);
     await assertNoViolations(page);
+  });
+
+  test("quick-add modal is accessible in dark mode (UX7)", async ({ page }) => {
+    await page.goto("/");
+    await createAccount(page, `Dark-QA-${Date.now()}`);
+    await goToDashboard(page);
+    await openQuickAdd(page);
+    await expect(page.getByRole("dialog", { name: "Add a transaction" })).toBeVisible();
+    await assertNoViolations(page);
+    await page.keyboard.press("Escape");
   });
 });
 
