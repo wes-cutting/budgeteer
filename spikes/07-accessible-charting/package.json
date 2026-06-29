@@ -1,0 +1,26 @@
+{
+  "name": "spike-07-accessible-charting",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "THROWAWAY spike (UX2) — proves a hand-rolled SVG chart can pass axe (WCAG 2.2 AA) + keyboard + screen reader with a data-table fallback, in light AND dark, within the 120 KB gz bundle budget. Recharts is installed ONLY to measure its bundle cost as the rejected alternative. Not the V1 app.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "vite build",
+    "build:recharts": "vite build --config vite.recharts.config.ts",
+    "preview": "vite preview --port 4317 --strictPort",
+    "axe": "node scripts/axe-browser.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "recharts": "^2.12.7",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0"
+  }
+}

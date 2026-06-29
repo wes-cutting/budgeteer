@@ -1,0 +1,94 @@
+/*
+ * COPIED from apps/web/src/ui/tokens.css so the spike's light/dark contrast matches the real
+ * app exactly (the axe gate is only meaningful against the production token values). Throwaway.
+ * Two chart-series tokens are ADDED here (the spike's proposal for ADR-0007): they are tuned so
+ * the line strokes themselves clear 3:1 (WCAG 1.4.11 non-text contrast) against the surface in
+ * BOTH schemes — but per the spike, color is never the SOLE signal (see AccessibleChart.tsx).
+ */
+:root {
+  --color-bg: #ffffff;
+  --color-surface: #f4f6f9;
+  --color-surface-2: #eaeef3;
+  --color-text: #161a1e;
+  --color-text-muted: #4f5c6a;
+  --color-border: #d3dae1;
+  --color-border-strong: #b6bfc9;
+
+  --color-accent: #1b5fb8;
+  --color-accent-hover: #174f9b;
+  --color-on-accent: #ffffff;
+
+  --color-success: #15702e;
+  --color-danger: #b42318;
+  --color-warning: #8a5a00;
+
+  --color-focus: #1b5fb8;
+
+  /* chart series — proposed tokens (>= 3:1 vs --color-bg for 1.4.11) */
+  --chart-1: #1b5fb8; /* assets   — accent blue */
+  --chart-2: #b42318; /* liabilities — danger red */
+  --chart-3: #15702e; /* net worth — success green */
+  --chart-grid: #d3dae1;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --text-sm: 0.85rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.6rem;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --shadow-1: 0 1px 2px rgba(16, 25, 36, 0.08);
+
+  --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-focus);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #14171a;
+    --color-surface: #1d2228;
+    --color-surface-2: #262d34;
+    --color-text: #e9eef3;
+    --color-text-muted: #a6b2bf;
+    --color-border: #323a43;
+    --color-border-strong: #46505b;
+
+    --color-accent: #6fa8ff;
+    --color-accent-hover: #8bbaff;
+    --color-on-accent: #08111c;
+
+    --color-success: #54c06e;
+    --color-danger: #f3736f;
+    --color-warning: #e2b341;
+
+    --color-focus: #6fa8ff;
+
+    /* chart series — lighter variants so the strokes clear 3:1 on the dark bg */
+    --chart-1: #6fa8ff;
+    --chart-2: #f3736f;
+    --chart-3: #54c06e;
+    --chart-grid: #323a43;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.5;
+}
