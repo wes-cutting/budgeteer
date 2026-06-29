@@ -1,0 +1,94 @@
+/*
+ * Insights views (FEAT-UX8) — shared layout on the UX4 token sheet. The six analysis views render a
+ * hand-rolled accessible chart (ui/Chart) above their data table; this sheet styles the controls,
+ * tables, and figure lists consistently. Colours/spacing/type all come from the tokens.
+ */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+/* Segmented radio/toggle group (grain, horizon) — a labelled row of options. */
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.segmented label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-4) 0;
+  font-size: var(--text-sm);
+}
+.table caption {
+  text-align: left;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+.table thead th,
+.table tfoot th,
+.table tfoot td {
+  font-weight: 600;
+}
+.table thead th {
+  border-bottom: 2px solid var(--color-border-strong);
+}
+.table tfoot tr th,
+.table tfoot tr td {
+  border-top: 2px solid var(--color-border-strong);
+  border-bottom: none;
+}
+
+/* Headline figure list (current totals, forecast summary). */
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3) var(--space-5);
+  margin: var(--space-4) 0;
+  padding: 0;
+}
+.figures > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.figures dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.figures dd {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Inline cell editor (target / limit / principal) — keep the controls compact on one row. */
+.editor {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.editor input {
+  max-width: 8rem;
+}

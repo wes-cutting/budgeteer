@@ -31,7 +31,7 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 | `GET /analysis/envelope-spend` (monthly grid) | < 200 ms p95 | 10 envelopes × 120 txns¹ | **3.4 ms** | `apps/api/test/perf.test.ts` · same |
 | `GET /export` (backup snapshot) | < 500 ms p95 | 5 accounts + 5 envelopes + 200 txns | **11.5 ms** | `apps/api/test/perf.test.ts` · same |
 | Web initial load (LCP) | < 2.5 s | Cold load, production build | < 1 s² | Manual Lighthouse on `vite build` output |
-| Web initial JS bundle (gz) | < 120 KB gz | Production `vite build`, single chunk | **105.4 KB gz** (+ 2.70 KB gz CSS)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
+| Web initial JS bundle (gz) | < 120 KB gz | Production `vite build`, single chunk | **108.33 KB gz** (+ 3.17 KB gz CSS)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
 
 > ¹ Half-scale of the original budget (2 yrs × 20 env × 100/mo = 48 000 txns); PGlite performance
 >   at full scale is expected to remain well under budget given the measured p95 at half-scale.
@@ -41,14 +41,15 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >   is sub-second. No CDN or network latency in V1's local-only deployment model.
 >
 > ³ Budget set in `UX3` from the first shell build (SPIKE-06 follow-up). React Router added
->   ~31 KB gz over the pre-router 60.5 KB gz (UX4); `UX7`'s Radix Dialog added ~12 KB gz → **105.4 KB
->   gz** now (~14.6 KB headroom). The **< 120 KB gz** budget leaves room for the hand-rolled SVG charts
->   (`UX2`/`UX8`–`UX11`, **no chart-lib dependency**). **[SPIKE-07](spikes/07-accessible-charting.md) /
->   [ADR-0007](adr/ADR-0007-accessible-charting.md) measured the chart cost:** the hand-rolled SVG `Chart`
->   approach adds **~1.94 KB gz** (the shared primitive; +0.60 KB gz CSS), vs **Recharts 129 KB gz** — a
->   charting library *alone* exceeds this whole budget, which is *why* charts are hand-rolled. New
->   `--chart-1/2/3` + `--chart-grid` tokens (≥ 3:1 for WCAG 1.4.11) land with `UX8`. Revisit if a slice
->   pushes past 120 KB; no code-splitting yet — a single chunk is fine at this size.
+>   ~31 KB gz over the pre-router 60.5 KB gz (UX4); `UX7`'s Radix Dialog added ~12 KB gz → 105.4 KB gz;
+>   **`UX8`'s six hand-rolled charts + the shared `ui/Chart` primitive added ~2.9 KB gz → 108.33 KB
+>   gz** now (~11.7 KB headroom). The **< 120 KB gz** budget left room for the hand-rolled SVG charts
+>   (`UX2`/`UX8`–`UX11`, **no chart-lib dependency**), as the spike predicted: **[SPIKE-07](spikes/07-accessible-charting.md) /
+>   [ADR-0007](adr/ADR-0007-accessible-charting.md) measured ~1.94 KB gz for the primitive** vs **Recharts
+>   129 KB gz** — a charting library *alone* exceeds this whole budget, which is *why* charts are
+>   hand-rolled, and the realised six-chart cost (2.9 KB) confirms it. New `--chart-1/2/3` + `--chart-grid`
+>   tokens (≥ 3:1 for WCAG 1.4.11) landed with `UX8`. Revisit if a slice pushes past 120 KB; no
+>   code-splitting yet — a single chunk is fine at this size.
 
 ---
 

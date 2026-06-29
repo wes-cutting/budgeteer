@@ -5,6 +5,5 @@ test-results
 playwright-report
 spikes/02-stack-feasibility
 spikes/05-cashflow-forecast
-spikes/07-accessible-charting
 docs
 *.md

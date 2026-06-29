@@ -16,8 +16,8 @@ import { ErrorBoundary } from "./ErrorBoundary";
  * `aria-current="page"` on the active one) instead of the old in-component tab state. The active
  * view stays a self-contained full page with its own <h1> and data fetch, and only it is mounted.
  *
- * Each view keeps its own <h1>. The headings still read "Analysis — …"; the rename to "Insights"
- * is UX8's job (Analysis → Insights migration), not this routing slice.
+ * Each view keeps its own <h1>. UX8 completed the Analysis → Insights migration: the headings now read
+ * "Insights — …" and each view renders a hand-rolled accessible chart (ADR-0007) above its data table.
  */
 const TABS = [
   { id: "spend", label: "Spend" },
@@ -57,7 +57,7 @@ export function AnalysisSection({ api }: { api: Api }) {
 
   return (
     <>
-      <nav aria-label="Analysis views">
+      <nav aria-label="Insights views">
         {TABS.map((t) => (
           <NavLink key={t.id} to={`/insights/${t.id}`} end>
             {t.label}

@@ -1,20 +1,24 @@
 import { useEffect, useState } from "react";
 import { type AccountView, type Api, type CashFlowForecast } from "./api";
 import { formatCents } from "./format";
+import { Button, Field, LineChart, type LineSeries, Select } from "./ui";
+import styles from "./Insights.module.css";
 
-const NUM: React.CSSProperties = { textAlign: "right" };
 const HORIZONS = [30, 60, 90] as const;
 
 /** Signed display for a cash delta: "+$2,100.00" / "-$120.00". */
 const signedCents = (c: number): string => (c > 0 ? "+" : "") + formatCents(c);
 
+/** Short "MM-DD" axis label for the event-stepped forecast (dates are irregular). */
+const shortDate = (iso: string): string => iso.slice(5);
+
 /**
- * Analysis — cash-flow forecast (FEAT-013). Projects one account's running cash balance forward over
- * a horizon: scheduled recurring events (the firm core) plus, when toggled on, expected discretionary
- * spend from monthly targets (netted to avoid double-counting — see SPIKE-05). Surfaces the headline
- * answers (ending / lowest point + date / first-negative) and a running-balance table. The projection
- * is a pure domain function fed by the analysis read; this view is thin. a11y: real table with caption
- * + `scope`'d headers; the negative warning is text, never colour alone; controls are labelled.
+ * Insights — cash-flow forecast (FEAT-013, charted in UX8). Projects one account's running cash
+ * balance forward over a horizon: scheduled recurring events (the firm core) plus, when toggled on,
+ * expected discretionary spend from monthly targets (netted to avoid double-counting — see SPIKE-05).
+ * UX8 adds a hand-rolled accessible line chart (ADR-0007) of the running balance from today across
+ * the projected events, above the running-balance table (its data-table fallback). The negative
+ * warning is text, never colour alone; controls are labelled.
  */
 export function ForecastView({ api }: { api: Api }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
@@ -62,42 +66,95 @@ export function ForecastView({ api }: { api: Api }) {
     };
   }, [api, accountId, horizonDays, includeExpected]);
 
+  const balanceTable =
+    forecast === null ? null : (
+      <table className={styles.table}>
+        <caption>Projected balance after each upcoming event</caption>
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            <th scope="col">Event</th>
+            <th scope="col" className={styles.numeric}>
+              Amount
+            </th>
+            <th scope="col" className={styles.numeric}>
+              Balance
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {forecast.points.map((p, i) => (
+            <tr key={`${p.date}:${i}`}>
+              <th scope="row">{p.date}</th>
+              <td>{p.label}</td>
+              <td className={styles.numeric}>{signedCents(p.deltaCents)}</td>
+              <td className={styles.numeric}>{formatCents(p.balanceCents)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+
+  /** The line starts at today's balance, then steps through each projected event. */
+  function buildForecastChart(f: CashFlowForecast): {
+    axis: string[];
+    series: LineSeries[];
+    summary: string;
+  } {
+    const axis = [shortDate(f.startDate), ...f.points.map((p) => shortDate(p.date))];
+    const values = [f.startingBalanceCents, ...f.points.map((p) => p.balanceCents)];
+    const series: LineSeries[] = [
+      { label: "Balance", token: "var(--chart-1)", dash: "0", marker: "circle", values },
+    ];
+    const summary =
+      `Projected cash balance for ${f.accountName} over ${f.horizonDays} days: ` +
+      `${formatCents(f.startingBalanceCents)} today to ${formatCents(f.endingBalanceCents)} on ${f.endDate}, ` +
+      `lowest ${formatCents(f.minBalanceCents)} on ${f.minBalanceDate}` +
+      (f.firstNegativeDate === null
+        ? "; stays positive."
+        : `; goes negative on ${f.firstNegativeDate}.`);
+    return { axis, series, summary };
+  }
+
   return (
     <main>
       <header>
-        <h1>Analysis — cash-flow forecast</h1>
+        <h1>Insights — cash-flow forecast</h1>
       </header>
 
       {accounts !== null && accounts.length === 0 ? (
         <p>Add an account first, then come back to forecast its cash flow.</p>
       ) : (
         <>
-          <div>
-            <label>
-              Account{" "}
-              <select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+          <div className={styles.controls}>
+            <Field label="Account" htmlFor="forecast-account">
+              <Select
+                id="forecast-account"
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+              >
                 {(accounts ?? []).map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name}
                   </option>
                 ))}
-              </select>
-            </label>{" "}
-            <span role="group" aria-label="Horizon">
+              </Select>
+            </Field>
+            <span className={styles.segmented} role="group" aria-label="Horizon">
               Horizon:{" "}
               {HORIZONS.map((h) => (
-                <button
+                <Button
                   key={h}
-                  type="button"
+                  variant={horizonDays === h ? "accent" : "default"}
                   aria-pressed={horizonDays === h}
                   onClick={() => setHorizonDays(h)}
                 >
                   {h}
-                </button>
+                </Button>
               ))}{" "}
               days
-            </span>{" "}
-            <label>
+            </span>
+            <label className={styles.segmented}>
               <input
                 type="checkbox"
                 checked={includeExpected}
@@ -116,7 +173,7 @@ export function ForecastView({ api }: { api: Api }) {
             <p role="status">Projecting…</p>
           ) : (
             <>
-              <dl>
+              <dl className={styles.figures}>
                 <div>
                   <dt>Starting balance (today, {forecast.startDate})</dt>
                   <dd>{formatCents(forecast.startingBalanceCents)}</dd>
@@ -146,31 +203,19 @@ export function ForecastView({ api }: { api: Api }) {
               {forecast.points.length === 0 ? (
                 <p>No upcoming activity in the next {forecast.horizonDays} days.</p>
               ) : (
-                <table>
-                  <caption>Projected balance after each upcoming event</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Date</th>
-                      <th scope="col">Event</th>
-                      <th scope="col" style={NUM}>
-                        Amount
-                      </th>
-                      <th scope="col" style={NUM}>
-                        Balance
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {forecast.points.map((p, i) => (
-                      <tr key={`${p.date}:${i}`}>
-                        <th scope="row">{p.date}</th>
-                        <td>{p.label}</td>
-                        <td style={NUM}>{signedCents(p.deltaCents)}</td>
-                        <td style={NUM}>{formatCents(p.balanceCents)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                (() => {
+                  const { axis, series, summary } = buildForecastChart(forecast);
+                  return (
+                    <LineChart
+                      caption={`Projected cash balance — ${forecast.accountName}`}
+                      summary={summary}
+                      axis={axis}
+                      series={series}
+                      formatY={formatCents}
+                      table={balanceTable}
+                    />
+                  );
+                })()
               )}
             </>
           )}

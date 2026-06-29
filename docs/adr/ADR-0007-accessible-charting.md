@@ -7,10 +7,11 @@ docs/00_WAYS_OF_WORKING.md §4. Stay Proposed until a spike validates the assump
 
 | Field         | Value                                                              |
 | ------------- | ------------------------------------------------------------------ |
-| Status        | Validated                                                          |
+| Status        | Accepted                                                          |
 | Date          | 2026-06-28                                                         |
 | Deciders      | Wesley Cutting + agent                                             |
 | Validated by  | [`SPIKE-07`](../spikes/07-accessible-charting.md) (one real chart: 0 axe violations WCAG 2.2 AA in real Chromium, light+dark × table-shown/hidden; bundle measured hand-rolled 1.94 KB gz vs Recharts 129 KB gz) |
+| Adopted by    | [`FEAT-UX8`](../features/insights-charts.md) ([status](../status-reports/2026-06-28-ux8.md)) — the shared `ui/Chart` primitive (line/bar/gauge) on this contract now charts all six Insights views; axe-green light+dark with each chart rendered; bundle 108.33 KB gz (< 120 KB) |
 
 ## Context
 

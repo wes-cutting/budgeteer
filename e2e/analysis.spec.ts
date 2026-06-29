@@ -31,7 +31,7 @@ test("spend by envelope: allocated deposit appears in the monthly grid", async (
 
   await openAnalysis(page, "Spend");
   await expect(
-    page.getByRole("heading", { name: "Analysis — spend by envelope", level: 1 }),
+    page.getByRole("heading", { name: "Insights — spend by envelope", level: 1 }),
   ).toBeVisible();
 
   // The envelope row shows $500.00 (positive = funded, matching the deposit allocation).
@@ -52,7 +52,7 @@ test("budget vs. actual: set a monthly target and see it against spend", async (
 
   await openAnalysis(page, "Budget");
   await expect(
-    page.getByRole("heading", { name: "Analysis — budget vs. actual", level: 1 }),
+    page.getByRole("heading", { name: "Insights — budget vs. actual", level: 1 }),
   ).toBeVisible();
 
   // Set a $200 monthly target via the inline editor (a real cross-origin PUT).
@@ -88,7 +88,7 @@ test("cash-flow forecast: forward projection renders with expected spend", async
   // sub-nav tabs are now deep-linkable NavLinks (UX3).
   await page.getByRole("link", { name: "Forecast", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Analysis — cash-flow forecast", level: 1 }),
+    page.getByRole("heading", { name: "Insights — cash-flow forecast", level: 1 }),
   ).toBeVisible();
   await page.getByLabel("Account").selectOption({ label: ACCOUNT });
 
@@ -107,7 +107,7 @@ test("credit utilization: set a limit and see the utilization percentage", async
 
   await openAnalysis(page, "Credit");
   await expect(
-    page.getByRole("heading", { name: "Analysis — credit utilization", level: 1 }),
+    page.getByRole("heading", { name: "Insights — credit utilization", level: 1 }),
   ).toBeVisible();
 
   // Set the limit to $1,000 via the inline editor (a real cross-origin PUT).
@@ -129,7 +129,7 @@ test("debt payoff: set an original principal and see the payoff percentage", asy
 
   await openAnalysis(page, "Payoff");
   await expect(
-    page.getByRole("heading", { name: "Analysis — debt payoff", level: 1 }),
+    page.getByRole("heading", { name: "Insights — debt payoff", level: 1 }),
   ).toBeVisible();
 
   // Set the original principal to $10,000 (a real cross-origin PUT).
@@ -156,7 +156,7 @@ test("net worth: current totals satisfy net = assets + liabilities, and the mont
 
   await openAnalysis(page, "Net worth");
   await expect(
-    page.getByRole("heading", { name: "Analysis — net worth over time", level: 1 }),
+    page.getByRole("heading", { name: "Insights — net worth over time", level: 1 }),
   ).toBeVisible();
 
   const totals = page.getByRole("table", { name: "Current totals" });

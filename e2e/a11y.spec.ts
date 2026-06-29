@@ -24,6 +24,66 @@ import {
 const ACCOUNT = `A11y-Acct-${Date.now()}`;
 const ENVELOPE = `A11y-Env-${Date.now()}`;
 
+// UX8 — seed helpers so the Insights views render their hand-rolled charts (not empty states) before
+// the axe scan. Each returns the entity names so the test can drive the inline editors.
+
+/** Fund an envelope with an allocated deposit, so spend/budget/net-worth have data to chart. */
+async function fundEnvelope(page: Page, account: string, envelope: string, payee: string) {
+  await openAccount(page, account);
+  const txnForm = page.getByRole("form", { name: "Add transaction" });
+  await txnForm.getByRole("radio", { name: "Deposit" }).check();
+  await txnForm.getByLabel("Transaction amount").fill("500.00");
+  await txnForm.getByLabel("Payee").fill(payee);
+  await txnForm.getByLabel("Envelope", { exact: true }).selectOption({ label: envelope });
+  await txnForm.getByRole("button", { name: "Save transaction" }).click();
+  await goToDashboard(page);
+}
+
+/** Seed spend/budget/forecast data (account + envelope + funded deposit + a monthly target). */
+async function seedBudgeted(page: Page, tag: string): Promise<{ envelope: string }> {
+  const stamp = `${tag}-${Date.now()}`;
+  const account = `A11y-${stamp}-acct`;
+  const envelope = `A11y-${stamp}-env`;
+  await createAccount(page, account);
+  await createEnvelope(page, envelope);
+  await fundEnvelope(page, account, envelope, `A11y-${stamp}-pay`);
+  await openAnalysis(page, "Budget");
+  const budgetRow = page.getByRole("row").filter({ hasText: envelope });
+  await budgetRow.getByLabel(`Monthly target for ${envelope}`).fill("200.00");
+  await budgetRow.getByRole("button", { name: "Save" }).click();
+  await expect(budgetRow.getByRole("button", { name: "Clear" })).toBeVisible();
+  return { envelope };
+}
+
+/** Seed a credit account with a limit so the utilization gauge renders. */
+async function seedCredit(page: Page, tag: string): Promise<{ card: string }> {
+  const card = `A11y-${tag}-${Date.now()}-card`;
+  await createAccount(page, card, { kind: "credit", balance: "-300.00" });
+  await openAnalysis(page, "Credit");
+  const form = page.getByRole("form", { name: `Credit limit for ${card}` });
+  await form.getByLabel(`Credit limit for ${card}`).fill("1000.00");
+  await form.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("30.0%").first()).toBeVisible();
+  return { card };
+}
+
+/** Seed a loan account with an original principal so the payoff gauge renders. */
+async function seedLoan(page: Page, tag: string): Promise<{ loan: string }> {
+  const loan = `A11y-${tag}-${Date.now()}-loan`;
+  await createAccount(page, loan, { kind: "loan", balance: "-7500.00" });
+  await openAnalysis(page, "Payoff");
+  const form = page.getByRole("form", { name: `Original principal for ${loan}` });
+  await form.getByLabel(`Original principal for ${loan}`).fill("10000.00");
+  await form.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("25.0%").first()).toBeVisible();
+  return { loan };
+}
+
+/** Every Insights chart is a `role="img"` SVG with a one-line summary name (ADR-0007). */
+async function expectChart(page: Page) {
+  await expect(page.getByRole("img").first()).toBeVisible();
+}
+
 async function assertNoViolations(page: Page) {
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
@@ -134,59 +194,92 @@ test.describe("a11y — Recurring", () => {
   });
 });
 
-test.describe("a11y — Analysis views", () => {
-  test("spend analysis is accessible", async ({ page }) => {
-    await page.goto("/");
-    await openAnalysis(page, "Spend");
-    await expect(
-      page.getByRole("heading", { name: "Analysis — spend by envelope", level: 1 }),
-    ).toBeVisible();
-    await assertNoViolations(page);
-  });
+// UX8 — the six Insights views, each now charted (ADR-0007 hand-rolled SVG + data-table fallback).
+// Seed data so the CHART renders (not the empty state), assert the role="img" chart is present, then
+// axe-scan — covering the new SVG content, the --chart-* token contrast, and the data table together.
+// Shared scan fns so the dark-mode block re-runs the exact same paths under the dark token set.
 
-  test("budget vs actual is accessible", async ({ page }) => {
-    await page.goto("/");
-    await openAnalysis(page, "Budget");
-    await expect(
-      page.getByRole("heading", { name: "Analysis — budget vs. actual", level: 1 }),
-    ).toBeVisible();
-    await assertNoViolations(page);
-  });
+async function scanNetWorth(page: Page) {
+  await seedBudgeted(page, "nw");
+  await openAnalysis(page, "Net worth");
+  await expect(
+    page.getByRole("heading", { name: "Insights — net worth over time", level: 1 }),
+  ).toBeVisible();
+  await expectChart(page);
+  await assertNoViolations(page);
+}
 
-  test("cash-flow forecast is accessible", async ({ page }) => {
-    await page.goto("/");
-    await openAnalysis(page, "Forecast");
-    await expect(
-      page.getByRole("heading", { name: "Analysis — cash-flow forecast", level: 1 }),
-    ).toBeVisible();
-    await assertNoViolations(page);
-  });
+async function scanSpend(page: Page) {
+  await seedBudgeted(page, "spend");
+  await openAnalysis(page, "Spend");
+  await expect(
+    page.getByRole("heading", { name: "Insights — spend by envelope", level: 1 }),
+  ).toBeVisible();
+  await expectChart(page);
+  await assertNoViolations(page);
+}
 
-  test("credit utilization is accessible", async ({ page }) => {
-    await page.goto("/");
-    await openAnalysis(page, "Credit");
-    await expect(
-      page.getByRole("heading", { name: "Analysis — credit utilization", level: 1 }),
-    ).toBeVisible();
-    await assertNoViolations(page);
-  });
+async function scanBudget(page: Page) {
+  await seedBudgeted(page, "budget"); // leaves us on the Budget view with a target set
+  await expect(
+    page.getByRole("heading", { name: "Insights — budget vs. actual", level: 1 }),
+  ).toBeVisible();
+  await expectChart(page);
+  await assertNoViolations(page);
+}
 
-  test("debt payoff is accessible", async ({ page }) => {
-    await page.goto("/");
-    await openAnalysis(page, "Payoff");
-    await expect(
-      page.getByRole("heading", { name: "Analysis — debt payoff", level: 1 }),
-    ).toBeVisible();
-    await assertNoViolations(page);
-  });
+async function scanForecast(page: Page) {
+  await seedBudgeted(page, "fc"); // a target gives the projection expected-spend events to chart
+  await openAnalysis(page, "Forecast");
+  await expect(
+    page.getByRole("heading", { name: "Insights — cash-flow forecast", level: 1 }),
+  ).toBeVisible();
+  await expectChart(page);
+  await assertNoViolations(page);
+}
 
-  test("net worth over time is accessible", async ({ page }) => {
+async function scanCredit(page: Page) {
+  await seedCredit(page, "util"); // leaves us on the Credit view with a limit set
+  await expect(
+    page.getByRole("heading", { name: "Insights — credit utilization", level: 1 }),
+  ).toBeVisible();
+  await expectChart(page);
+  await assertNoViolations(page);
+}
+
+async function scanPayoff(page: Page) {
+  await seedLoan(page, "pay"); // leaves us on the Payoff view with a principal set
+  await expect(
+    page.getByRole("heading", { name: "Insights — debt payoff", level: 1 }),
+  ).toBeVisible();
+  await expectChart(page);
+  await assertNoViolations(page);
+}
+
+test.describe("a11y — Insights views (UX8 charts)", () => {
+  test("net worth (line chart) is accessible", async ({ page }) => {
     await page.goto("/");
-    await openAnalysis(page, "Net worth");
-    await expect(
-      page.getByRole("heading", { name: "Analysis — net worth over time", level: 1 }),
-    ).toBeVisible();
-    await assertNoViolations(page);
+    await scanNetWorth(page);
+  });
+  test("spend by envelope (bar chart) is accessible", async ({ page }) => {
+    await page.goto("/");
+    await scanSpend(page);
+  });
+  test("budget vs. actual (grouped bars) is accessible", async ({ page }) => {
+    await page.goto("/");
+    await scanBudget(page);
+  });
+  test("cash-flow forecast (line chart) is accessible", async ({ page }) => {
+    await page.goto("/");
+    await scanForecast(page);
+  });
+  test("credit utilization (gauge) is accessible", async ({ page }) => {
+    await page.goto("/");
+    await scanCredit(page);
+  });
+  test("debt payoff (gauge) is accessible", async ({ page }) => {
+    await page.goto("/");
+    await scanPayoff(page);
   });
 });
 
@@ -274,6 +367,33 @@ test.describe("a11y — dark mode", () => {
     await expect(page.getByRole("dialog", { name: "Add a transaction" })).toBeVisible();
     await assertNoViolations(page);
     await page.keyboard.press("Escape");
+  });
+
+  // UX8 — re-scan every Insights chart under the dark token set, so the --chart-* stroke/fill
+  // contrast (WCAG 1.4.11) is gated in dark too. Same seeded paths as the light block.
+  test("net worth chart is accessible in dark mode (UX8)", async ({ page }) => {
+    await page.goto("/");
+    await scanNetWorth(page);
+  });
+  test("spend chart is accessible in dark mode (UX8)", async ({ page }) => {
+    await page.goto("/");
+    await scanSpend(page);
+  });
+  test("budget chart is accessible in dark mode (UX8)", async ({ page }) => {
+    await page.goto("/");
+    await scanBudget(page);
+  });
+  test("forecast chart is accessible in dark mode (UX8)", async ({ page }) => {
+    await page.goto("/");
+    await scanForecast(page);
+  });
+  test("credit gauge is accessible in dark mode (UX8)", async ({ page }) => {
+    await page.goto("/");
+    await scanCredit(page);
+  });
+  test("payoff gauge is accessible in dark mode (UX8)", async ({ page }) => {
+    await page.goto("/");
+    await scanPayoff(page);
   });
 });
 

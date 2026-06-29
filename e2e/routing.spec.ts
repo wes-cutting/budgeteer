@@ -56,7 +56,7 @@ test("the Insights hub redirects to the default view; an unknown path redirects 
   // /insights → /insights/spend (the index redirect).
   await page.goto("/insights");
   await expect(
-    page.getByRole("heading", { name: "Analysis — spend by envelope", level: 1 }),
+    page.getByRole("heading", { name: "Insights — spend by envelope", level: 1 }),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/insights\/spend$/);
 

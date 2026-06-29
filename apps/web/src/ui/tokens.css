@@ -23,6 +23,14 @@
 
   --color-focus: #1b5fb8;
 
+  /* chart series (FEAT-UX8 · ADR-0007) — validated by SPIKE-07. Each stroke/fill clears 3:1 vs the
+     surface (WCAG 1.4.11 non-text contrast), but colour is never the SOLE signal: series are also
+     distinguished by dash/pattern + marker shape + a direct text label (see ui/Chart.tsx). */
+  --chart-1: #1b5fb8; /* series 1 — accent blue (assets / target / primary) */
+  --chart-2: #b42318; /* series 2 — danger red (liabilities / spent / owed) */
+  --chart-3: #15702e; /* series 3 — success green (net / paid down) */
+  --chart-grid: #d3dae1; /* gridlines / axis rules */
+
   /* spacing scale */
   --space-1: 4px;
   --space-2: 8px;
@@ -67,6 +75,12 @@
     --color-warning: #e2b341;
 
     --color-focus: #6fa8ff;
+
+    /* chart series — lighter variants so the strokes/fills clear 3:1 on the dark surface */
+    --chart-1: #6fa8ff;
+    --chart-2: #f3736f;
+    --chart-3: #54c06e;
+    --chart-grid: #323a43;
 
     --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.5);

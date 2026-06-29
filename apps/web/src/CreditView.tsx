@@ -2,8 +2,8 @@ import { type FormEvent, useEffect, useState } from "react";
 import { formatMoney } from "@budgeteer/domain";
 import { type Api, type CreditAccountUtilization, type CreditUtilizationReport } from "./api";
 import { formatBps, formatCents } from "./format";
-
-const NUM: React.CSSProperties = { textAlign: "right" };
+import { Button, Gauge, Input } from "./ui";
+import styles from "./Insights.module.css";
 
 /** Owed as text: positive = debt, negative = a credit balance (overpayment), 0 = settled. */
 const owedText = (owedCents: number): string =>
@@ -18,12 +18,13 @@ const utilizationText = (bps: number | null): string =>
   bps === null ? "— (set a limit)" : `${formatBps(bps)}${bps > 10000 ? " over limit" : ""}`;
 
 /**
- * Analysis — credit utilization (FEAT-014a). For every credit account: how much is owed against its
- * credit limit (owed/limit), a month-by-month utilization trend, and a portfolio roll-up across the
- * accounts that have a limit. "Owed" is the derived balance (a credit balance ≤ 0 = debt); the limit
- * is set/cleared inline. The math is a pure domain function fed by the analysis read; this view is
- * thin. a11y: real tables with captions + `scope`'d headers; every ratio is shown as TEXT (percent,
- * "over limit"), never colour or a bar alone (the consolidated contrast pass is #16).
+ * Insights — credit utilization (FEAT-014a, charted in UX8). For every credit account: how much is
+ * owed against its credit limit (owed/limit), a month-by-month utilization trend, and a portfolio
+ * roll-up across the accounts that have a limit. "Owed" is the derived balance (a credit balance
+ * ≤ 0 = debt); the limit is set/cleared inline. UX8 adds a hand-rolled accessible gauge (ADR-0007)
+ * of the portfolio's overall utilization with a 100% limit marker; the per-account table is its
+ * data-table fallback. Every ratio is also shown as TEXT (percent, "over limit"), never colour or a
+ * bar alone.
  */
 export function CreditView({ api }: { api: Api }) {
   const [report, setReport] = useState<CreditUtilizationReport | null>(null);
@@ -63,10 +64,60 @@ export function CreditView({ api }: { api: Api }) {
     reload();
   }
 
+  const accountsTable =
+    report === null ? null : (
+      <table className={styles.table}>
+        <caption>
+          Each credit account: amount owed vs. its limit (utilization = owed ÷ limit; over 100% =
+          over limit)
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Account</th>
+            <th scope="col" className={styles.numeric}>
+              Credit limit
+            </th>
+            <th scope="col" className={styles.numeric}>
+              Owed
+            </th>
+            <th scope="col" className={styles.numeric}>
+              Available
+            </th>
+            <th scope="col" className={styles.numeric}>
+              Utilization
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {report.accounts.map((a) => (
+            <tr key={a.accountId}>
+              <th scope="row">
+                {a.accountName}
+                {a.archived ? " (archived)" : ""}
+              </th>
+              <td className={styles.numeric}>
+                <LimitCell
+                  key={`${a.accountId}:${a.limitCents ?? ""}`}
+                  account={a}
+                  onSave={(amount) => saveLimit(a.accountId, amount).catch(onSaveError)}
+                  onClear={() => clearLimit(a.accountId).catch(onSaveError)}
+                />
+              </td>
+              <td className={styles.numeric}>{owedText(a.owedCents)}</td>
+              <td className={styles.numeric}>
+                {a.availableCents === null ? "—" : formatCents(a.availableCents)}
+              </td>
+              <td className={styles.numeric}>{utilizationText(a.utilizationBps)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+
   return (
     <main>
       <header>
-        <h1>Analysis — credit utilization</h1>
+        <h1>Insights — credit utilization</h1>
       </header>
 
       {error ? <p role="alert">{error}</p> : null}
@@ -79,7 +130,7 @@ export function CreditView({ api }: { api: Api }) {
         </p>
       ) : (
         <>
-          <dl>
+          <dl className={styles.figures}>
             <div>
               <dt>Total owed (across cards with a limit)</dt>
               <dd>{formatCents(report.totalOwedCents)}</dd>
@@ -94,65 +145,32 @@ export function CreditView({ api }: { api: Api }) {
             </div>
           </dl>
 
-          <table>
-            <caption>
-              Each credit account: amount owed vs. its limit (utilization = owed ÷ limit; over 100%
-              = over limit)
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Account</th>
-                <th scope="col" style={NUM}>
-                  Credit limit
-                </th>
-                <th scope="col" style={NUM}>
-                  Owed
-                </th>
-                <th scope="col" style={NUM}>
-                  Available
-                </th>
-                <th scope="col" style={NUM}>
-                  Utilization
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.accounts.map((a) => (
-                <tr key={a.accountId}>
-                  <th scope="row">
-                    {a.accountName}
-                    {a.archived ? " (archived)" : ""}
-                  </th>
-                  <td style={NUM}>
-                    <LimitCell
-                      key={`${a.accountId}:${a.limitCents ?? ""}`}
-                      account={a}
-                      onSave={(amount) => saveLimit(a.accountId, amount).catch(onSaveError)}
-                      onClear={() => clearLimit(a.accountId).catch(onSaveError)}
-                    />
-                  </td>
-                  <td style={NUM}>{owedText(a.owedCents)}</td>
-                  <td style={NUM}>
-                    {a.availableCents === null ? "—" : formatCents(a.availableCents)}
-                  </td>
-                  <td style={NUM}>{utilizationText(a.utilizationBps)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {report.utilizationBps === null ? (
+            accountsTable
+          ) : (
+            <Gauge
+              caption="Overall credit utilization"
+              summary={`Overall credit utilization is ${utilizationText(report.utilizationBps)} — ${formatCents(report.totalOwedCents)} owed against a ${formatCents(report.totalLimitCents)} limit.`}
+              ratio={report.utilizationBps / 10000}
+              valueLabel={utilizationText(report.utilizationBps)}
+              token="var(--chart-2)"
+              threshold={{ at: 1, label: "Limit (100%)" }}
+              table={accountsTable}
+            />
+          )}
 
           {report.accounts
             .filter((a) => a.trend.length > 0)
             .map((a) => (
-              <table key={`trend-${a.accountId}`}>
+              <table key={`trend-${a.accountId}`} className={styles.table}>
                 <caption>Utilization over time — {a.accountName}</caption>
                 <thead>
                   <tr>
                     <th scope="col">Month</th>
-                    <th scope="col" style={NUM}>
+                    <th scope="col" className={styles.numeric}>
                       Owed
                     </th>
-                    <th scope="col" style={NUM}>
+                    <th scope="col" className={styles.numeric}>
                       Utilization
                     </th>
                   </tr>
@@ -161,8 +179,8 @@ export function CreditView({ api }: { api: Api }) {
                   {a.trend.map((p) => (
                     <tr key={p.period}>
                       <th scope="row">{p.period}</th>
-                      <td style={NUM}>{owedText(p.owedCents)}</td>
-                      <td style={NUM}>{utilizationText(p.utilizationBps)}</td>
+                      <td className={styles.numeric}>{owedText(p.owedCents)}</td>
+                      <td className={styles.numeric}>{utilizationText(p.utilizationBps)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -196,20 +214,23 @@ function LimitCell({
   }
 
   return (
-    <form onSubmit={submit} aria-label={`Credit limit for ${account.accountName}`}>
-      <input
+    <form
+      className={styles.editor}
+      onSubmit={submit}
+      aria-label={`Credit limit for ${account.accountName}`}
+    >
+      <Input
         aria-label={`Credit limit for ${account.accountName}`}
         inputMode="decimal"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         disabled={busy}
       />
-      <button type="submit" disabled={busy}>
+      <Button type="submit" variant="accent" disabled={busy}>
         Save
-      </button>
+      </Button>
       {account.limitCents !== null ? (
-        <button
-          type="button"
+        <Button
           disabled={busy}
           onClick={() => {
             setBusy(true);
@@ -217,7 +238,7 @@ function LimitCell({
           }}
         >
           Clear
-        </button>
+        </Button>
       ) : null}
     </form>
   );

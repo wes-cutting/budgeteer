@@ -6,3 +6,11 @@ export { Card } from "./Card";
 export { Alert, EmptyState, Skeleton } from "./Feedback";
 export { Field, Input, Select } from "./Field";
 export { Dialog } from "./Dialog";
+export {
+  LineChart,
+  BarChart,
+  Gauge,
+  type ChartToken,
+  type LineSeries,
+  type BarSeries,
+} from "./Chart";
