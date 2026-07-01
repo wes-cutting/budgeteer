@@ -83,6 +83,58 @@ test("spending breakdown: outflow is ranked by share of the month total", async 
   expect(iFun).toBeGreaterThan(iFood);
 });
 
+// FEAT-UX10 — spending trends: month-over-month outflow, total + top envelopes.
+test("spending trends: an envelope's outflow appears across months in ascending order", async ({
+  page,
+}) => {
+  const stamp = Date.now();
+  const ACCOUNT = `E2E Trend Acct ${stamp}`;
+  const ENVELOPE = `E2E Trend Env ${stamp}`;
+  await page.goto("/");
+  await createAccount(page, ACCOUNT, { balance: "50000.00" });
+  await createEnvelope(page, ENVELOPE);
+
+  const now = new Date();
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 15);
+  const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, "0")}`;
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  // Two different months, one envelope. The amounts are deliberately large so this envelope
+  // dominates the top-2 ranking even under the shared e2e store's parallel-spec noise (the same
+  // accretion issue UX9's functional test documents) — only the exact ENVELOPE-scoped cells are
+  // asserted below, never the household-wide Total column.
+  const spend = async (amount: string, occurredOn: string, payee: string) => {
+    await openAccount(page, ACCOUNT);
+    const txnForm = page.getByRole("form", { name: "Add transaction" });
+    await txnForm.getByRole("radio", { name: "Withdrawal" }).check();
+    await txnForm.getByLabel("Transaction amount").fill(amount);
+    await txnForm.getByLabel("Date").fill(`${occurredOn}-15`);
+    await txnForm.getByLabel("Payee").fill(payee);
+    await txnForm.getByLabel("Envelope", { exact: true }).selectOption({ label: ENVELOPE });
+    await txnForm.getByRole("button", { name: "Save transaction" }).click();
+    await goToDashboard(page);
+  };
+  await spend("8000.00", lastMonth, `E2E Trend PayA ${stamp}`);
+  await spend("12000.00", thisMonth, `E2E Trend PayB ${stamp}`);
+
+  await openAnalysis(page, "Trends");
+  await expect(
+    page.getByRole("heading", { name: "Insights — spending trends", level: 1 }),
+  ).toBeVisible();
+
+  const table = page.getByRole("table", { name: /Monthly outflow/ });
+  await expect(table.getByRole("columnheader", { name: ENVELOPE })).toBeVisible();
+
+  const lastRow = table.getByRole("row").filter({ hasText: lastMonth });
+  const thisRow = table.getByRole("row").filter({ hasText: thisMonth });
+  await expect(lastRow).toContainText("$8,000.00");
+  await expect(thisRow).toContainText("$12,000.00");
+
+  // Months are ascending — last month's row precedes this month's.
+  const headers = await table.getByRole("rowheader").allTextContents();
+  expect(headers.indexOf(lastMonth)).toBeLessThan(headers.indexOf(thisMonth));
+});
+
 // FEAT-012 — budget vs. actual: guards the CORS allow-methods fix (cross-origin PUT /envelopes/:id/target)
 test("budget vs. actual: set a monthly target and see it against spend", async ({ page }) => {
   const stamp = Date.now();

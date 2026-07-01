@@ -80,6 +80,42 @@ async function seedSpending(page: Page, tag: string) {
   await spend(page, account, envB, "120.00", `A11y-${stamp}-payB`);
 }
 
+/** Record a withdrawal on a specific date, so trend data can be backdated into an earlier month. */
+async function spendOn(
+  page: Page,
+  account: string,
+  envelope: string,
+  amount: string,
+  occurredOn: string,
+  payee: string,
+) {
+  await openAccount(page, account);
+  const txnForm = page.getByRole("form", { name: "Add transaction" });
+  await txnForm.getByRole("radio", { name: "Withdrawal" }).check();
+  await txnForm.getByLabel("Transaction amount").fill(amount);
+  await txnForm.getByLabel("Date").fill(occurredOn);
+  await txnForm.getByLabel("Payee").fill(payee);
+  await txnForm.getByLabel("Envelope", { exact: true }).selectOption({ label: envelope });
+  await txnForm.getByRole("button", { name: "Save transaction" }).click();
+  await goToDashboard(page);
+}
+
+/** Seed real outflow across TWO months (this month + last month) so the trends line chart shows
+ *  genuine month-over-month movement, not a single flat point (UX10). */
+async function seedTrend(page: Page, tag: string) {
+  const stamp = `${tag}-${Date.now()}`;
+  const account = `A11y-${stamp}-acct`;
+  const envelope = `A11y-${stamp}-env`;
+  await createAccount(page, account, { balance: "1000.00" });
+  await createEnvelope(page, envelope);
+  const now = new Date();
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 15);
+  const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, "0")}-15`;
+  const thisMonthDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-15`;
+  await spendOn(page, account, envelope, "150.00", lastMonth, `A11y-${stamp}-payA`);
+  await spendOn(page, account, envelope, "220.00", thisMonthDay, `A11y-${stamp}-payB`);
+}
+
 /** Seed a credit account with a limit so the utilization gauge renders. */
 async function seedCredit(page: Page, tag: string): Promise<{ card: string }> {
   const card = `A11y-${tag}-${Date.now()}-card`;
@@ -254,6 +290,16 @@ async function scanBreakdown(page: Page) {
   await assertNoViolations(page);
 }
 
+async function scanTrends(page: Page) {
+  await seedTrend(page, "trend"); // real outflow across two months, one envelope
+  await openAnalysis(page, "Trends");
+  await expect(
+    page.getByRole("heading", { name: "Insights — spending trends", level: 1 }),
+  ).toBeVisible();
+  await expectChart(page);
+  await assertNoViolations(page);
+}
+
 async function scanBudget(page: Page) {
   await seedBudgeted(page, "budget"); // leaves us on the Budget view with a target set
   await expect(
@@ -303,6 +349,10 @@ test.describe("a11y — Insights views (UX8 charts)", () => {
   test("spending breakdown (ranked bars) is accessible", async ({ page }) => {
     await page.goto("/");
     await scanBreakdown(page);
+  });
+  test("spending trends (line chart) is accessible", async ({ page }) => {
+    await page.goto("/");
+    await scanTrends(page);
   });
   test("budget vs. actual (grouped bars) is accessible", async ({ page }) => {
     await page.goto("/");
@@ -421,6 +471,10 @@ test.describe("a11y — dark mode", () => {
   test("spending breakdown is accessible in dark mode (UX9)", async ({ page }) => {
     await page.goto("/");
     await scanBreakdown(page);
+  });
+  test("spending trends chart is accessible in dark mode (UX10)", async ({ page }) => {
+    await page.goto("/");
+    await scanTrends(page);
   });
   test("budget chart is accessible in dark mode (UX8)", async ({ page }) => {
     await page.goto("/");

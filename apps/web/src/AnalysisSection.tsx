@@ -3,6 +3,7 @@ import { Navigate, NavLink, useNavigate, useParams } from "react-router";
 import { type Api } from "./api";
 import { AnalysisView } from "./AnalysisView";
 import { SpendingBreakdownView } from "./SpendingBreakdownView";
+import { SpendingTrendsView } from "./SpendingTrendsView";
 import { BudgetVsActualView } from "./BudgetVsActualView";
 import { ForecastView } from "./ForecastView";
 import { CreditView } from "./CreditView";
@@ -19,11 +20,13 @@ import { ErrorBoundary } from "./ErrorBoundary";
  *
  * Each view keeps its own <h1>. UX8 completed the Analysis → Insights migration: the headings now read
  * "Insights — …" and each view renders a hand-rolled accessible chart (ADR-0007) above its data table.
- * UX9 adds the "breakdown" view — a new share-of-outflow composition next to Spend.
+ * UX9 adds the "breakdown" view — a new share-of-outflow composition next to Spend. UX10 adds
+ * "trends" — a new month-over-month outflow trend (total + top envelopes) next to Breakdown.
  */
 const TABS = [
   { id: "spend", label: "Spend" },
   { id: "breakdown", label: "Breakdown" },
+  { id: "trends", label: "Trends" },
   { id: "budget", label: "Budget" },
   { id: "forecast", label: "Forecast" },
   { id: "credit", label: "Credit" },
@@ -39,6 +42,8 @@ function renderView(view: AnalysisTab, api: Api): ReactElement {
       return <AnalysisView api={api} />;
     case "breakdown":
       return <SpendingBreakdownView api={api} />;
+    case "trends":
+      return <SpendingTrendsView api={api} />;
     case "budget":
       return <BudgetVsActualView api={api} />;
     case "forecast":

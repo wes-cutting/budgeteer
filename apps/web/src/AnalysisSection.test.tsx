@@ -5,7 +5,16 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { AnalysisSection } from "./AnalysisSection";
 import { makeFakeApi } from "./test/fakeApi";
 
-const TAB_LABELS = ["Spend", "Breakdown", "Budget", "Forecast", "Credit", "Payoff", "Net worth"];
+const TAB_LABELS = [
+  "Spend",
+  "Breakdown",
+  "Trends",
+  "Budget",
+  "Forecast",
+  "Credit",
+  "Payoff",
+  "Net worth",
+];
 
 // UX3 — the Insights area is now URL-driven (`/insights/:view`). Render it inside a router at a
 // given view so useParams resolves, with a `/` stub for the boundary's recovery target.
