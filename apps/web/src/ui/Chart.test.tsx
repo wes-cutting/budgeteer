@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { BarChart, Gauge, LineChart } from "./index";
+import { BarChart, BreakdownBars, Gauge, LineChart } from "./index";
 
 const dollars = (n: number) => `$${(n / 100).toFixed(0)}`;
 
@@ -80,6 +80,28 @@ describe("Chart primitives (FEAT-UX8 · ADR-0007)", () => {
     // Both series are named in the SVG legend so they read without colour.
     expect(within(img).getByText("Target")).toBeTruthy();
     expect(within(img).getByText("Spent")).toBeTruthy();
+  });
+
+  test("BreakdownBars: role=img summary + direct per-bar labels carry name/value/share (no colour-only)", () => {
+    render(
+      <BreakdownBars
+        caption="Where the money went — 2026-03"
+        summary="Spending breakdown for 2026-03: 2 envelopes, total outflow $510. Top: Groceries 70.6%."
+        slices={[
+          { label: "Groceries", fraction: 0.706, valueLabel: "$360.00", shareLabel: "70.6%" },
+          { label: "Dining", fraction: 0.294, valueLabel: "$150.00", shareLabel: "29.4%" },
+        ]}
+        table={fallback}
+      />,
+    );
+    const img = screen.getByRole("img", {
+      name: "Spending breakdown for 2026-03: 2 envelopes, total outflow $510. Top: Groceries 70.6%.",
+    });
+    // Each category reads from its direct text label (rank · name · value · share) — not hue.
+    expect(within(img).getByText("1. Groceries — $360.00 (70.6%)")).toBeTruthy();
+    expect(within(img).getByText("2. Dining — $150.00 (29.4%)")).toBeTruthy();
+    // The exact-figures table remains the keyboard/SR source of truth.
+    expect(screen.getByRole("table", { name: "Figures" })).toBeTruthy();
   });
 
   test("Gauge: role=img with the truthful value label carried as text", () => {

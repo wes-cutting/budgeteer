@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { AnalysisSection } from "./AnalysisSection";
 import { makeFakeApi } from "./test/fakeApi";
 
-const TAB_LABELS = ["Spend", "Budget", "Forecast", "Credit", "Payoff", "Net worth"];
+const TAB_LABELS = ["Spend", "Breakdown", "Budget", "Forecast", "Credit", "Payoff", "Net worth"];
 
 // UX3 — the Insights area is now URL-driven (`/insights/:view`). Render it inside a router at a
 // given view so useParams resolves, with a `/` stub for the boundary's recovery target.
@@ -21,7 +21,7 @@ function renderAt(view: string, api = makeFakeApi()) {
 }
 
 describe("AnalysisSection (UX3 — routed Insights nav)", () => {
-  test("renders the requested view and exposes all six tabs as links, active one marked current", async () => {
+  test("renders the requested view and exposes all tabs as links, active one marked current", async () => {
     renderAt("spend");
 
     expect(

@@ -55,6 +55,31 @@ async function seedBudgeted(page: Page, tag: string): Promise<{ envelope: string
   return { envelope };
 }
 
+/** Record a withdrawal that spends `amount` from `envelope` (single allocation), creating OUTFLOW. */
+async function spend(page: Page, account: string, envelope: string, amount: string, payee: string) {
+  await openAccount(page, account);
+  const txnForm = page.getByRole("form", { name: "Add transaction" });
+  await txnForm.getByRole("radio", { name: "Withdrawal" }).check();
+  await txnForm.getByLabel("Transaction amount").fill(amount);
+  await txnForm.getByLabel("Payee").fill(payee);
+  await txnForm.getByLabel("Envelope", { exact: true }).selectOption({ label: envelope });
+  await txnForm.getByRole("button", { name: "Save transaction" }).click();
+  await goToDashboard(page);
+}
+
+/** Seed real outflow across two envelopes so the spending-breakdown ranked bars render (UX9). */
+async function seedSpending(page: Page, tag: string) {
+  const stamp = `${tag}-${Date.now()}`;
+  const account = `A11y-${stamp}-acct`;
+  const envA = `A11y-${stamp}-food`;
+  const envB = `A11y-${stamp}-fun`;
+  await createAccount(page, account, { balance: "1000.00" });
+  await createEnvelope(page, envA);
+  await createEnvelope(page, envB);
+  await spend(page, account, envA, "300.00", `A11y-${stamp}-payA`);
+  await spend(page, account, envB, "120.00", `A11y-${stamp}-payB`);
+}
+
 /** Seed a credit account with a limit so the utilization gauge renders. */
 async function seedCredit(page: Page, tag: string): Promise<{ card: string }> {
   const card = `A11y-${tag}-${Date.now()}-card`;
@@ -219,6 +244,16 @@ async function scanSpend(page: Page) {
   await assertNoViolations(page);
 }
 
+async function scanBreakdown(page: Page) {
+  await seedSpending(page, "brk"); // real outflow across two envelopes
+  await openAnalysis(page, "Breakdown");
+  await expect(
+    page.getByRole("heading", { name: "Insights — spending breakdown", level: 1 }),
+  ).toBeVisible();
+  await expectChart(page);
+  await assertNoViolations(page);
+}
+
 async function scanBudget(page: Page) {
   await seedBudgeted(page, "budget"); // leaves us on the Budget view with a target set
   await expect(
@@ -264,6 +299,10 @@ test.describe("a11y — Insights views (UX8 charts)", () => {
   test("spend by envelope (bar chart) is accessible", async ({ page }) => {
     await page.goto("/");
     await scanSpend(page);
+  });
+  test("spending breakdown (ranked bars) is accessible", async ({ page }) => {
+    await page.goto("/");
+    await scanBreakdown(page);
   });
   test("budget vs. actual (grouped bars) is accessible", async ({ page }) => {
     await page.goto("/");
@@ -378,6 +417,10 @@ test.describe("a11y — dark mode", () => {
   test("spend chart is accessible in dark mode (UX8)", async ({ page }) => {
     await page.goto("/");
     await scanSpend(page);
+  });
+  test("spending breakdown is accessible in dark mode (UX9)", async ({ page }) => {
+    await page.goto("/");
+    await scanBreakdown(page);
   });
   test("budget chart is accessible in dark mode (UX8)", async ({ page }) => {
     await page.goto("/");

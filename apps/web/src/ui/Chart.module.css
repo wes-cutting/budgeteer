@@ -46,6 +46,13 @@
   font-weight: 700;
 }
 
+/* BreakdownBars — the direct per-bar label (rank · name · value · share) is the non-colour signal. */
+.breakdownLabel {
+  fill: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .gaugeTrack {
   fill: var(--color-surface-2);
   stroke: var(--color-border-strong);

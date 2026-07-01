@@ -71,8 +71,21 @@ as the data-table fallback**, and **colour never the sole signal** (dash / marke
 labels). `e2e/a11y.spec.ts` seeds data per shape and is **axe-green LIGHT AND DARK with each chart rendered**.
 **Presentation-only — no new endpoint/schema/API/domain change** (the six reads were done). Bundle **108.33 KB gz**
 (< 120 KB); `ADR-0007` → **`Accepted`**; the SPIKE-07 throwaway harness was discarded (findings persist in the spike
-report + ADR). **Next: `UX9`** — new viz: spending breakdown (per-envelope share of outflow for a period), `Planned`
-on the `ui/Chart` primitive.
+report + ADR).
+**`UX9` ✅ done** ([FEAT-UX9](features/spending-breakdown.md) · [UX](ux/spending-breakdown.md) · [status](status-reports/2026-06-28-ux9.md),
+320 Vitest + 75 e2e, gate-green) — the **second build slice of the Insights phase**, a **new
+visualisation**: `/insights/breakdown` ("Breakdown" tab, next to Spend) answers "**where did the money
+go?**" — each envelope's **share of a chosen month's OUTFLOW** as **ranked horizontal bars** on the
+[ADR-0007](adr/ADR-0007-accessible-charting.md) contract, via a new **`BreakdownBars`** shape on the
+shared **`ui/Chart`** primitive. It **composes the existing `getBudgetVsActual(month)` read** (whose
+`spentCents` is pure outflow — funding excluded, refunds netted — the correct breakdown numerator,
+unlike spend-by-envelope's net flow) — **no new endpoint/schema/API/domain change** (R4/R5/UX5 fan-out
+precedent). The hardest a11y case (many categories, no colour-only) is solved by making colour carry
+**no categorical meaning at all**: one bar colour + a **direct text label** per bar (rank · name ·
+outflow · share) + **rank order** + bar length. `role="img"` + one-line summary, `aria-hidden` innards,
+the ranked **table** (envelope · outflow · % share) as the SR/keyboard source of truth; shares sum to
+100%. `e2e/a11y.spec.ts` seeds real outflow and is **axe-green LIGHT AND DARK**. Bundle **108.93 KB gz**
+(< 120 KB). **Next: `UX10`** — new viz: spending trends over time, `Planned` on the `ui/Chart` primitive.
 
 ---
 
@@ -233,7 +246,7 @@ produces its UX/feature spec (and the spikes their ADRs) as gating work.
 | UX6 | **Demote management to a dedicated surface** — account/envelope CRUD onto the `/accounts`·`/envelopes` LIST routes (progressive add, name-as-Link) + the cross-cutting `/manage` hub (net-worth summary + Move-money); home becomes cockpit-only ([FEAT-UX6](features/manage.md)·[UX](ux/manage.md)) | 2 Cockpit | slice | Med | Low | UX3 · UX4 · UX5 | **✅ Done** — [status](status-reports/2026-06-28-ux6.md) |
 | UX7 | **Global quick-add transaction** — always-available entry (modal route) for PRD journey #1 (the buried common case); reuses the register editor + an account picker, fans out to existing endpoints; new `Dialog` primitive (Radix) ([FEAT-UX7](features/quick-add-transaction.md)·[UX](ux/quick-add-transaction.md)) | 2 Cockpit | slice | High | Med | UX3 · UX4 · UX5 | **✅ Done** — [status](status-reports/2026-06-28-ux7.md) |
 | UX8 | **Analysis → Insights migration** — rename + restyle the 6 views, replace number grids with accessible charts (chart + table fallback, per ADR-0007: hand-rolled SVG + a shared `Chart` primitive) | 3 Insights | slice | High | Med | UX2 ✅ · UX3 ✅ · UX4 ✅ | **✅ Done** — [FEAT-UX8](features/insights-charts.md)·[UX](ux/insights-charts.md)·[status](status-reports/2026-06-28-ux8.md); shared `ui/Chart` (line/bar/gauge) on the ADR-0007 contract; axe-green light+dark with each chart rendered; **315 Vitest + 72 e2e**, 108.33 KB gz; ADR-0007 → `Accepted` |
-| UX9 | **New viz: spending breakdown** — "where did the money go" composition for a period (per-envelope share of outflow) | 3 Insights | slice | High | Med | UX2 · UX8 | Planned |
+| UX9 | **New viz: spending breakdown** — "where did the money go" composition for a period (per-envelope share of outflow) | 3 Insights | slice | High | Med | UX2 · UX8 | **✅ Done** — [FEAT-UX9](features/spending-breakdown.md)·[UX](ux/spending-breakdown.md)·[status](status-reports/2026-06-28-ux9.md); new `/insights/breakdown` ranked-bars view on the `ui/Chart` primitive (new `BreakdownBars` shape); **composes the existing `getBudgetVsActual` read** (no new endpoint); colour carries no categorical meaning (one bar colour + direct labels + rank); axe-green light+dark; **320 Vitest + 75 e2e**, 108.93 KB gz |
 | UX10 | **New viz: spending trends over time** — per-envelope + total trend lines, month-over-month comparison | 3 Insights | slice | High | Med | UX2 · UX8 | Planned |
 | UX11 | **New viz: budget burn-down** — within-month pace vs. target (on-track projection) | 3 Insights | slice | Med | Med | UX2 · UX5 | Planned |
 | UX12 | **Feedback & states** — skeletons, success toasts, **confirm on destructive actions** (Archive/Delete), inline validation | 4 Polish | slice | Med | Low | UX4 | Planned |
