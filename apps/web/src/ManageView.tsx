@@ -5,8 +5,8 @@ import { type AccountView, type Api, type EnvelopeView } from "./api";
 import { formatCents } from "./format";
 import { MoveMoneyForm } from "./MoveMoneyForm";
 import { Skeleton, useToast } from "./ui";
-
-const NUM: React.CSSProperties = { textAlign: "right" };
+import ledger from "./Ledgers.module.css";
+import styles from "./ManageView.module.css";
 
 /**
  * UX6 — the `/manage` hub. Demoted off the home alongside the list routes, it owns the
@@ -57,12 +57,16 @@ export function ManageView({ api }: { api: Api }) {
       {/* Each link stands alone in its <li> (no surrounding prose) so it is not a "link in a text
           block" — the axe WCAG 1.4.1 rule that needs links distinguished by more than colour. */}
       <nav aria-label="Management">
-        <ul>
+        <ul className={styles.links}>
           <li>
-            <Link to="/accounts">Accounts</Link>
+            <Link to="/accounts" className={styles.link}>
+              Accounts
+            </Link>
           </li>
           <li>
-            <Link to="/envelopes">Envelopes</Link>
+            <Link to="/envelopes" className={styles.link}>
+              Envelopes
+            </Link>
           </li>
         </ul>
       </nav>
@@ -107,22 +111,24 @@ function NetWorthSummary({ accounts }: { accounts: AccountView[] | null }) {
   }
   const netCents = assetsCents + liabilitiesCents;
   return (
-    <table>
-      <caption>Net worth summary</caption>
-      <tbody>
-        <tr>
-          <th scope="row">Total assets</th>
-          <td style={NUM}>{formatCents(assetsCents)}</td>
-        </tr>
-        <tr>
-          <th scope="row">Total liabilities</th>
-          <td style={NUM}>{formatCents(liabilitiesCents)}</td>
-        </tr>
-        <tr>
-          <th scope="row">Net worth</th>
-          <td style={NUM}>{formatCents(netCents)}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div className="table-scroll" tabIndex={0} role="group" aria-label="Net worth summary">
+      <table className={ledger.table}>
+        <caption className="sr-only">Net worth summary</caption>
+        <tbody>
+          <tr>
+            <th scope="row">Total assets</th>
+            <td className={ledger.numeric}>{formatCents(assetsCents)}</td>
+          </tr>
+          <tr>
+            <th scope="row">Total liabilities</th>
+            <td className={ledger.numeric}>{formatCents(liabilitiesCents)}</td>
+          </tr>
+          <tr>
+            <th scope="row">Net worth</th>
+            <td className={ledger.numeric}>{formatCents(netCents)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   );
 }

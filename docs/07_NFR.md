@@ -168,6 +168,12 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >   3-col `.lineRow`, so it lives in the component module rather than the shared pattern — added **+0.15 KB
 >   gz → 125.48 KB gz** (CSS **+0.14 → 5.37 KB gz** — the new component module). Presentation-only: **no new
 >   dependency, no data/API/domain change**. ~14.5 KB of headroom remains under the 140 KB budget.
+>
+>   **`UXR12`'s Manage-page restyle (2026-07-08, closes the batch)** — re-laid `ManageView`'s net-worth
+>   summary on the shared `Ledgers.module.css` table treatment (in place of a raw table + inline styles) and
+>   turned the two management links into button-like `<Link>`s via a new small `ManageView.module.css` — added
+>   **+0.04 KB gz → 125.52 KB gz** (CSS **+0.04 → 5.41 KB gz** — the new component module). Presentation-only:
+>   **no new dependency, no data/API/domain change**. ~14.5 KB of headroom remains under the 140 KB budget.
 
 ---
 
