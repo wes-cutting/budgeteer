@@ -49,6 +49,11 @@ own ADRs but never weakens the baseline below.
   server-side or signed, with sensible expiry; invalidate sessions on password reset and
   on disabling an account.
 - Apply least privilege everywhere (roles, scopes, tokens).
+- **Keep the reachable surface as small as the auth story.** While the API has no
+  authentication (the deferred `#19` epic), it binds **loopback (`127.0.0.1`) by default**
+  (env `HOST`, validated at startup — EH11). Exposing it to the network (`0.0.0.0`) is a
+  deliberate per-environment opt-in, and doing so is the documented trigger to pull `#19`
+  forward — CORS is a browser courtesy and does not gate non-browser clients.
 
 ## 4. Dependencies & supply chain
 

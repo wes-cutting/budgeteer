@@ -16,3 +16,20 @@ describe("config — LOG_LEVEL boundary validation (R13)", () => {
     expect(() => loadConfig({ LOG_LEVEL: "verbose" })).toThrow(/LOG_LEVEL/);
   });
 });
+
+// EH11 — the API binds loopback unless explicitly told otherwise: with no auth (#19), the
+// reachable surface must stay as small as the auth story (SECURITY.md §3). Exposing the API to
+// the network is a deliberate, validated opt-in, never the default.
+describe("config — HOST boundary validation (EH11)", () => {
+  test("defaults to loopback when unset", () => {
+    expect(loadConfig({}).HOST).toBe("127.0.0.1");
+  });
+
+  test("accepts an explicit opt-in to a wider bind", () => {
+    expect(loadConfig({ HOST: "0.0.0.0" }).HOST).toBe("0.0.0.0");
+  });
+
+  test("rejects a blank host loudly", () => {
+    expect(() => loadConfig({ HOST: "   " })).toThrow(/HOST/);
+  });
+});

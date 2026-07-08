@@ -3,6 +3,11 @@ import { z } from "zod";
 const schema = z.object({
   APP_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3001),
+  // Interface the API listens on. Defaults to loopback: there is no authentication (roadmap #19),
+  // so the reachable surface must stay as small as the auth story (SECURITY.md §3, EH11). Binding
+  // 0.0.0.0 (any device on the network) is a deliberate opt-in — and the trigger to pull #19
+  // forward.
+  HOST: z.string().trim().min(1).default("127.0.0.1"),
   // Pino log levels, most→least severe (`silent` disables output). Validated to a closed set here
   // so a typo fails loudly at startup (spine §8) instead of throwing deep inside pino. Threaded to
   // the Fastify logger in `buildServer` for dev-vs-prod verbosity.

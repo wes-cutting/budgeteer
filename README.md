@@ -97,6 +97,7 @@ startup — the app fails loudly on invalid config. See [`.env.example`](.env.ex
 | Variable | Where | Default | Purpose |
 | -------- | ----- | ------- | ------- |
 | `PORT` | api | `3001` | API listen port |
+| `HOST` | api | `127.0.0.1` | Interface the API binds. Loopback-only by default — the API has no auth, so widening to `0.0.0.0` (LAN) is a deliberate opt-in (see [`docs/SECURITY.md`](docs/SECURITY.md) §3) |
 | `DATABASE_URL` | api | _unset_ → in-process PGlite | Set to a Postgres URL in production |
 | `PGLITE_DIR` | api | _unset_ → in-memory (ephemeral) | Path to a file-based PGlite store; required by `npm run seed` / `db:reset` / `db:fresh`. Ignored when `DATABASE_URL` is set. |
 | `CORS_ORIGINS` | api | dev origins | Comma-separated **allowlist** of browser origins (never `*`) |
