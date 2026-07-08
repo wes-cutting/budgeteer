@@ -99,7 +99,7 @@ startup — the app fails loudly on invalid config. See [`.env.example`](.env.ex
 | `PORT` | api | `3001` | API listen port |
 | `HOST` | api | `127.0.0.1` | Interface the API binds. Loopback-only by default — the API has no auth, so widening to `0.0.0.0` (LAN) is a deliberate opt-in (see [`docs/SECURITY.md`](docs/SECURITY.md) §3) |
 | `DATABASE_URL` | api | _unset_ → in-process PGlite | Set to a Postgres URL in production |
-| `PGLITE_DIR` | api | _unset_ → in-memory (ephemeral) | Path to a file-based PGlite store; required by `npm run seed` / `db:reset` / `db:fresh`. Ignored when `DATABASE_URL` is set. |
+| `PGLITE_DIR` | api | _unset_ → in-memory (ephemeral) | Path to a file-based PGlite store; required by `npm run seed` / `seed:demo` / `db:reset` / `db:fresh`. Ignored when `DATABASE_URL` is set. |
 | `CORS_ORIGINS` | api | dev origins | Comma-separated **allowlist** of browser origins (never `*`) |
 | `VITE_API_BASE_URL` | web | `http://localhost:3001` | Base URL the browser uses to reach the API |
 
@@ -130,13 +130,20 @@ npm run db:reset
 # Reset + re-seed in one shot (the usual "start fresh" command):
 npm run db:fresh
 
+# Rich, strictly-synthetic DEMO dataset for design/dev — ~6 months of dated history so
+# Insights, the pay-period planner, and Templates show real patterns (UXR8). Standalone:
+# run into a FRESH store; it refuses a store that already contains data.
+npm run db:reset && npm run seed:demo
+
 # Restore a downloaded backup into an EMPTY store (run db:reset first — restore
 # refuses a store that already contains data; see docs/06_API_CONTRACT.md):
 npm run db:restore -- path/to/budgeteer-backup-YYYY-MM-DD.json
 ```
 
 `seed` is **idempotent** — it exits quietly if data already exists. Run `db:fresh` if you want
-to replace existing data.
+to replace existing data. `seed:demo` is a **separate, deterministic** dev tool (fixed-seed
+PRNG); it does not touch the lean `seed` (which the e2e/K24 baseline depends on) and refuses any
+non-empty store. See [docs/features/demo-seed.md](docs/features/demo-seed.md).
 
 **Tests are unaffected.** The Vitest suite never reads `PGLITE_DIR`; each test spins up its own
 ephemeral in-memory PGlite and tears it down — no `PGLITE_DIR` needed, no cleanup required.

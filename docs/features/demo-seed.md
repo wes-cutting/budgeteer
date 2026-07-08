@@ -9,7 +9,7 @@ slice — the owner's "insights are masked behind limited data" callout. Strictl
 | Field        | Value                                                                  |
 | ------------ | ----------------------------------------------------------------------- |
 | Feature ID   | UXR8 (tooling; no UX spec — nothing user-facing ships)                   |
-| Status       | Proposed                                                                 |
+| Status       | **Implemented** 2026-07-07 (`apps/api/src/db/seedDemo.ts`; `npm run seed:demo`) |
 | Owner        | Wesley Cutting                                                           |
 | Last updated | 2026-07-07                                                               |
 | Related      | [initiative brief](../reviews/2026-07-06-ux-redesign-initiative.md) §4 · [SECURITY.md](../SECURITY.md) (synthetic-fixtures rule) · K24 (the clean dev-store baseline) · deferred `#17`/`#18` |
@@ -17,10 +17,11 @@ slice — the owner's "insights are masked behind limited data" callout. Strictl
 
 ## What
 
-A new **`npm run seed:demo`** — additive on top of the existing baseline seed, which stays
-**untouched** (e2e isolation and the K24 clean baseline depend on its determinism). It
-populates a dev store so every visualization has patterns to show while the redesign is
-evaluated:
+A new **`npm run seed:demo`** ([`apps/api/src/db/seedDemo.ts`](../../apps/api/src/db/seedDemo.ts)) —
+a **standalone** rich dataset that populates its **own fresh store**. The baseline `seed` stays
+**byte-identical and untouched** (e2e isolation and the K24 clean baseline depend on its
+determinism); `seed:demo` is a separate dev tool, not a layer on top of it. It fills a fresh dev
+store so every visualization has patterns to show while the redesign is evaluated:
 
 - **~6 months of dated history:** envelope outflows with believable week-to-week variance and
   a visible trend or two (groceries drifting up; a one-month spike) — deterministic (fixed
@@ -34,9 +35,19 @@ evaluated:
 - **2–3 saved templates** (the Templates page finally has sample data — the owner's UXR4
   observation) and a couple of transfers/refunds so those ledger shapes appear.
 
-Documented flow: `npm run db:reset && npm run seed && npm run seed:demo`. The script refuses
-a store with user data (the EH10 non-destructive precedent) — it is a dev tool, not an
-importer.
+Documented flow: **`npm run db:reset && npm run seed:demo`** (or point `PGLITE_DIR` at a fresh
+directory). The script refuses a store that already contains data (the EH10 non-destructive
+precedent, [`restoreService.ts`](../../apps/api/src/services/restoreService.ts)) — it is a dev
+tool, not an importer.
+
+> **Resolved 2026-07-07 (owner) — standalone, not layered.** The `Proposed` note carried an
+> internal tension: "additive on top of the baseline seed" (a 3-step `reset && seed && seed:demo`
+> flow) versus "refuses a store with user data." Those can't both hold — a strict occupied-store
+> refusal rejects a store the baseline `seed` just filled, and layering a second set of
+> accounts/envelopes onto the baseline's would collide. The owner chose **standalone into a fresh
+> store**: `seed:demo` builds a complete dataset and refuses any occupied store (the literal EH10
+> precedent). "Additive" therefore means *a new, additional tool* — the baseline `seed.ts` is
+> never touched. Flow corrected to the 2-step above.
 
 ## Guardrails (non-negotiable)
 
@@ -54,3 +65,15 @@ synthetic by construction (SECURITY.md, the day-zero rule).
   gate untouched (e2e never uses the demo store).
 - **Honest limit, recorded:** this is the dev-time proxy. Real richness is the owner's
   history — the deferred **`#17`/`#18` import** remains the durable fix.
+
+## Verified 2026-07-07
+
+Two fresh runs into separate stores produced **identical** content (216 transactions across
+2025-12-31 → 2026-06-29, matching fingerprint) — deterministic ✓. Re-running into a populated
+store is **refused** with the EH10 message ✓. Content: 4 accounts · 22 envelopes · 462
+allocations · 8 recurring rules (biweekly paycheck + 7 bills clustered at 1/2/7/15/29) · 3
+templates · 13 targets · credit at 31% utilization · loan paid down 440k of its 1.8M principal.
+The `GET /analysis/pay-periods` plan against the demo store returns a **7-bucket** plan with the
+month-boundary bills distributed across paychecks (and one realistically over-committed bucket) —
+the boundary-cluster acceptance, confirmed. `apps/api/src/db/seed.ts` shows **no diff** (baseline
+byte-identical). typecheck · lint · format all green on the new file.
