@@ -363,12 +363,29 @@ test.describe("a11y — Needs allocation", () => {
   });
 });
 
-test.describe("a11y — Templates", () => {
-  test("templates view is accessible", async ({ page }) => {
+// UXR4 — the Templates page: the saved-templates table (on the UXR3 treatment) + the new
+// form-layout pattern (fieldset/legend, `Field`, the envelope/amount line mini-grid, action row).
+// Seed a template so the TABLE markup is axe-scanned too (not just the empty state + form), and run
+// the same path in BOTH schemes (watch-out §4 — axe light AND dark).
+async function scanTemplates(page: Page) {
+  const stamp = Date.now();
+  const envelope = `A11y-tpl-${stamp}-env`;
+  await createEnvelope(page, envelope);
+  await openTemplates(page);
+  await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
+  // `exact` so "Name" doesn't substring-match the "Rename {template}" buttons already in the store.
+  await page.getByLabel("Name", { exact: true }).fill(`A11y-tpl-${stamp}`);
+  await page.getByLabel("Template envelope 1").selectOption({ label: envelope });
+  await page.getByLabel("Template amount 1").fill("250.00");
+  await page.getByRole("button", { name: "Save template" }).click();
+  await expect(page.getByRole("table", { name: "Templates" })).toBeVisible();
+  await assertNoViolations(page);
+}
+
+test.describe("a11y — Templates (UXR4)", () => {
+  test("templates table + form-layout is accessible", async ({ page }) => {
     await page.goto("/");
-    await openTemplates(page);
-    await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
-    await assertNoViolations(page);
+    await scanTemplates(page);
   });
 });
 
@@ -648,6 +665,11 @@ test.describe("a11y — dark mode", () => {
     await createAccount(page, name);
     await openAccount(page, name);
     await assertNoViolations(page);
+  });
+
+  test("templates table + form-layout is accessible in dark mode (UXR4)", async ({ page }) => {
+    await page.goto("/");
+    await scanTemplates(page);
   });
 
   test("quick-add modal is accessible in dark mode (UX7)", async ({ page }) => {

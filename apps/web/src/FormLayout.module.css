@@ -1,0 +1,71 @@
+/*
+ * UXR4 — the shared FORM-LAYOUT pattern (UX spec docs/ux/templates-page.md §3). Specced once here
+ * and reused by UXR5 (Recurring) and UXR7 (Manage) — restyling a form is picking up these classes,
+ * not writing new pattern code. Built off the existing UX4 primitives/tokens (no new dependency):
+ * `Field` already owns the stacked label→control; this module adds the enclosing shape.
+ */
+
+/* §3.6 — cap the form at a comfortable measure instead of stretching the canvas. */
+.form {
+  max-width: 44rem;
+}
+
+/* §3.2 — a grouped section: a bordered fieldset with a visible legend announcing the group. The
+ * browser-default fieldset chrome is replaced with token-derived borders/spacing. */
+.fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.legend {
+  font-weight: 600;
+  padding: 0 var(--space-2);
+}
+
+/* §3.3 — the line editor (the multi-row envelope/amount case): a labeled mini-grid. Header row and
+ * each input row share one grid template so the columns line up; amount is fixed-width and
+ * right-aligned, the remove control a compact trailing column. The whole grid reflows at 320px
+ * because the envelope column is `minmax(0, 1fr)` (min-0 lets the select shrink). */
+.lineGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.lineHeader,
+.lineRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8rem 2.5rem;
+  gap: var(--space-2);
+  align-items: center;
+}
+.lineHeader {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+/* Amount input: right-aligned tabular figures so digits line up row-to-row, matching the money
+ * columns in the tables. */
+.amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* Compact per-row remove control; sits in the trailing 2.5rem column. */
+.removeLine {
+  min-width: 0;
+}
+
+/* "+ Add line" — a self-start ghost affordance beneath the rows (§3.3). */
+.addLine {
+  align-self: flex-start;
+}
+
+/* §3.4 — the action row: right-aligned, the primary action rightmost. */
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}

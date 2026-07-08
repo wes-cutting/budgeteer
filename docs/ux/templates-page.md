@@ -9,7 +9,7 @@ Initiative brief: reviews/2026-07-06-ux-redesign-initiative.md.
 
 | Field        | Value                                                                  |
 | ------------ | ----------------------------------------------------------------------- |
-| Status       | Proposed                                                                 |
+| Status       | Implemented                                                              |
 | Feature      | UXR4 (presentation-only; §11 compression — build detail here)            |
 | Owner        | Wesley Cutting                                                           |
 | Last updated | 2026-07-07                                                               |
@@ -79,3 +79,34 @@ grouping; keyboard order = visual order; axe light AND dark; 320px reflow.
 
 Template behavior changes (fixed-amount lines stay per FEAT-004) · applying templates (lives
 in the allocation editor, untouched) · any data/API change.
+
+## 8. As built (2026-07-07)
+
+Built presentation-only over the existing template reads/flows — [`TemplatesView.tsx`](../../apps/web/src/TemplatesView.tsx).
+
+- **Saved-templates table (§2)** — `Name` (`<th scope="row">`) · `Lines` · `Total` · `Actions`,
+  wrapped in the global `.table-scroll` focusable region with an `sr-only` `<caption>`. Reuses the
+  **UXR3 shared treatment ([`Ledgers.module.css`](../../apps/web/src/Ledgers.module.css)) verbatim**
+  — no third duplicate — so Templates lines its numbers up exactly like the three Ledgers pages
+  (decision recorded in the status report). Inline rename swaps the name cell for input+Save; Rename
+  and Delete carry **per-row accessible names** ("Rename {name}" / "Delete {name}", UXR3 parity); the
+  Delete `ConfirmDialog` (UX12) is unchanged. Empty state and `role="alert"` error carried; `Skeleton`
+  on load.
+- **The form-layout pattern (§3)** lives in a **new reusable module,
+  [`FormLayout.module.css`](../../apps/web/src/FormLayout.module.css)** (the genuinely new part;
+  UXR5/UXR7 restyle by importing it, no new pattern code). It realizes: the `<fieldset>`+visible
+  `<legend>` group; the `Field`/`Input`/`Select` primitives (stacked label→control); the
+  envelope/amount **line mini-grid** — one shared grid template on the header + rows so columns align,
+  amount right-aligned/monospaced, per-row `aria-label`s kept ("Template envelope N" · "Template
+  amount N" · "Remove line N"), "+ Add line" beneath; the right-aligned **action row** (Save template
+  the accent primary); the form capped at ~44rem. The header row is `aria-hidden` (per-control names
+  carry the semantics). No new field validation — form-level failure stays `role="alert"` above the
+  action row (behavior byte-for-byte equivalent: blank/zero lines filtered on save, form resets after
+  create).
+- **Small correction in passing:** `.numeric`'s right-alignment was silently defeated by
+  `.table td`/`.table th` on specificity (all UXR3 money columns had been rendering left-aligned
+  despite the CSS comment). Fixed by scoping it `.table .numeric` (0,0,2,0 > 0,0,1,1) — now money is
+  right-aligned across **all four** ledger/Templates tables, as the treatment always intended.
+- **A11y:** `<th>` scope semantics; per-row action names; each table in the `.table-scroll` region —
+  **320px reflow verified** (page `scrollWidth == clientWidth`); **axe light AND dark** gate the table
+  + form (`a11y.spec` seeds a template so the table markup is scanned, in both schemes).

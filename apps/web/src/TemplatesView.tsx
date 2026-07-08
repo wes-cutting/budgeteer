@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useId, useState } from "react";
 import {
   type AllocationDraft,
   type Api,
@@ -8,7 +8,9 @@ import {
 } from "./api";
 import { formatMoney, tryParseMoney } from "@budgeteer/domain";
 import { formatCents } from "./format";
-import { ConfirmDialog, Skeleton, useToast } from "./ui";
+import { Button, ConfirmDialog, Field, Input, Select, Skeleton, useToast } from "./ui";
+import ledger from "./Ledgers.module.css";
+import form from "./FormLayout.module.css";
 
 interface Props {
   api: Api;
@@ -29,6 +31,7 @@ export function TemplatesView({ api }: Props) {
   // UX12 — Delete is irreversible (no unarchive for templates), so confirm before removing.
   const [pendingDelete, setPendingDelete] = useState<TemplateView | null>(null);
   const { showToast } = useToast();
+  const nameId = useId();
 
   async function load() {
     try {
@@ -90,65 +93,84 @@ export function TemplatesView({ api }: Props) {
     }
   }
 
+  const activeEnvelopes = envelopes.filter((env) => env.archivedAt === null);
+
   return (
     <main>
       {/* FEAT-UXR1 — the page title is the shell's single <h1> (top bar); this view drops its own. */}
-      {error ? <p role="alert">{error}</p> : null}
 
-      <form aria-label="New template" onSubmit={create}>
-        <label>
-          Name{" "}
-          <input
-            aria-label="Template name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </label>
-        {lines.map((line, i) => (
-          <div key={i}>
-            <select
-              aria-label={`Template envelope ${i + 1}`}
-              value={line.envelopeId}
-              onChange={(e) =>
-                setLines((cur) =>
-                  cur.map((l, idx) => (idx === i ? { ...l, envelopeId: e.target.value } : l)),
-                )
-              }
-            >
-              <option value="">Choose an envelope…</option>
-              {envelopes
-                .filter((env) => env.archivedAt === null)
-                .map((env) => (
-                  <option key={env.id} value={env.id}>
-                    {env.name}
-                  </option>
-                ))}
-            </select>
-            <input
-              aria-label={`Template amount ${i + 1}`}
-              value={line.amount}
-              onChange={(e) =>
-                setLines((cur) =>
-                  cur.map((l, idx) => (idx === i ? { ...l, amount: e.target.value } : l)),
-                )
-              }
-            />
-            <button
-              type="button"
-              aria-label={`Remove line ${i + 1}`}
-              onClick={() => setLines((cur) => cur.filter((_, idx) => idx !== i))}
-            >
-              ✕
-            </button>
+      {/* FEAT-UXR4 — the template editor, on the §3 form-layout pattern: a grouped fieldset, the
+          Name field via the UX4 `Field` primitive, the envelope/amount rows as a labeled mini-grid,
+          "+ Add line" beneath, and a right-aligned action row. Behavior is unchanged from before
+          (blank/zero lines filtered on save; form resets after create). */}
+      <form aria-label="New template" onSubmit={create} className={form.form}>
+        <fieldset className={form.fieldset}>
+          <legend className={form.legend}>New template</legend>
+          <Field label="Name" htmlFor={nameId}>
+            <Input id={nameId} value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+
+          <div className={form.lineGrid}>
+            <div className={form.lineHeader} aria-hidden="true">
+              <span>Envelope</span>
+              <span className={form.amount}>Amount</span>
+              <span />
+            </div>
+            {lines.map((line, i) => (
+              <div key={i} className={form.lineRow}>
+                <Select
+                  aria-label={`Template envelope ${i + 1}`}
+                  value={line.envelopeId}
+                  onChange={(e) =>
+                    setLines((cur) =>
+                      cur.map((l, idx) => (idx === i ? { ...l, envelopeId: e.target.value } : l)),
+                    )
+                  }
+                >
+                  <option value="">Choose an envelope…</option>
+                  {activeEnvelopes.map((env) => (
+                    <option key={env.id} value={env.id}>
+                      {env.name}
+                    </option>
+                  ))}
+                </Select>
+                <Input
+                  aria-label={`Template amount ${i + 1}`}
+                  className={form.amount}
+                  inputMode="decimal"
+                  value={line.amount}
+                  onChange={(e) =>
+                    setLines((cur) =>
+                      cur.map((l, idx) => (idx === i ? { ...l, amount: e.target.value } : l)),
+                    )
+                  }
+                />
+                <Button
+                  className={form.removeLine}
+                  variant="ghost"
+                  aria-label={`Remove line ${i + 1}`}
+                  onClick={() => setLines((cur) => cur.filter((_, idx) => idx !== i))}
+                >
+                  ✕
+                </Button>
+              </div>
+            ))}
           </div>
-        ))}
-        <button
-          type="button"
-          onClick={() => setLines((cur) => [...cur, { envelopeId: "", amount: "" }])}
-        >
-          + add line
-        </button>
-        <button type="submit">Save template</button>
+          <Button
+            className={form.addLine}
+            variant="ghost"
+            onClick={() => setLines((cur) => [...cur, { envelopeId: "", amount: "" }])}
+          >
+            + Add line
+          </Button>
+
+          {error ? <p role="alert">{error}</p> : null}
+          <div className={form.actionRow}>
+            <Button type="submit" variant="accent">
+              Save template
+            </Button>
+          </div>
+        </fieldset>
       </form>
 
       <section aria-labelledby="templates-heading">
@@ -158,41 +180,70 @@ export function TemplatesView({ api }: Props) {
         ) : templates.length === 0 ? (
           <p>No templates yet — save a split to reuse it.</p>
         ) : (
-          <ul aria-label="Templates">
-            {templates.map((t) => (
-              <li key={t.id}>
-                {renamingId === t.id ? (
-                  <span>
-                    <input
-                      aria-label={`Rename ${t.name}`}
-                      value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                    />
-                    <button type="button" onClick={() => void saveRename(t)}>
-                      Save
-                    </button>
-                  </span>
-                ) : (
-                  <span>{t.name}</span>
-                )}{" "}
-                <span>
-                  {t.lines.length} lines · {formatCents(totalCents(t))}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRenamingId(t.id);
-                    setRenameValue(t.name);
-                  }}
-                >
-                  Rename
-                </button>
-                <button type="button" onClick={() => setPendingDelete(t)}>
-                  Delete
-                </button>
-              </li>
-            ))}
-          </ul>
+          // FEAT-UXR4 — the saved-templates list becomes a real table on the shared UXR3
+          // treatment (Ledgers.module.css, reused verbatim). Name is the row header; Lines/Total
+          // are right-aligned numeric columns; the carried Rename (inline) + Delete (ConfirmDialog)
+          // sit in the Actions cell with per-row accessible names.
+          <div className="table-scroll" tabIndex={0} role="group" aria-label="Templates">
+            <table className={ledger.table}>
+              <caption className="sr-only">Templates</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col" className={ledger.numeric}>
+                    Lines
+                  </th>
+                  <th scope="col" className={ledger.numeric}>
+                    Total
+                  </th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {templates.map((t) => (
+                  <tr key={t.id}>
+                    {renamingId === t.id ? (
+                      <th scope="row" className={ledger.actions}>
+                        <input
+                          aria-label={`Rename ${t.name}`}
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                        />
+                        <button type="button" onClick={() => void saveRename(t)}>
+                          Save
+                        </button>
+                      </th>
+                    ) : (
+                      <th scope="row">{t.name}</th>
+                    )}
+                    <td className={ledger.numeric}>{t.lines.length}</td>
+                    <td className={ledger.numeric}>{formatCents(totalCents(t))}</td>
+                    <td>
+                      <div className={ledger.actions}>
+                        <button
+                          type="button"
+                          aria-label={`Rename ${t.name}`}
+                          onClick={() => {
+                            setRenamingId(t.id);
+                            setRenameValue(t.name);
+                          }}
+                        >
+                          Rename
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Delete ${t.name}`}
+                          onClick={() => setPendingDelete(t)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 

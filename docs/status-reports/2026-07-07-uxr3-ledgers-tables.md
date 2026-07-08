@@ -130,5 +130,6 @@ re-pointing. (6) demo data: npm run db:reset --workspace @budgeteer/api && npm r
 Confirm, in your own words, where things stand and the plan (and its risks) before building.
 Keep it vertical and gate-green; update docs in the same change (UX spec → Implemented, NFR bundle
 delta, roadmap); and at the end leave the project handoff-ready with the next-session kickoff prompt
-(for UXR5/UXR6/parallel next item) in the status report.
+(for UXR5/UXR6/parallel next item) in the status report. Provide a single-line short commit message; 
+I will review and commit when ready.
 ```

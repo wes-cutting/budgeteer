@@ -29,8 +29,11 @@
   border-bottom: 2px solid var(--color-border-strong);
 }
 
-/* Money columns: right-aligned, tabular figures so digits line up column-to-column. */
-.numeric {
+/* Money columns: right-aligned, tabular figures so digits line up column-to-column. Scoped under
+ * `.table` so the two-class selector (0,0,2,0) outweighs `.table td`/`.table th` (0,0,1,1) above —
+ * a bare `.numeric` (0,0,1,0) loses to those and silently rendered left-aligned (UXR4 fix; the
+ * right-align now applies to every numeric cell across all four ledger/Templates tables). */
+.table .numeric {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }

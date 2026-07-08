@@ -59,38 +59,39 @@ test("create a template directly in the Templates view, then rename it", async (
   await openTemplates(page);
   await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
 
-  // Create a template with one line.
-  await page.getByLabel("Template name").fill(TEMPLATE);
+  // Create a template with one line — the Name field is the UXR4 `Field` primitive. `exact` so
+  // "Name" doesn't substring-match the "Rename {template}" action buttons (Playwright getByLabel).
+  await page.getByLabel("Name", { exact: true }).fill(TEMPLATE);
   await page.getByLabel("Template envelope 1").selectOption({ label: ENVELOPE });
   await page.getByLabel("Template amount 1").fill("250.00");
   await page.getByRole("button", { name: "Save template" }).click();
 
-  // Template appears in the list.
-  const templateList = page.getByRole("list", { name: "Templates" });
-  const templateRow = templateList.getByRole("listitem").filter({ hasText: TEMPLATE });
+  // Template appears as a row in the UXR4 saved-templates table (Name · Lines · Total · Actions).
+  const templateTable = page.getByRole("table", { name: "Templates" });
+  const templateRow = templateTable.getByRole("row").filter({ hasText: TEMPLATE });
   await expect(templateRow).toBeVisible();
-  await expect(templateRow).toContainText("1 lines");
+  // `exact` — the Lines cell is "1"; without it the Actions cell (its Rename/Delete labels carry the
+  // stamped template name, digits and all) substring-matches "1" too.
+  await expect(templateRow.getByRole("cell", { name: "1", exact: true })).toBeVisible();
 
-  // Rename it.
-  await templateList
-    .getByRole("listitem")
-    .filter({ hasText: TEMPLATE })
-    .getByRole("button", { name: "Rename" })
-    .click();
-  await page.getByLabel(`Rename ${TEMPLATE}`).fill(TEMPLATE_NEW);
+  // Rename it (per-row accessible name, UXR3 table treatment). Target the input by `textbox` role —
+  // the Rename button carries the same "Rename {name}" accessible name, so getByLabel would be
+  // ambiguous (mirrors accounts.spec's inline-rename convention).
+  await templateRow.getByRole("button", { name: `Rename ${TEMPLATE}` }).click();
+  await page.getByRole("textbox", { name: `Rename ${TEMPLATE}` }).fill(TEMPLATE_NEW);
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(templateList.getByText(TEMPLATE_NEW)).toBeVisible();
-  await expect(templateList.getByText(TEMPLATE)).toHaveCount(0);
+  await expect(templateTable.getByText(TEMPLATE_NEW)).toBeVisible();
+  await expect(templateTable.getByText(TEMPLATE)).toHaveCount(0);
 
   // Delete it — UX12 confirms first (delete is irreversible for templates).
-  await templateList
-    .getByRole("listitem")
+  await templateTable
+    .getByRole("row")
     .filter({ hasText: TEMPLATE_NEW })
-    .getByRole("button", { name: "Delete" })
+    .getByRole("button", { name: `Delete ${TEMPLATE_NEW}` })
     .click();
   const deleteDialog = page.getByRole("dialog", { name: "Delete template?" });
   await expect(deleteDialog).toBeVisible();
   await deleteDialog.getByRole("button", { name: "Delete", exact: true }).click();
   await expect(deleteDialog).toBeHidden();
-  await expect(templateList.getByText(TEMPLATE_NEW)).toHaveCount(0);
+  await expect(templateTable.getByText(TEMPLATE_NEW)).toHaveCount(0);
 });
