@@ -31,7 +31,7 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 | `GET /analysis/envelope-spend` (monthly grid) | < 200 ms p95 | 10 envelopes × 120 txns¹ | **3.4 ms** | `apps/api/test/perf.test.ts` · same |
 | `GET /export` (backup snapshot) | < 500 ms p95 | 5 accounts + 5 envelopes + 200 txns | **11.5 ms** | `apps/api/test/perf.test.ts` · same |
 | Web initial load (LCP) | < 2.5 s | Cold load, production build | < 1 s² | Manual Lighthouse on `vite build` output |
-| Web initial JS bundle (gz) | < 140 KB gz (re-baselined 2026-07-06; was 120)³ | Production `vite build`, single chunk | **124.96 KB gz** (+ 5.15 KB gz CSS, re-measured 2026-07-07 · UXR5)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
+| Web initial JS bundle (gz) | < 140 KB gz (re-baselined 2026-07-06; was 120)³ | Production `vite build`, single chunk | **125.21 KB gz** (+ 5.21 KB gz CSS, re-measured 2026-07-07 · UXR7)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
 
 > ¹ Half-scale of the original budget (2 yrs × 20 env × 100/mo = 48 000 txns); PGlite performance
 >   at full scale is expected to remain well under budget given the measured p95 at half-scale.
@@ -118,6 +118,22 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >   `ConfirmDialog` — added **+0.49 KB gz → 124.96 KB gz** (CSS +0.08 → 5.15 KB gz). Presentation-only
 >   plus the two owner-ratified additions: **no new dependency, no data/API/domain change**. ~15 KB of
 >   headroom remains under the 140 KB budget.
+>
+>   **`UXR6`'s Insights IA (2026-07-07)** — the flat nine-link Insights sub-nav re-laid as a two-row
+>   category IA in `AnalysisSection.tsx` (a `CATEGORIES` map driving a primary row of five category
+>   links + a secondary segmented row of the active category's sub-views, rendered only when > 1;
+>   `.subnav` superseded by `.categoryNav` + `.segmentNav`) — added **+0.19 KB gz → 125.15 KB gz** (CSS
+>   +0.06 → 5.21 KB gz). Presentation-only: **no new dependency, no data/API/domain change** — every
+>   `/insights/:view` URL is preserved (a `routing.spec` sweep asserts all nine). ~14.9 KB of headroom
+>   remains under the 140 KB budget.
+>
+>   **`UXR7`'s Manage form (2026-07-07)** — the Move-money form re-laid on the UXR4 form pattern by
+>   **importing** `FormLayout.module.css` (fieldset/legend + the `Field`/`Input`/`Select` primitives,
+>   From/To and Amount/Memo gridded as `.fieldRow` pairs stacking ≤ 640px, right-aligned action row) —
+>   added **+0.06 KB gz → 125.21 KB gz** (CSS unchanged at 5.21 KB gz — **no new CSS**, the module was
+>   only imported). Presentation-only: **no new dependency, no data/API/domain change** (the flow is
+>   byte-for-byte; only JSX framing changed). This closes the `UXR1`–`UXR8` track. ~14.8 KB of headroom
+>   remains under the 140 KB budget.
 
 ---
 

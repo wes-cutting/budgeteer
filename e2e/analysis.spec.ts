@@ -37,7 +37,7 @@ test("spend by envelope: allocated deposit appears in the monthly grid", async (
   await createEnvelope(page, ENVELOPE);
   await fundEnvelope(page, ACCOUNT, ENVELOPE, PAYEE);
 
-  await openAnalysis(page, "Spend");
+  await openAnalysis(page, "By envelope");
   await expect(
     page.getByRole("heading", { name: "Insights — spend by envelope", level: 2 }),
   ).toBeVisible();
@@ -155,7 +155,7 @@ test("budget vs. actual: set a monthly target and see it against spend", async (
   await createEnvelope(page, ENVELOPE);
   await fundEnvelope(page, ACCOUNT, ENVELOPE, PAYEE);
 
-  await openAnalysis(page, "Budget");
+  await openAnalysis(page, "vs Actual");
   await expect(
     page.getByRole("heading", { name: "Insights — budget vs. actual", level: 2 }),
   ).toBeVisible();
@@ -181,7 +181,7 @@ test("budget burn-down: pace shows spent vs. target for a budgeted envelope", as
   await createEnvelope(page, ENVELOPE);
 
   // Set a $200 monthly target, then spend $150 of it THIS month (75% consumed — clock-independent).
-  await openAnalysis(page, "Budget");
+  await openAnalysis(page, "vs Actual");
   const budgetRow = page.getByRole("row").filter({ hasText: ENVELOPE });
   await budgetRow.getByLabel(`Monthly target for ${ENVELOPE}`).fill("200.00");
   await budgetRow.getByRole("button", { name: "Save" }).click();
@@ -231,15 +231,19 @@ test("cash-flow forecast: forward projection renders with expected spend", async
   await fundEnvelope(page, ACCOUNT, ENVELOPE, PAYEE);
 
   // Set a $200 monthly target so expected-spend appears in the forecast.
-  await openAnalysis(page, "Budget");
+  await openAnalysis(page, "vs Actual");
   const budgetRow = page.getByRole("row").filter({ hasText: ENVELOPE });
   await budgetRow.getByLabel(`Monthly target for ${ENVELOPE}`).fill("200.00");
   await budgetRow.getByRole("button", { name: "Save" }).click();
   await expect(budgetRow.getByRole("button", { name: "Clear" })).toBeVisible(); // target persisted
 
-  // Switch straight to the Forecast tab — no return to the Dashboard (the point of R3). The
-  // sub-nav tabs are now deep-linkable NavLinks (UX3).
-  await page.getByRole("link", { name: "Forecast", exact: true }).click();
+  // Switch straight to Forecast — no return to the Dashboard (the point of R3). Under the UXR6
+  // category IA, Forecast is the "Cash flow" category's single view, so switch via its category tab
+  // in the always-present primary row (the category links are deep-linkable NavLinks, UX3).
+  await page
+    .getByRole("navigation", { name: "Insights categories" })
+    .getByRole("link", { name: "Cash flow", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Insights — cash-flow forecast", level: 2 }),
   ).toBeVisible();

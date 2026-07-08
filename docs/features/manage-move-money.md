@@ -8,7 +8,7 @@ adopts the UXR4 form-layout pattern. Presentation only; smallest item in the tra
 | Field        | Value                                                                  |
 | ------------ | ----------------------------------------------------------------------- |
 | Feature ID   | UXR7 (§11-compressed — this note is the spec)                            |
-| Status       | Proposed                                                                 |
+| Status       | Implemented                                                              |
 | Owner        | Wesley Cutting                                                           |
 | Last updated | 2026-07-07                                                               |
 | Related      | [UXR4 form pattern](../ux/templates-page.md) §3 · [FEAT-UX6 manage](manage.md) · `MoveMoneyForm.tsx` |

@@ -65,3 +65,33 @@ test("the Insights hub redirects to the default view; an unknown path redirects 
   await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
 });
+
+// FEAT-UXR6 (Insights IA) — the non-negotiable: every legacy /insights/:view deep link still renders
+// its own view, now with the correct CATEGORY tab marked current. This sweeps all nine so the IA
+// restructure can't silently break a deep link, a bookmark, or a cockpit link.
+const INSIGHTS_DEEP_LINKS = [
+  { view: "spend", heading: "Insights — spend by envelope", category: "Spending" },
+  { view: "breakdown", heading: "Insights — spending breakdown", category: "Spending" },
+  { view: "trends", heading: "Insights — spending trends", category: "Spending" },
+  { view: "budget", heading: "Insights — budget vs. actual", category: "Budget" },
+  { view: "burndown", heading: "Insights — budget burn-down", category: "Budget" },
+  { view: "forecast", heading: "Insights — cash-flow forecast", category: "Cash flow" },
+  { view: "credit", heading: "Insights — credit utilization", category: "Debt" },
+  { view: "payoff", heading: "Insights — debt payoff", category: "Debt" },
+  { view: "networth", heading: "Insights — net worth over time", category: "Net worth" },
+] as const;
+
+for (const { view, heading, category } of INSIGHTS_DEEP_LINKS) {
+  test(`Insights deep link /insights/${view} is preserved and marks the ${category} tab`, async ({
+    page,
+  }) => {
+    await page.goto(`/insights/${view}`);
+    await expect(page.getByRole("heading", { name: heading, level: 2 })).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/insights/${view}$`));
+    const categories = page.getByRole("navigation", { name: "Insights categories" });
+    await expect(categories.getByRole("link", { name: category, exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+}

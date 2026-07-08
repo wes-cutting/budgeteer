@@ -47,7 +47,7 @@ test("envelope target set in the Budget view shows inline on the /envelopes row 
   await createEnvelope(page, ENVELOPE);
 
   // Set a monthly target on this envelope in the Budget vs. Actual analysis view.
-  await openAnalysis(page, "Budget");
+  await openAnalysis(page, "vs Actual");
   const targetForm = page.getByRole("form", { name: `Target for ${ENVELOPE}` });
   await targetForm.getByLabel(`Monthly target for ${ENVELOPE}`).fill("200.00");
   await targetForm.getByRole("button", { name: "Save" }).click();

@@ -48,7 +48,7 @@ async function seedBudgeted(page: Page, tag: string): Promise<{ envelope: string
   await createAccount(page, account);
   await createEnvelope(page, envelope);
   await fundEnvelope(page, account, envelope, `A11y-${stamp}-pay`);
-  await openAnalysis(page, "Budget");
+  await openAnalysis(page, "vs Actual");
   const budgetRow = page.getByRole("row").filter({ hasText: envelope });
   await budgetRow.getByLabel(`Monthly target for ${envelope}`).fill("200.00");
   await budgetRow.getByRole("button", { name: "Save" }).click();
@@ -125,7 +125,7 @@ async function seedBurndown(page: Page, tag: string) {
   const envelope = `A11y-${stamp}-env`;
   await createAccount(page, account, { balance: "1000.00" });
   await createEnvelope(page, envelope);
-  await openAnalysis(page, "Budget");
+  await openAnalysis(page, "vs Actual");
   const budgetRow = page.getByRole("row").filter({ hasText: envelope });
   await budgetRow.getByLabel(`Monthly target for ${envelope}`).fill("200.00");
   await budgetRow.getByRole("button", { name: "Save" }).click();
@@ -174,13 +174,13 @@ async function scanOverBudget(page: Page) {
   const envelope = `A11y-${stamp}-env`;
   await createAccount(page, account, { balance: "1000.00" });
   await createEnvelope(page, envelope);
-  await openAnalysis(page, "Budget");
+  await openAnalysis(page, "vs Actual");
   const budgetRow = page.getByRole("row").filter({ hasText: envelope });
   await budgetRow.getByLabel(`Monthly target for ${envelope}`).fill("200.00");
   await budgetRow.getByRole("button", { name: "Save" }).click();
   await expect(budgetRow.getByRole("button", { name: "Clear" })).toBeVisible();
   await spend(page, account, envelope, "250.00", `A11y-${stamp}-pay`); // 250 of a 200 target ⇒ over
-  await openAnalysis(page, "Budget");
+  await openAnalysis(page, "vs Actual");
   await expect(
     page.getByRole("heading", { name: "Insights — budget vs. actual", level: 2 }),
   ).toBeVisible();
@@ -438,7 +438,7 @@ async function scanNetWorth(page: Page) {
 
 async function scanSpend(page: Page) {
   await seedBudgeted(page, "spend");
-  await openAnalysis(page, "Spend");
+  await openAnalysis(page, "By envelope");
   await expect(
     page.getByRole("heading", { name: "Insights — spend by envelope", level: 2 }),
   ).toBeVisible();
@@ -840,7 +840,7 @@ async function scanReflow(page: Page) {
   await seedBudgeted(page, "reflow"); // seed at desktop width
   // Navigate via the sidebar at desktop, THEN shrink — at ≤ 640px the sidebar nav is off-canvas
   // (FEAT-UXR1), so openAnalysis' sidebar links wouldn't be reachable after the resize.
-  await openAnalysis(page, "Spend"); // the widest table — one column per month
+  await openAnalysis(page, "By envelope"); // the widest table — one column per month
   await page.setViewportSize(PHONE);
   await expect(
     page.getByRole("heading", { name: "Insights — spend by envelope", level: 2 }),

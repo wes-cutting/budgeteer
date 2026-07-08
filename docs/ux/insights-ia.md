@@ -9,7 +9,7 @@ reviews/2026-07-06-ux-redesign-initiative.md.
 
 | Field        | Value                                                                  |
 | ------------ | ----------------------------------------------------------------------- |
-| Status       | Proposed — direction owner-endorsed 2026-07-06/07                        |
+| Status       | Implemented — built 2026-07-07 (§8 as built); direction owner-endorsed 2026-07-06/07 |
 | Feature      | UXR6 (IA/presentation; §11 compression — build detail here)              |
 | Owner        | Wesley Cutting                                                           |
 | Last updated | 2026-07-07                                                               |
@@ -79,3 +79,33 @@ under the new nav; 320px reflow.
 
 View content/chart changes · new views · the UXR8 seed (separate item; this IA is honest at
 any data volume) · URL renames (deliberately none).
+
+## 8. As built (2026-07-07)
+
+Built presentation-only in [`AnalysisSection.tsx`](../../apps/web/src/AnalysisSection.tsx) —
+no data/API/view change. A `CATEGORIES` map (the §2 table) drives two rows:
+
+- **Primary** `<nav aria-label="Insights categories">` — five plain `<Link>`s, each `to` its
+  category's default sub-view (`views[0]`). Active = the category **containing** the current
+  `:view`, marked with `aria-current="page"` + weight + a bottom-edge bar (never colour
+  alone). Because a category represents a *section*, its link carries `aria-current` while on
+  any of its views even though the `href` points at the default — so it is a `<Link>` with a
+  computed `aria-current`, **not** a `NavLink` (whose match is exact-URL). **Design call, per
+  the §3 "links, not ARIA tabs" stance.**
+- **Secondary** `<nav aria-label="{Category} views">` — the active category's sub-views as
+  `NavLink`s with `end`; rendered **only when the category has > 1 view** (Cash flow · Net
+  worth get no row). One-to-one with a URL, so `NavLink`'s exact match is exactly right.
+- **Renames are nav-label-only:** `spend` shows as **By envelope**, `budget` as **vs Actual**.
+  Routes and each view's own `<h2>` ("Insights — …") are **untouched**, so the a11y/cockpit
+  `level: 2` heading assertions and every cockpit `/insights/*` href are unaffected.
+- **URL preservation, tested:** the `/insights` index redirect, the unknown-view → `spend`
+  fallback, and `/insights/pay-periods` → `/pay-periods` all carry unchanged; a new
+  `routing.spec` sweep deep-links all nine `/insights/:view` URLs and asserts the correct
+  category tab is current. The `ErrorBoundary` (R12) and `renderView` switch are byte-for-byte.
+- **CSS:** the UX15 `.subnav` is superseded by `.categoryNav` + `.segmentNav`
+  ([`Insights.module.css`](../../apps/web/src/Insights.module.css)) — both wrap with ≥ 24px
+  targets so the two-row bar never forces horizontal page scroll at 320px.
+- **Gate:** unit `AnalysisSection.test` rewritten (five category tabs, segment-row-only-when->1,
+  renamed labels, category active on a non-default sub-view); e2e `openAnalysis` walks
+  category → segment (a label→category map; the two renamed call-site labels re-pointed); axe
+  light AND dark + 320px reflow over the new chrome all green.

@@ -71,7 +71,7 @@ test("cockpit panels deep-link to their detail routes (UX5)", async ({ page }) =
   await goToDashboard(page);
 
   // Set a monthly target → the budget panel gains its "Review budget" deep-link.
-  await openAnalysis(page, "Budget");
+  await openAnalysis(page, "vs Actual");
   const targetForm = page.getByRole("form", { name: `Target for ${ENVELOPE}` });
   await targetForm.getByLabel(`Monthly target for ${ENVELOPE}`).fill("200.00");
   await targetForm.getByRole("button", { name: "Save" }).click();

@@ -3,29 +3,51 @@
  * hand-rolled accessible chart (ui/Chart) above their data table; this sheet styles the controls,
  * tables, and figure lists consistently. Colours/spacing/type all come from the tokens.
  */
-/* UX15 — the Insights sub-nav (Spend · Budget · … tabs). Previously raw adjacent <a>s with no gap:
- * usable at desktop width but, once they wrap at phone width, adjacent targets touch and fail
- * target-size (WCAG 2.5.8). A flex row that wraps, with a real gap and a comfortable >= 24px tap
- * target per link, keeps every tab a valid target at any width. Active state is weight + underline,
- * never colour alone (WCAG 1.4.1). */
-.subnav {
+/* UXR6 — the Insights IA is two rows of links (not ARIA tabs; these are routes). Both wrap at narrow
+ * width with a real gap and a comfortable >= 24px tap target per link, so no target ever touches its
+ * neighbour (WCAG 2.5.8) and the bar never forces horizontal page scroll at 320px. Active state is
+ * always weight + a non-colour marker, never colour alone (WCAG 1.4.1). Supersedes the UX15 `.subnav`. */
+
+/* Primary row: the five category tabs. Active = weight + an underline edge along the bottom border. */
+.categoryNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin: var(--space-3) 0 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.categoryNav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* overlap the row's border so the active edge sits on it */
+}
+.categoryNav a.categoryActive {
+  font-weight: 600;
+  border-bottom-color: var(--color-accent);
+}
+
+/* Secondary row: the active category's sub-views as a segmented control. Active = weight + underline. */
+.segmentNav {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-3);
   margin: var(--space-3) 0;
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--color-border);
 }
-.subnav a {
+.segmentNav a {
   display: inline-flex;
   align-items: center;
   min-height: 32px;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
 }
-.subnav a[aria-current="page"] {
+.segmentNav a[aria-current="page"] {
   font-weight: 600;
   text-decoration: underline;
+  color: var(--color-text);
 }
 
 .controls {

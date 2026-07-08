@@ -140,15 +140,40 @@ export async function openRecurring(page: Page) {
   await primaryNav(page).getByRole("link", { name: "Recurring", exact: true }).click();
 }
 
-// The Insights area is URL-addressable at /insights/:view; open it via the shell, then the sub-nav.
-// The tab click is scoped to the "Insights views" sub-nav (defensive — the sidebar's own items live
-// in the "Primary" nav landmark).
-export async function openAnalysis(page: Page, tab: string) {
+// FEAT-UXR6 — Insights is a two-row category IA: a primary row of five category tabs and, when a
+// category has more than one view, a secondary segmented row of its sub-views. Callers still name a
+// single sub-view label; this map routes to its category (and whether a segment click is needed), so
+// the helper clicks the category tab first, then the sub-view when the category has siblings. Two
+// labels were renamed for their category: `spend` → "By envelope", `budget` → "vs Actual".
+const INSIGHTS_NAV: Record<string, { category: string; segmented: boolean }> = {
+  "By envelope": { category: "Spending", segmented: true },
+  Breakdown: { category: "Spending", segmented: true },
+  Trends: { category: "Spending", segmented: true },
+  "vs Actual": { category: "Budget", segmented: true },
+  "Burn-down": { category: "Budget", segmented: true },
+  Forecast: { category: "Cash flow", segmented: false },
+  Credit: { category: "Debt", segmented: true },
+  Payoff: { category: "Debt", segmented: true },
+  "Net worth": { category: "Net worth", segmented: false },
+};
+
+// Open an Insights sub-view via the shell, then the category IA. `view` is the sub-view label (the
+// renamed "By envelope"/"vs Actual" for spend/budget). Clicks are scoped to the labelled nav
+// landmarks (defensive — the sidebar's own items live in the "Primary" nav landmark).
+export async function openAnalysis(page: Page, view: string) {
+  const entry = INSIGHTS_NAV[view];
+  if (entry === undefined) throw new Error(`Unknown Insights view label: ${view}`);
   await primaryNav(page).getByRole("link", { name: "Insights" }).click();
   await page
-    .getByRole("navigation", { name: "Insights views" })
-    .getByRole("link", { name: tab, exact: true })
+    .getByRole("navigation", { name: "Insights categories" })
+    .getByRole("link", { name: entry.category, exact: true })
     .click();
+  if (entry.segmented) {
+    await page
+      .getByRole("navigation", { name: `${entry.category} views` })
+      .getByRole("link", { name: view, exact: true })
+      .click();
+  }
 }
 
 // FEAT-UXR2 — Pay periods is a first-class route (`/pay-periods`) in the sidebar Planning group.
