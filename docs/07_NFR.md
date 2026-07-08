@@ -31,7 +31,7 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 | `GET /analysis/envelope-spend` (monthly grid) | < 200 ms p95 | 10 envelopes × 120 txns¹ | **3.4 ms** | `apps/api/test/perf.test.ts` · same |
 | `GET /export` (backup snapshot) | < 500 ms p95 | 5 accounts + 5 envelopes + 200 txns | **11.5 ms** | `apps/api/test/perf.test.ts` · same |
 | Web initial load (LCP) | < 2.5 s | Cold load, production build | < 1 s² | Manual Lighthouse on `vite build` output |
-| Web initial JS bundle (gz) | < 140 KB gz (re-baselined 2026-07-06; was 120)³ | Production `vite build`, single chunk | **124.47 KB gz** (+ 5.07 KB gz CSS, re-measured 2026-07-07 · UXR4)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
+| Web initial JS bundle (gz) | < 140 KB gz (re-baselined 2026-07-06; was 120)³ | Production `vite build`, single chunk | **124.96 KB gz** (+ 5.15 KB gz CSS, re-measured 2026-07-07 · UXR5)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
 
 > ¹ Half-scale of the original budget (2 yrs × 20 env × 100/mo = 48 000 txns); PGlite performance
 >   at full scale is expected to remain well under budget given the measured p95 at half-scale.
@@ -109,6 +109,15 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >   data/API/domain change** (a new CSS module + restructured JSX are the only weight; also corrected a
 >   latent `.numeric` specificity bug so money right-aligns across all four ledger/Templates tables).
 >   ~15.5 KB of headroom remains under the 140 KB budget.
+>
+>   **`UXR5`'s Recurring page (2026-07-07)** — the rule form re-laid on the UXR4 form pattern
+>   (**imported** `FormLayout.module.css`, +1 pattern-completing `.fieldRow` class it realizes for its
+>   first pair-row consumer) and the rules list re-laid as a table (reusing the UXR3
+>   `Ledgers.module.css` treatment verbatim) with a Payee column and the split behind a per-row
+>   disclosure (a small page-local `RecurringView.module.css`); Delete gains the existing UX12
+>   `ConfirmDialog` — added **+0.49 KB gz → 124.96 KB gz** (CSS +0.08 → 5.15 KB gz). Presentation-only
+>   plus the two owner-ratified additions: **no new dependency, no data/API/domain change**. ~15 KB of
+>   headroom remains under the 140 KB budget.
 
 ---
 

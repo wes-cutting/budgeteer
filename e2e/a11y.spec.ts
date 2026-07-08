@@ -19,7 +19,6 @@ import {
   openNeeds,
   openPayPeriods,
   openQuickAdd,
-  openRecurring,
   openTemplates,
 } from "./setup";
 
@@ -389,12 +388,36 @@ test.describe("a11y — Templates (UXR4)", () => {
   });
 });
 
-test.describe("a11y — Recurring", () => {
-  test("recurring view is accessible", async ({ page }) => {
+// UXR5 — the Recurring page: rules as a table (Payee column + the split behind a per-row
+// disclosure) and the rule form on the UXR4 form-layout pattern. Seed a rule so the TABLE and its
+// EXPANDED split-detail region are axe-scanned too (not just the empty state + form), and run the
+// same path in BOTH schemes (mirrors scanTemplates).
+async function scanRecurring(page: Page) {
+  const stamp = Date.now();
+  const account = `A11y-rec-${stamp}-acct`;
+  const envelope = `A11y-rec-${stamp}-env`;
+  const payee = `A11y-rec-${stamp}-pay`;
+  await createAccount(page, account);
+  await createEnvelope(page, envelope);
+  await createRecurringRule(page, {
+    account,
+    kind: "Withdrawal",
+    amount: "50.00",
+    payee,
+    anchorOn: "2020-01-01",
+    envelope,
+  });
+  await expect(page.getByRole("heading", { name: "Recurring", level: 1 })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Recurring rules" })).toBeVisible();
+  // Expand the split so the disclosure detail region markup is scanned too.
+  await page.getByRole("button", { name: `Show 1 line for ${payee}` }).click();
+  await assertNoViolations(page);
+}
+
+test.describe("a11y — Recurring (UXR5)", () => {
+  test("recurring table + form-layout is accessible", async ({ page }) => {
     await page.goto("/");
-    await openRecurring(page);
-    await expect(page.getByRole("heading", { name: "Recurring", level: 1 })).toBeVisible();
-    await assertNoViolations(page);
+    await scanRecurring(page);
   });
 });
 
@@ -507,6 +530,14 @@ async function seedPayPeriods(page: Page): Promise<string> {
 async function openPayPeriodsFor(page: Page, account: string) {
   await openPayPeriods(page);
   await expect(page).toHaveURL(/\/pay-periods$/);
+  // Let the DEFAULT account's plan finish loading (its planner OR the empty state renders) BEFORE
+  // selecting ours. PayPeriodsView defaults `accountId` to the first account on load and fetches its
+  // plan asynchronously; if we select mid-flight, that in-flight default re-render can clobber the
+  // controlled <select> back to the default (a race that widens as the shared e2e store grows).
+  // Waiting for the default plan to settle means nothing is in flight to revert our selection.
+  await expect(
+    page.getByRole("region", { name: "Paychecks" }).or(page.getByText("No expected paychecks")),
+  ).toBeVisible();
   await page.getByLabel("Account", { exact: true }).selectOption({ label: account });
   await expect(page.getByRole("region", { name: "Paychecks" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Bills" })).toBeVisible();
@@ -670,6 +701,11 @@ test.describe("a11y — dark mode", () => {
   test("templates table + form-layout is accessible in dark mode (UXR4)", async ({ page }) => {
     await page.goto("/");
     await scanTemplates(page);
+  });
+
+  test("recurring table + form-layout is accessible in dark mode (UXR5)", async ({ page }) => {
+    await page.goto("/");
+    await scanRecurring(page);
   });
 
   test("quick-add modal is accessible in dark mode (UX7)", async ({ page }) => {

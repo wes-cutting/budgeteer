@@ -24,9 +24,12 @@ test("create a monthly recurring rule and post due", async ({ page }) => {
   await page.getByLabel("Envelope", { exact: true }).selectOption({ label: ENVELOPE });
   await page.getByRole("button", { name: "Create recurring rule" }).click();
 
-  // The rule appears in the list (shows account name, frequency, envelope line — not payee).
-  const ruleList = page.getByRole("list", { name: "Recurring rules" });
-  await expect(ruleList.getByText(ENVELOPE)).toBeVisible();
+  // UXR5 — the rules list is a table; Payee is its own column, the split is behind a per-row
+  // disclosure. Assert the rule via its payee cell, then expand the disclosure to reveal the split.
+  const ruleTable = page.getByRole("table", { name: "Recurring rules" });
+  await expect(ruleTable.getByText(PAYEE)).toBeVisible();
+  await page.getByRole("button", { name: `Show 1 line for ${PAYEE}` }).click();
+  await expect(ruleTable.getByText(ENVELOPE)).toBeVisible();
 
   // Post due: generates at least one transaction.
   await page.getByRole("button", { name: "Post due" }).click();

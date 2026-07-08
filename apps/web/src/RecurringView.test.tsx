@@ -35,28 +35,33 @@ describe("RecurringView (FEAT-009)", () => {
     await user.selectOptions(screen.getByLabelText("Envelope"), pay.id);
     await user.click(screen.getByRole("button", { name: "Create recurring rule" }));
 
-    const list = await screen.findByRole("list", { name: "Recurring rules" });
-    expect(within(list).getByText("Checking")).toBeTruthy();
-    expect(within(list).getByText("weekly")).toBeTruthy();
-    expect(within(list).getByText("3 due")).toBeTruthy(); // −14, −7, today
+    // UXR5 — the rules list is now a table: account, frequency, and the due-status pair render as
+    // cells (the split moved behind a per-row disclosure).
+    const table = await screen.findByRole("table", { name: "Recurring rules" });
+    expect(within(table).getByText("Checking")).toBeTruthy();
+    expect(within(table).getByText("weekly")).toBeTruthy();
+    expect(within(table).getByText("3 due")).toBeTruthy(); // −14, −7, today
 
     // Post due → 3 transactions generated.
     await user.click(screen.getByRole("button", { name: "Post due" }));
     expect(await screen.findByText("Posted 3 transactions.")).toBeTruthy();
     expect(
-      within(await screen.findByRole("list", { name: "Recurring rules" })).getByText("up to date"),
+      within(await screen.findByRole("table", { name: "Recurring rules" })).getByText("Up to date"),
     ).toBeTruthy();
 
     // Posting again does nothing (idempotent).
     await user.click(screen.getByRole("button", { name: "Post due" }));
     expect(await screen.findByText("Nothing due right now.")).toBeTruthy();
 
-    // Delete the rule.
+    // Delete the rule — now behind the UX12 confirm dialog (§4). The row has no payee, so its
+    // per-row action name falls back to the account ("Delete Checking").
     await user.click(
-      within(screen.getByRole("list", { name: "Recurring rules" })).getByRole("button", {
-        name: "Delete",
+      within(screen.getByRole("table", { name: "Recurring rules" })).getByRole("button", {
+        name: "Delete Checking",
       }),
     );
+    const dialog = await screen.findByRole("dialog", { name: "Delete this rule?" });
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
     expect(await screen.findByText(/No recurring rules yet/)).toBeTruthy();
   });
 });

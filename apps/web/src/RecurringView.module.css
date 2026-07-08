@@ -1,0 +1,26 @@
+/*
+ * UXR5 — page-local presentation for the Recurring rules table's per-row SPLIT DISCLOSURE (UX spec
+ * docs/ux/recurring-page.md §2). The rules list is a table on the shared UXR3 treatment
+ * (Ledgers.module.css, reused verbatim); the readability fix moves each rule's split OUT of the row
+ * into an indented detail region revealed by a per-row disclosure. That detail region is
+ * recurring-specific — not part of the shared table treatment nor the form pattern — so its styling
+ * lives here, page-local. No pattern/treatment code is added by this file.
+ */
+
+/* The expanded detail cell's content: indented under the row, muted, small. */
+.splitDetail {
+  padding-left: var(--space-4);
+}
+.splitList {
+  margin: 0;
+  padding-left: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+/* A refund line points opposite the rule's direction (FEAT-008); mark it in text, not colour. */
+.refund {
+  font-style: italic;
+}

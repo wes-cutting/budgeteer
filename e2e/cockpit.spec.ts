@@ -88,13 +88,16 @@ test("cockpit panels deep-link to their detail routes (UX5)", async ({ page }) =
   await expect(page.getByRole("heading", { name: "Recurring", level: 1 })).toBeVisible();
   await page.getByLabel("Account").selectOption({ label: ACCOUNT });
   await page.getByLabel("Amount").fill("100.00");
-  await page.getByLabel("Payee").fill(`E2E Sub ${stamp}`);
+  const subPayee = `E2E Sub ${stamp}`;
+  await page.getByLabel("Payee").fill(subPayee);
   await page.getByLabel("Frequency").selectOption("monthly");
   await page.getByLabel("First date").fill("2020-01-01");
   await page.getByLabel("Envelope", { exact: true }).selectOption({ label: ENVELOPE });
   await page.getByRole("button", { name: "Create recurring rule" }).click();
+  // UXR5 — the rules list is a table with Payee as its own column (the split moved behind a per-row
+  // disclosure); assert the rule landed via its now-visible payee cell.
   await expect(
-    page.getByRole("list", { name: "Recurring rules" }).getByText(ENVELOPE).first(),
+    page.getByRole("table", { name: "Recurring rules" }).getByText(subPayee).first(),
   ).toBeVisible();
   await goToDashboard(page);
 

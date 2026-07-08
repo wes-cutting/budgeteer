@@ -26,6 +26,23 @@
   padding: 0 var(--space-2);
 }
 
+/* §3.1 — related fields share a responsive two-column row (e.g. Amount+Payee, Frequency+First
+ * date), each child a `Field` with its own stacked label→control; the row collapses to one column
+ * at ≤ 640px. min-0 columns so long selects/inputs shrink instead of forcing horizontal overflow.
+ * The pattern (§3.1) always called for gridded pairs, but UXR4's Templates form had none, so this
+ * class is realized here by its first consumer (UXR5) and reused by UXR7 — the one addition to the
+ * shared pattern this slice needed (see the UXR5 status report). */
+.fieldRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+@media (max-width: 640px) {
+  .fieldRow {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* §3.3 — the line editor (the multi-row envelope/amount case): a labeled mini-grid. Header row and
  * each input row share one grid template so the columns line up; amount is fixed-width and
  * right-aligned, the remove control a compact trailing column. The whole grid reflows at 320px

@@ -93,9 +93,10 @@ export async function createRecurringRule(
   await page.getByLabel("First date").fill(rule.anchorOn);
   await page.getByLabel("Envelope", { exact: true }).selectOption({ label: rule.envelope });
   await page.getByRole("button", { name: "Create recurring rule" }).click();
-  // The rules list shows the envelope line (not the payee) — assert the rule landed.
+  // UXR5 — the rules list is a table with Payee as its own column (the split moved behind a per-row
+  // disclosure). Assert the rule landed via its now-visible payee cell.
   await expect(
-    page.getByRole("list", { name: "Recurring rules" }).getByText(rule.envelope).first(),
+    page.getByRole("table", { name: "Recurring rules" }).getByText(rule.payee).first(),
   ).toBeVisible();
 }
 
