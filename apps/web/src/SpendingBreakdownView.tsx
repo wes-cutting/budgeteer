@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { type Api, type BudgetVsActualReport } from "./api";
+import { localMonth as thisMonth } from "./dates";
 import { formatCents } from "./format";
 import { BreakdownBars, Field, Input, Skeleton, type BreakdownSlice } from "./ui";
 import styles from "./Insights.module.css";
-
-const thisMonth = (): string => new Date().toISOString().slice(0, 7);
 
 /**
  * Insights — spending breakdown (FEAT-UX9): "where did the money go" for a chosen month. Each

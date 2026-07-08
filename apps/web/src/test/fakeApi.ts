@@ -25,6 +25,7 @@ import {
   type TemplateView,
   type TransactionView,
 } from "../api";
+import { localToday } from "../dates";
 
 /**
  * An in-memory fake of the API for component tests — mirrors the server's derived balances and
@@ -41,7 +42,8 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
   const targets = new Map<string, number>(); // envelopeId → monthly target cents (FEAT-012)
   const creditLimits = new Map<string, number>(); // accountId → credit limit cents (FEAT-014a)
   const loanPrincipals = new Map<string, number>(); // accountId → original principal cents (FEAT-014b)
-  const today = () => new Date().toISOString().slice(0, 10);
+  // Mirror httpApi: calendar dates are user-local (EH8).
+  const today = localToday;
   let seq = 0;
   const newId = (p: string) => `${p}${seq++}`;
   const envName = (id: string) => envelopes.find((e) => e.id === id)?.name ?? "?";
@@ -81,7 +83,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
     amountCents: number,
     payee: string | null,
     allocations: { envelopeId: string; amountCents: number }[],
-    occurredOn = new Date().toISOString().slice(0, 10),
+    occurredOn = localToday(),
     transfer: { id: string; counterpartName: string } | null = null,
   ): TransactionView {
     return {
@@ -226,7 +228,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       const magnitude = tryParseMoney(amount) ?? 0;
       if (magnitude <= 0) throw new ApiError("Enter an amount greater than 0.");
       const id = newId("xfer");
-      const on = occurredOn ?? new Date().toISOString().slice(0, 10);
+      const on = occurredOn ?? localToday();
       const outLeg = makeTxn(from, "transfer", -magnitude, null, [], on, {
         id,
         counterpartName: to.name,
@@ -266,7 +268,7 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       if (magnitude <= 0) throw new ApiError("Enter an amount greater than 0.");
       const et: EnvelopeTransferView = {
         id: newId("etr"),
-        occurredOn: occurredOn ?? new Date().toISOString().slice(0, 10),
+        occurredOn: occurredOn ?? localToday(),
         memo: memo ?? null,
         amountCents: magnitude,
         from: { envelopeId: from.id, envelopeName: from.name },

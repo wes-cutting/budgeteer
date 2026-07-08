@@ -8,7 +8,7 @@ import {
 } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
-import { type Clock, systemClock, todayStr, toDateStr } from "../util/dates";
+import { toDateStr } from "../util/dates";
 import { groupBy } from "../util/groupBy";
 import { NotFoundError, ValidationError } from "./errors";
 import { assertEnvelopesUsable } from "./envelopeGuards";
@@ -64,7 +64,9 @@ const HH = DEFAULT_HOUSEHOLD_ID;
 const signed = (mag: number, refund: boolean, dirSign: 1 | -1): number =>
   mag * (refund ? -dirSign : dirSign);
 
-export function makeRecurringService(db: Kysely<DB>, clock: Clock = systemClock) {
+// `today` is the caller's local calendar date (EH8) — due-ness is always relative to it;
+// the service never derives it.
+export function makeRecurringService(db: Kysely<DB>) {
   async function linesByRule(
     exec: Kysely<DB>,
     ruleIds: string[],
@@ -197,8 +199,7 @@ export function makeRecurringService(db: Kysely<DB>, clock: Clock = systemClock)
   }
 
   return {
-    async list(): Promise<RecurringView[]> {
-      const today = todayStr(clock);
+    async list(today: string): Promise<RecurringView[]> {
       const rules = await selectRules(db)
         .where("r.household_id", "=", HH)
         .orderBy("r.created_at")
@@ -210,7 +211,7 @@ export function makeRecurringService(db: Kysely<DB>, clock: Clock = systemClock)
       return rules.map((r) => toView(r, lines.get(r.id) ?? [], today));
     },
 
-    async create(input: CreateRecurringInput): Promise<RecurringView> {
+    async create(input: CreateRecurringInput, today: string): Promise<RecurringView> {
       if (input.lines.length === 0) throw new ValidationError("Add at least one split line.");
       const dirSign = input.direction === "deposit" ? 1 : -1;
       const amount = cents(input.magnitudeCents * dirSign);
@@ -268,7 +269,6 @@ export function makeRecurringService(db: Kysely<DB>, clock: Clock = systemClock)
         return rule.id;
       });
 
-      const today = todayStr(clock);
       const row = await selectRules(db).where("r.id", "=", id).executeTakeFirstOrThrow();
       const lines = await linesByRule(db, [id]);
       return toView(row, lines.get(id) ?? [], today);
@@ -285,9 +285,8 @@ export function makeRecurringService(db: Kysely<DB>, clock: Clock = systemClock)
       await db.deleteFrom("recurring_transactions").where("id", "=", id).execute();
     },
 
-    /** Generate every due transaction up to today and advance each rule's cursor. Idempotent. */
-    async postDue(): Promise<PostDueResult> {
-      const today = todayStr(clock);
+    /** Generate every due transaction up to `today` and advance each rule's cursor. Idempotent. */
+    async postDue(today: string): Promise<PostDueResult> {
       const rules = await selectRules(db).where("r.household_id", "=", HH).execute();
       const lines = await linesByRule(
         db,

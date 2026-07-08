@@ -9,6 +9,7 @@ import {
   type RecurringView as Rule,
 } from "./api";
 import { tryParseMoney } from "@budgeteer/domain";
+import { localToday } from "./dates";
 import { formatCents } from "./format";
 import { AllocationEditor } from "./AllocationEditor";
 import { Skeleton } from "./ui";
@@ -28,7 +29,7 @@ export function RecurringView({ api }: { api: Api }) {
   const [amount, setAmount] = useState("");
   const [payee, setPayee] = useState("");
   const [frequency, setFrequency] = useState<RecurringFrequency>("monthly");
-  const [anchorOn, setAnchorOn] = useState(new Date().toISOString().slice(0, 10));
+  const [anchorOn, setAnchorOn] = useState(localToday());
   const [submitting, setSubmitting] = useState(false);
 
   async function load() {

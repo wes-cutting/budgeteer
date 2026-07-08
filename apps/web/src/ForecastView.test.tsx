@@ -3,13 +3,17 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ForecastView } from "./ForecastView";
 import { type Api, ApiError } from "./api";
+import { localToday } from "./dates";
 import { makeFakeApi } from "./test/fakeApi";
 
-// Anchor rules relative to "today" so the projection is deterministic whatever date the suite runs.
-const TODAY = new Date().toISOString().slice(0, 10);
+// Anchor rules relative to the user's LOCAL today (EH8) — the fake and httpApi both derive it
+// locally, so UTC-derived fixtures would drift a day from evening on west of UTC.
+const TODAY = localToday();
 const plus = (n: number): string => {
   const [y, m, d] = TODAY.split("-").map(Number) as [number, number, number];
-  return new Date(Date.UTC(y, m - 1, d) + n * 86_400_000).toISOString().slice(0, 10);
+  const dt = new Date(y, m - 1, d + n);
+  const pad = (x: number): string => String(x).padStart(2, "0");
+  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
 };
 const rowByDate = (date: string): HTMLElement =>
   screen.getByRole("rowheader", { name: date }).closest("tr") as HTMLElement;

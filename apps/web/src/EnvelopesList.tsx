@@ -7,13 +7,13 @@ import {
   type EnvelopeKind,
   type EnvelopeView,
 } from "./api";
+import { localMonth as currentMonth } from "./dates";
 import { formatCents } from "./format";
 import { Button, ConfirmDialog, Skeleton, useToast } from "./ui";
 
 const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
 // R5 — current calendar month ("YYYY-MM") for the inline envelope-target join (the budget endpoint
 // keys targets/spend by month).
-const currentMonth = (): string => new Date().toISOString().slice(0, 7);
 
 /**
  * UX6 — the `/envelopes` LIST route (deferred from UX3, built now). The per-entity management

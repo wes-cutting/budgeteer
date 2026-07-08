@@ -58,7 +58,12 @@ const EXPECTED_TABLES: (keyof BackupTables)[] = [
 
 describe("GET /export (FEAT-015a)", () => {
   test("returns 200 with Content-Disposition attachment and a valid JSON backup", async () => {
-    await post("/accounts", { name: "Checking", kind: "checking", startingBalance: "500.00" });
+    await post("/accounts", {
+      openedOn: "2026-07-02",
+      name: "Checking",
+      kind: "checking",
+      startingBalance: "500.00",
+    });
     await post("/envelopes", { name: "Rent" });
 
     const res = await get("/export");
@@ -80,7 +85,12 @@ describe("GET /export (FEAT-015a)", () => {
   });
 
   test("cents columns are numbers, not strings", async () => {
-    await post("/accounts", { name: "Savings", kind: "savings", startingBalance: "1234.56" });
+    await post("/accounts", {
+      openedOn: "2026-07-02",
+      name: "Savings",
+      kind: "savings",
+      startingBalance: "1234.56",
+    });
 
     const body = (await get("/export")).json<BackupBody>();
 
@@ -104,6 +114,7 @@ describe("GET /export (FEAT-015a)", () => {
 
   test("backup includes seeded accounts, envelopes and allocations", async () => {
     const accountRes = await post("/accounts", {
+      openedOn: "2026-07-02",
       name: "Checking",
       kind: "checking",
       startingBalance: "0",
@@ -115,6 +126,7 @@ describe("GET /export (FEAT-015a)", () => {
     await post(`/accounts/${accountId}/transactions`, {
       kind: "deposit",
       amount: "100.00",
+      occurredOn: "2026-07-02",
       allocations: [{ envelopeId: envId, amount: "100.00" }],
     });
 

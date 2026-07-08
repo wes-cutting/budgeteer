@@ -14,7 +14,8 @@ const post = (url: string, body?: Record<string, unknown>) =>
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeAccount(name: string, kind: string, startingBalance = "0"): Promise<string> {
-  return (await post("/accounts", { name, kind, startingBalance })).json().account.id as string;
+  return (await post("/accounts", { openedOn: "2026-07-02", name, kind, startingBalance })).json()
+    .account.id as string;
 }
 /** A dated withdrawal/deposit with no allocation — only the account balance (= Σ txns) matters here. */
 function addTxn(
@@ -108,6 +109,7 @@ describe("analysis — net worth over time (FEAT-R9)", () => {
           fromAccountId: checking,
           toAccountId: savings,
           amount: "400.00",
+          occurredOn: "2026-07-02",
         })
       ).statusCode,
     ).toBe(201);

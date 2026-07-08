@@ -4,9 +4,15 @@ import {
   FORECAST_HORIZON_MAX,
   FORECAST_HORIZON_MIN,
 } from "@budgeteer/domain";
-import { todayStr } from "../../util/dates";
 import { NotFoundError, ValidationError } from "../../services/errors";
-import { MONTH_RE, type IdParams, type RoutePlugin, fail, parsePositiveMagnitude } from "./shared";
+import {
+  DATE_RE,
+  MONTH_RE,
+  type IdParams,
+  type RoutePlugin,
+  fail,
+  parsePositiveMagnitude,
+} from "./shared";
 
 const setCreditLimitBody = z.object({ amount: z.string() });
 const setOriginalPrincipalBody = z.object({ amount: z.string() });
@@ -15,7 +21,12 @@ const setTargetBody = z.object({ amount: z.string() });
 type SpendQuery = { Querystring: { grain?: string } };
 type MonthQuery = { Querystring: { month?: string } };
 type ForecastQuery = {
-  Querystring: { accountId?: string; horizonDays?: string; includeExpected?: string };
+  Querystring: {
+    accountId?: string;
+    horizonDays?: string;
+    includeExpected?: string;
+    today?: string;
+  };
 };
 
 // --- Analysis (FEAT-011 … FEAT-014b, R9) + the reference-number setters those reports read ---
@@ -31,9 +42,11 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
   });
 
   // --- Analysis: budget vs. actual (FEAT-012) ---
+  // Calendar dates are user-local (EH8): the caller supplies the month; no server-derived default.
   app.get<MonthQuery>("/analysis/budget-vs-actual", async (req, reply) => {
-    const month = req.query.month ?? todayStr(opts.clock).slice(0, 7);
-    if (!MONTH_RE.test(month)) return fail(reply, 400, "month must be 'YYYY-MM'.");
+    const month = req.query.month;
+    if (month === undefined || !MONTH_RE.test(month))
+      return fail(reply, 400, "month is required, 'YYYY-MM'.");
     return { report: await analysis.budgetVsActual(month) };
   });
 
@@ -56,9 +69,17 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
         `horizonDays must be an integer ${FORECAST_HORIZON_MIN}–${FORECAST_HORIZON_MAX}.`,
       );
     const includeExpected = req.query.includeExpected !== "false"; // default true
+    // The forecast projects forward from the caller's local "today" (EH8).
+    const today = req.query.today;
+    if (today === undefined || !DATE_RE.test(today))
+      return fail(reply, 400, "today is required, YYYY-MM-DD.");
     try {
       return {
-        forecast: await analysis.cashFlowForecast(accountId, { horizonDays, includeExpected }),
+        forecast: await analysis.cashFlowForecast(accountId, {
+          horizonDays,
+          includeExpected,
+          today,
+        }),
       };
     } catch (e) {
       if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");

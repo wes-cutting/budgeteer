@@ -1,12 +1,11 @@
 import { z } from "zod";
 import { parseMoney } from "@budgeteer/domain";
-import { todayStr } from "../../util/dates";
 import { NotFoundError } from "../../services/errors";
 import { DATE_RE, type AccountIdParams, type RoutePlugin, fail } from "./shared";
 
 const createReconciliationBody = z.object({
   statementBalance: z.string(),
-  reconciledOn: z.string().optional(),
+  reconciledOn: z.string(),
 });
 
 // --- Reconcile to bank (FEAT-010, manual balance compare) ---
@@ -32,7 +31,7 @@ export const reconcileRoutes: RoutePlugin = async (app, opts) => {
     } catch {
       return fail(reply, 400, "Enter an amount like 1234.56.");
     }
-    const reconciledOn = parsed.data.reconciledOn ?? todayStr(opts.clock);
+    const reconciledOn = parsed.data.reconciledOn;
     if (!DATE_RE.test(reconciledOn)) return fail(reply, 400, "Date must be YYYY-MM-DD.");
     const { accountId } = req.params;
     try {

@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { isAccountKind, parseMoney, validateAccountName } from "@budgeteer/domain";
 import { DuplicateNameError, NotFoundError } from "../../services/errors";
-import { type IdParams, type RoutePlugin, fail } from "./shared";
+import { DATE_RE, type IdParams, type RoutePlugin, fail } from "./shared";
 
 const createAccountBody = z.object({
   name: z.string(),
   kind: z.string(),
   startingBalance: z.string().default("0"),
+  openedOn: z.string(), // caller-local date for the opening-balance row (EH8)
 });
 const renameBody = z.object({ name: z.string() });
 
@@ -28,11 +29,14 @@ export const accountRoutes: RoutePlugin = async (app, opts) => {
     } catch {
       return fail(reply, 400, "Enter an amount like 1234.56.");
     }
+    if (!DATE_RE.test(parsed.data.openedOn))
+      return fail(reply, 400, "openedOn is required, YYYY-MM-DD.");
     try {
       const account = await accounts.create({
         name: nameCheck.name,
         kind: parsed.data.kind,
         startingBalanceCents,
+        openedOn: parsed.data.openedOn,
       });
       return reply.code(201).send({ account });
     } catch (e) {

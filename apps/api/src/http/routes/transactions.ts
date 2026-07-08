@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { currentMonthRange, todayStr } from "../../util/dates";
 import { ConflictError, NotFoundError, ValidationError } from "../../services/errors";
 import {
   DATE_RE,
@@ -18,7 +17,7 @@ const allocationInput = z.object({
 const createTransactionBody = z.object({
   kind: z.enum(["deposit", "withdrawal"]),
   amount: z.string(),
-  occurredOn: z.string().optional(),
+  occurredOn: z.string(),
   payee: z.string().optional(),
   memo: z.string().optional(),
   allocations: z.array(allocationInput).default([]),
@@ -40,12 +39,11 @@ export const transactionRoutes: RoutePlugin = async (app, opts) => {
 
   app.get<AccountTxnsRoute>("/accounts/:accountId/transactions", async (req, reply) => {
     const { accountId } = req.params;
-    // Default the register to the current calendar month (R8); `opening` rows always show.
-    const def = currentMonthRange(opts.clock);
-    const from = req.query.from ?? def.from;
-    const to = req.query.to ?? def.to;
-    if (!DATE_RE.test(from) || !DATE_RE.test(to))
-      return fail(reply, 400, "from/to must be YYYY-MM-DD.");
+    // Calendar dates are user-local (EH8): the caller supplies the window — the client derives
+    // its default month locally (R8); the server never derives "this month".
+    const { from, to } = req.query;
+    if (from === undefined || to === undefined || !DATE_RE.test(from) || !DATE_RE.test(to))
+      return fail(reply, 400, "from and to are required, YYYY-MM-DD.");
     try {
       return { transactions: await transactions.listByAccount(accountId, { from, to }) };
     } catch (e) {
@@ -59,7 +57,7 @@ export const transactionRoutes: RoutePlugin = async (app, opts) => {
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const magnitude = parsePositiveMagnitude(parsed.data.amount);
     if (magnitude === null) return fail(reply, 400, "Enter an amount greater than 0.");
-    const occurredOn = parsed.data.occurredOn ?? todayStr(opts.clock);
+    const occurredOn = parsed.data.occurredOn;
     if (!DATE_RE.test(occurredOn)) return fail(reply, 400, "Date must be YYYY-MM-DD.");
     const allocations: { envelopeId: string; magnitudeCents: number; refund: boolean }[] = [];
     for (const a of parsed.data.allocations) {

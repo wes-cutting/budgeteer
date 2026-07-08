@@ -16,14 +16,24 @@ const createRecurringBody = z.object({
   memo: z.string().optional(),
   frequency: z.string(),
   anchorOn: z.string(),
+  today: z.string(), // caller-local date the returned view's dueCount is relative to (EH8)
   lines: z.array(allocationInput).default([]),
 });
+const postDueBody = z.object({ today: z.string() });
+
+type TodayQuery = { Querystring: { today?: string } };
 
 // --- Recurring transactions (FEAT-009) ---
 export const recurringRoutes: RoutePlugin = async (app, opts) => {
   const { recurring } = opts.services;
 
-  app.get("/recurring", async () => ({ recurring: await recurring.list() }));
+  // Calendar dates are user-local (EH8): due-ness is relative to the caller's `today`.
+  app.get<TodayQuery>("/recurring", async (req, reply) => {
+    const today = req.query.today;
+    if (today === undefined || !DATE_RE.test(today))
+      return fail(reply, 400, "today is required, YYYY-MM-DD.");
+    return { recurring: await recurring.list(today) };
+  });
 
   app.post("/recurring", async (req, reply) => {
     const parsed = createRecurringBody.safeParse(req.body);
@@ -33,6 +43,7 @@ export const recurringRoutes: RoutePlugin = async (app, opts) => {
     if (!isRecurringFrequency(parsed.data.frequency))
       return fail(reply, 400, "Choose weekly, biweekly, or monthly.");
     if (!DATE_RE.test(parsed.data.anchorOn)) return fail(reply, 400, "Date must be YYYY-MM-DD.");
+    if (!DATE_RE.test(parsed.data.today)) return fail(reply, 400, "today is required, YYYY-MM-DD.");
     if (parsed.data.lines.length === 0) return fail(reply, 400, "Add at least one split line.");
     const lines: { envelopeId: string; magnitudeCents: number; refund: boolean }[] = [];
     for (const l of parsed.data.lines) {
@@ -41,16 +52,19 @@ export const recurringRoutes: RoutePlugin = async (app, opts) => {
       lines.push({ envelopeId: l.envelopeId, magnitudeCents: m, refund: l.refund ?? false });
     }
     try {
-      const rule = await recurring.create({
-        accountId: parsed.data.accountId,
-        direction: parsed.data.kind,
-        magnitudeCents: magnitude,
-        payee: parsed.data.payee ?? null,
-        memo: parsed.data.memo ?? null,
-        frequency: parsed.data.frequency,
-        anchorOn: parsed.data.anchorOn,
-        lines,
-      });
+      const rule = await recurring.create(
+        {
+          accountId: parsed.data.accountId,
+          direction: parsed.data.kind,
+          magnitudeCents: magnitude,
+          payee: parsed.data.payee ?? null,
+          memo: parsed.data.memo ?? null,
+          frequency: parsed.data.frequency,
+          anchorOn: parsed.data.anchorOn,
+          lines,
+        },
+        parsed.data.today,
+      );
       return reply.code(201).send({ recurring: rule });
     } catch (e) {
       if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
@@ -70,5 +84,11 @@ export const recurringRoutes: RoutePlugin = async (app, opts) => {
     }
   });
 
-  app.post("/recurring/post-due", async () => ({ result: await recurring.postDue() }));
+  // Posts every occurrence due through the caller's local `today` (EH8).
+  app.post("/recurring/post-due", async (req, reply) => {
+    const parsed = postDueBody.safeParse(req.body);
+    if (!parsed.success || !DATE_RE.test(parsed.data.today))
+      return fail(reply, 400, "today is required, YYYY-MM-DD.");
+    return { result: await recurring.postDue(parsed.data.today) };
+  });
 };

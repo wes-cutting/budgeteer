@@ -94,7 +94,8 @@ in `db/migrate.ts`, so the dev/test PGlite path keeps doubling as the migrator. 
 
 New API ([06_API_CONTRACT](../06_API_CONTRACT.md)):
 
-- `GET /analysis/budget-vs-actual?month=YYYY-MM` (default = current month) → `200 { report }`.
+- `GET /analysis/budget-vs-actual?month=YYYY-MM` (`month` required since EH8 — the client sends
+  its local month) → `200 { report }`.
 - `PUT /envelopes/:id/target` `{ amount: string }` → `200 { target }` (set/replace).
 - `DELETE /envelopes/:id/target` → `204` (clear; idempotent).
 
@@ -161,8 +162,8 @@ remaining is text (`-$…`), never colour alone; loading/empty/error are `role="
 - **Integration (API, 11):** outflow-only spend (funding excluded) + remaining; overspend (negative
   remaining); refund nets spend down; reallocations excluded; month filter; un-budgeted spend with
   null target; active-envelope-always-present / empty; archived shown only with target-or-spend;
-  set/replace/clear (idempotent); default month = current; validation (bad month → `400`, missing
-  envelope → `404`, bad amount → `400`); cent-exactness.
+  set/replace/clear (idempotent); validation (bad/missing month → `400` — required since EH8,
+  missing envelope → `404`, bad amount → `400`); cent-exactness.
 - **Component (web, 5):** target/spent/remaining render for a chosen month (funding excluded, over
   budget, un-budgeted `—`, footed totals); set a target inline → remaining updates; clear → `—`;
   empty state; load error.

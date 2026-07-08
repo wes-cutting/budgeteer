@@ -45,7 +45,8 @@ test("spending breakdown: outflow is ranked by share of the month total", async 
   const ACCOUNT = `E2E Brk Acct ${stamp}`;
   const FOOD = `E2E Brk Food ${stamp}`;
   const FUN = `E2E Brk Fun ${stamp}`;
-  const month = new Date().toISOString().slice(0, 7);
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`; // local (EH8)
   await page.goto("/");
   await createAccount(page, ACCOUNT, { balance: "1000.00" });
   await createEnvelope(page, FOOD);
@@ -323,7 +324,8 @@ test("net worth: current totals satisfy net = assets + liabilities, and the mont
   expect(net).toBe(assets + liabilities);
 
   // The current month (the opening rows are dated today) appears in the over-time trend.
-  const month = new Date().toISOString().slice(0, 7);
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`; // local (EH8)
   await expect(
     page
       .getByRole("table", { name: /Net worth over time/ })

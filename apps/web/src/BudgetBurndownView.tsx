@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { type BurndownStatus, assessBurndown } from "@budgeteer/domain";
 import { type Api, type BudgetVsActualReport, type BudgetVsActualRow } from "./api";
+import { localMonth as thisMonth, localToday as todayISO } from "./dates";
 import { formatBps, formatCents } from "./format";
 import { Field, Gauge, Input, Select, Skeleton } from "./ui";
 import styles from "./Insights.module.css";
@@ -23,9 +24,6 @@ import styles from "./Insights.module.css";
  * on-track state is carried by POSITION (fill end vs. the pace marker) + TEXT (the value label, a
  * verdict line, the summary) and by the exact figures in the table — never by colour alone (ADR-0007).
  */
-
-const thisMonth = (): string => new Date().toISOString().slice(0, 7);
-const todayISO = (): string => new Date().toISOString().slice(0, 10);
 
 /** Percent from a 0..1 fraction, e.g. 0.8 → "80.0%" (reuses the bps formatter). */
 const formatPct = (fraction: number): string => formatBps(Math.round(fraction * 10000));

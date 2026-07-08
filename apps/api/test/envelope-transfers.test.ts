@@ -24,13 +24,19 @@ const balanceOf = async (collection: "accounts" | "envelopes", id: string): Prom
 /** Seed: a funded account split across two envelopes, so they have real balances to move. */
 async function seed() {
   const accountId = (
-    await post("/accounts", { name: "Checking", kind: "checking", startingBalance: "0" })
+    await post("/accounts", {
+      openedOn: "2026-07-02",
+      name: "Checking",
+      kind: "checking",
+      startingBalance: "0",
+    })
   ).json().account.id as string;
   const groceries = await makeEnvelope("Groceries");
   const vacation = await makeEnvelope("Vacation");
   await post(`/accounts/${accountId}/transactions`, {
     kind: "deposit",
     amount: "1000.00",
+    occurredOn: "2026-07-02",
     allocations: [
       { envelopeId: groceries, amount: "600.00" },
       { envelopeId: vacation, amount: "400.00" },
@@ -47,6 +53,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
       fromEnvelopeId: groceries,
       toEnvelopeId: vacation,
       amount: "150.00",
+      occurredOn: "2026-07-02",
       memo: "Trip fund",
     });
     expect(res.statusCode).toBe(201);
@@ -69,6 +76,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
           fromEnvelopeId: groceries,
           toEnvelopeId: groceries,
           amount: "10.00",
+          occurredOn: "2026-07-02",
         })
       ).statusCode,
     ).toBe(400);
@@ -78,6 +86,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
           fromEnvelopeId: groceries,
           toEnvelopeId: vacation,
           amount: "0",
+          occurredOn: "2026-07-02",
         })
       ).statusCode,
     ).toBe(400);
@@ -87,6 +96,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
           fromEnvelopeId: groceries,
           toEnvelopeId: ghost,
           amount: "10.00",
+          occurredOn: "2026-07-02",
         })
       ).statusCode,
     ).toBe(404);
@@ -103,6 +113,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
           fromEnvelopeId: groceries,
           toEnvelopeId: vacation,
           amount: "10.00",
+          occurredOn: "2026-07-02",
         })
       ).statusCode,
     ).toBe(400);
@@ -112,6 +123,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
       fromEnvelopeId: vacation,
       toEnvelopeId: groceries,
       amount: "400.00",
+      occurredOn: "2026-07-02",
     });
     expect(drain.statusCode).toBe(201);
     expect(await balanceOf("envelopes", vacation)).toBe(0); // $400 − $400
@@ -124,6 +136,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
       fromEnvelopeId: vacation,
       toEnvelopeId: groceries,
       amount: "500.00", // vacation only has $400
+      occurredOn: "2026-07-02",
     });
     expect(res.statusCode).toBe(201);
     expect(await balanceOf("envelopes", vacation)).toBe(-10000); // $400 − $500

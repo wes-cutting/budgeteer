@@ -2,7 +2,7 @@ import type { Kysely } from "kysely";
 import { type AccountKind, nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
-import { type Clock, systemClock, todayStr, toISO } from "../util/dates";
+import { toISO } from "../util/dates";
 import { asDuplicateName } from "./dbErrors";
 import { DuplicateNameError, NotFoundError } from "./errors";
 
@@ -14,7 +14,7 @@ export interface AccountView {
   archivedAt: string | null;
 }
 
-export function makeAccountService(db: Kysely<DB>, clock: Clock = systemClock) {
+export function makeAccountService(db: Kysely<DB>) {
   const selectView = (qb: Kysely<DB>) =>
     qb
       .selectFrom("accounts as a")
@@ -49,6 +49,7 @@ export function makeAccountService(db: Kysely<DB>, clock: Clock = systemClock) {
       name: string;
       kind: AccountKind;
       startingBalanceCents: number;
+      openedOn: string; // caller-local YYYY-MM-DD (EH8) — the opening row's occurred_on
     }): Promise<AccountView> {
       const id = await asDuplicateName("An account with that name already exists.", () =>
         db.transaction().execute(async (trx) => {
@@ -82,7 +83,7 @@ export function makeAccountService(db: Kysely<DB>, clock: Clock = systemClock) {
               account_id: account.id,
               amount_cents: input.startingBalanceCents,
               kind: "opening",
-              occurred_on: todayStr(clock),
+              occurred_on: input.openedOn,
               payee: null,
               memo: "Opening balance",
             })

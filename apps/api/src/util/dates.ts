@@ -5,31 +5,21 @@
 /**
  * The clock is I/O (ARCHITECTURE §1): nothing below the composition root may reach for the
  * ambient wall clock. `buildServer` resolves a Clock once (callers may inject a fixed one —
- * tests do) and threads it to every service/route that derives "today". `todayStr`/
- * `currentMonthRange` REQUIRE the clock rather than defaulting it, so a new call site can't
+ * tests do). `todayStr` REQUIRES the clock rather than defaulting it, so a new call site can't
  * silently regress to calendar-dependent behavior (EH7).
+ *
+ * TIMEZONE POLICY (EH8, 04_DOMAIN_MODEL §6): calendar dates ("today", "this month",
+ * `occurred_on`) are USER-LOCAL — the client derives them and every user-facing date/month
+ * parameter is required at the HTTP boundary. The server clock exists only for operational
+ * stamps (the backup filename) and tests; it must never derive a user-facing calendar date.
  */
 export type Clock = () => Date;
 
 /** The real wall clock — referenced only at composition roots (`buildServer`'s default). */
 export const systemClock: Clock = () => new Date();
 
-/** Today as a 'YYYY-MM-DD' string (UTC). */
+/** The clock's date as a 'YYYY-MM-DD' string (UTC) — operational stamps only, per the policy above. */
 export const todayStr = (clock: Clock): string => clock().toISOString().slice(0, 10);
-
-/**
- * The first and last calendar day of the month containing today (UTC), as 'YYYY-MM-DD'
- * strings — the default window for the account register (R8). Computed here so the HTTP
- * boundary doesn't re-derive month arithmetic.
- */
-export const currentMonthRange = (clock: Clock): { from: string; to: string } => {
-  const now = clock();
-  const y = now.getUTCFullYear();
-  const m = now.getUTCMonth(); // 0-based
-  const pad = (n: number): string => String(n).padStart(2, "0");
-  const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
-  return { from: `${y}-${pad(m + 1)}-01`, to: `${y}-${pad(m + 1)}-${pad(lastDay)}` };
-};
 
 /**
  * A nullable timestamp column → a full ISO-8601 string (e.g. `archivedAt`), or null. Accepts a

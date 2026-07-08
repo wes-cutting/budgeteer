@@ -64,7 +64,7 @@ export interface CreateTransferInput {
   fromAccountId: string;
   toAccountId: string;
   amount: string;
-  occurredOn?: string;
+  occurredOn?: string; // defaults to the user's local today (EH8) — filled by the adapter
   memo?: string;
 }
 
@@ -86,7 +86,7 @@ export interface CreateEnvelopeTransferInput {
   fromEnvelopeId: string;
   toEnvelopeId: string;
   amount: string;
-  occurredOn?: string;
+  occurredOn?: string; // defaults to the user's local today (EH8) — filled by the adapter
   memo?: string;
 }
 
@@ -101,7 +101,7 @@ export interface AllocationDraft {
 export interface CreateTransactionInput {
   kind: "deposit" | "withdrawal";
   amount: string;
-  occurredOn?: string;
+  occurredOn?: string; // defaults to the user's local today (EH8) — filled by the adapter
   payee?: string;
   memo?: string;
   allocations: AllocationDraft[];
@@ -173,7 +173,7 @@ export interface ReconciliationView {
 
 export interface CreateReconciliationInput {
   statementBalance: string;
-  reconciledOn?: string;
+  reconciledOn?: string; // defaults to the user's local today (EH8) — filled by the adapter
 }
 
 // --- Envelope ledger (R15) ---
@@ -241,6 +241,10 @@ export interface ForecastOptions {
   horizonDays?: number; // default 90, capped [7,365]
   includeExpected?: boolean; // default true
 }
+
+/** All calendar dates are caller-local (EH8): the server never derives a user-facing date, so
+ *  `httpApi` sends every date/month parameter explicitly, deriving omitted ones from the
+ *  user's local clock via `dates.ts`. */
 
 export interface ForecastPoint {
   date: string; // "YYYY-MM-DD"
@@ -404,6 +408,8 @@ export interface Api {
   getNetWorth(grain: SpendGrain): Promise<NetWorthReport>;
 }
 
+import { localMonthRange, localToday } from "./dates";
+
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
 
 /** Direct URL for the backup download — an anchor href, not a fetch call (no CORS needed). */
@@ -435,10 +441,11 @@ export const httpApi: Api = {
     return (await request<{ accounts: AccountView[] }>("/accounts")).accounts;
   },
   async createAccount(input) {
+    // The opening-balance row lands on the user's local today (EH8).
     return (
       await request<{ account: AccountView }>("/accounts", {
         method: "POST",
-        body: JSON.stringify(input),
+        body: JSON.stringify({ ...input, openedOn: localToday() }),
       })
     ).account;
   },
@@ -481,13 +488,16 @@ export const httpApi: Api = {
     ).envelope;
   },
   async listTransactions(accountId, range) {
-    const qs = new URLSearchParams();
-    if (range?.from) qs.set("from", range.from);
-    if (range?.to) qs.set("to", range.to);
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    // from/to are required by the API (EH8); an omitted half falls back to the user's
+    // local current month — the register's default window (R8), derived client-side.
+    const def = localMonthRange();
+    const qs = new URLSearchParams({
+      from: range?.from ?? def.from,
+      to: range?.to ?? def.to,
+    });
     return (
       await request<{ transactions: TransactionView[] }>(
-        `/accounts/${accountId}/transactions${suffix}`,
+        `/accounts/${accountId}/transactions?${qs.toString()}`,
       )
     ).transactions;
   },
@@ -495,7 +505,7 @@ export const httpApi: Api = {
     return (
       await request<{ transaction: TransactionView }>(`/accounts/${accountId}/transactions`, {
         method: "POST",
-        body: JSON.stringify(input),
+        body: JSON.stringify({ ...input, occurredOn: input.occurredOn ?? localToday() }),
       })
     ).transaction;
   },
@@ -509,7 +519,7 @@ export const httpApi: Api = {
     return (
       await request<{ transfer: TransferView }>("/transfers", {
         method: "POST",
-        body: JSON.stringify(input),
+        body: JSON.stringify({ ...input, occurredOn: input.occurredOn ?? localToday() }),
       })
     ).transfer;
   },
@@ -517,7 +527,7 @@ export const httpApi: Api = {
     return (
       await request<{ envelopeTransfer: EnvelopeTransferView }>("/envelope-transfers", {
         method: "POST",
-        body: JSON.stringify(input),
+        body: JSON.stringify({ ...input, occurredOn: input.occurredOn ?? localToday() }),
       })
     ).envelopeTransfer;
   },
@@ -556,13 +566,15 @@ export const httpApi: Api = {
     await request<unknown>(`/templates/${id}`, { method: "DELETE" });
   },
   async listRecurring() {
-    return (await request<{ recurring: RecurringView[] }>("/recurring")).recurring;
+    // Due-ness is relative to the user's local today (EH8).
+    return (await request<{ recurring: RecurringView[] }>(`/recurring?today=${localToday()}`))
+      .recurring;
   },
   async createRecurring(input) {
     return (
       await request<{ recurring: RecurringView }>("/recurring", {
         method: "POST",
-        body: JSON.stringify(input),
+        body: JSON.stringify({ ...input, today: localToday() }),
       })
     ).recurring;
   },
@@ -570,8 +582,12 @@ export const httpApi: Api = {
     await request<unknown>(`/recurring/${id}`, { method: "DELETE" });
   },
   async postDueRecurring() {
-    return (await request<{ result: PostDueResult }>("/recurring/post-due", { method: "POST" }))
-      .result;
+    return (
+      await request<{ result: PostDueResult }>("/recurring/post-due", {
+        method: "POST",
+        body: JSON.stringify({ today: localToday() }),
+      })
+    ).result;
   },
   async listReconciliations(accountId) {
     return (
@@ -584,7 +600,10 @@ export const httpApi: Api = {
     return (
       await request<{ reconciliation: ReconciliationView }>(
         `/accounts/${accountId}/reconciliations`,
-        { method: "POST", body: JSON.stringify(input) },
+        {
+          method: "POST",
+          body: JSON.stringify({ ...input, reconciledOn: input.reconciledOn ?? localToday() }),
+        },
       )
     ).reconciliation;
   },
@@ -602,7 +621,8 @@ export const httpApi: Api = {
     ).report;
   },
   async getCashFlowForecast(accountId, opts) {
-    const params = new URLSearchParams({ accountId });
+    // The projection's day zero is the user's local today (EH8).
+    const params = new URLSearchParams({ accountId, today: localToday() });
     if (opts?.horizonDays !== undefined) params.set("horizonDays", String(opts.horizonDays));
     if (opts?.includeExpected !== undefined)
       params.set("includeExpected", String(opts.includeExpected));

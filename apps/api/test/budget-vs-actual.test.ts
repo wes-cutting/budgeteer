@@ -17,8 +17,9 @@ const del = (url: string) => ctx.app.inject({ method: "DELETE", url });
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeAccount(name = "Checking", startingBalance = "0"): Promise<string> {
-  return (await post("/accounts", { name, kind: "checking", startingBalance })).json().account
-    .id as string;
+  return (
+    await post("/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
+  ).json().account.id as string;
 }
 async function makeEnvelope(name: string): Promise<string> {
   return (await post("/envelopes", { name, kind: "standard" })).json().envelope.id as string;
@@ -245,19 +246,8 @@ describe("analysis — budget vs. actual (FEAT-012)", () => {
     expect((await del(`/envelopes/${groceries}/target`)).statusCode).toBe(204);
   });
 
-  test("default month is the current month when omitted", async () => {
-    const acct = await makeAccount();
-    const groceries = await makeEnvelope("Groceries");
-    const thisMonth = new Date().toISOString().slice(0, 7);
-    await addTxn(acct, {
-      kind: "withdrawal",
-      amount: "12.34",
-      occurredOn: `${thisMonth}-15`,
-      allocations: [{ envelopeId: groceries, amount: "12.34" }],
-    });
-    const r = await report(); // no month param
-    expect(r.month).toBe(thisMonth);
-    expect(rowOf(r, "Groceries")?.spentCents).toBe(1234); // cent-exact
+  test("a missing month is rejected — the caller supplies its local month (EH8)", async () => {
+    expect((await get("/analysis/budget-vs-actual")).statusCode).toBe(400);
   });
 
   test("validation: bad month → 400; target on a missing envelope → 404; bad amount → 400", async () => {

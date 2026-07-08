@@ -11,6 +11,7 @@ import { formatCents } from "./format";
 import { AddTransactionForm } from "./AddTransactionForm";
 import { TransferForm } from "./TransferForm";
 import { ReconcilePanel } from "./ReconcilePanel";
+import { localMonthRange } from "./dates";
 import { InlineAllocationEditor } from "./InlineAllocationEditor";
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Skeleton, useToast } from "./ui";
 import styles from "./AccountRegister.module.css";
@@ -21,16 +22,6 @@ interface Props {
   /** Optional: shown immediately if provided (tests, in-app navigation); otherwise the register
    *  derives the name from the loaded account list so a deep link / refresh is name-safe. */
   accountName?: string;
-}
-
-/** First/last day of the current calendar month as 'YYYY-MM-DD' — the register's default window (R8). */
-function currentMonthRange(): { from: string; to: string } {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth(); // 0-based
-  const pad = (n: number): string => String(n).padStart(2, "0");
-  const lastDay = new Date(y, m + 1, 0).getDate();
-  return { from: `${y}-${pad(m + 1)}-01`, to: `${y}-${pad(m + 1)}-${pad(lastDay)}` };
 }
 
 export function AccountRegister({ api, accountId, accountName }: Props) {
@@ -44,7 +35,8 @@ export function AccountRegister({ api, accountId, accountName }: Props) {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { showToast } = useToast();
-  const [range, setRange] = useState(currentMonthRange);
+  // The register's default window is the user's local current month (R8, EH8).
+  const [range, setRange] = useState(localMonthRange);
   const [search, setSearch] = useState("");
 
   async function load() {

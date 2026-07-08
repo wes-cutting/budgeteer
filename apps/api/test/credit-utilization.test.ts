@@ -17,7 +17,8 @@ const del = (url: string) => ctx.app.inject({ method: "DELETE", url });
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeAccount(name: string, kind: string, startingBalance = "0"): Promise<string> {
-  return (await post("/accounts", { name, kind, startingBalance })).json().account.id as string;
+  return (await post("/accounts", { openedOn: "2026-07-02", name, kind, startingBalance })).json()
+    .account.id as string;
 }
 /** A dated withdrawal/deposit with no allocation — only the account balance (= Σ txns) matters here. */
 function addTxn(

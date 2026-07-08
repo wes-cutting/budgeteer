@@ -16,8 +16,9 @@ const put = (url: string, body: Record<string, unknown>) =>
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeAccount(name = "Checking", startingBalance = "0"): Promise<string> {
-  return (await post("/accounts", { name, kind: "checking", startingBalance })).json().account
-    .id as string;
+  return (
+    await post("/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
+  ).json().account.id as string;
 }
 async function makeEnvelope(name: string): Promise<string> {
   return (await post("/envelopes", { name, kind: "standard" })).json().envelope.id as string;
@@ -195,7 +196,8 @@ describe("analysis — spend by envelope over time (FEAT-011)", () => {
   test("opening-balance allocations are counted", async () => {
     const acct = await makeAccount("Savings", "200.00");
     const groceries = await makeEnvelope("Groceries");
-    const txns = (await get(`/accounts/${acct}/transactions`)).json().transactions as {
+    const txns = (await get(`/accounts/${acct}/transactions?from=2026-07-01&to=2026-07-31`)).json()
+      .transactions as {
       id: string;
       kind: string;
     }[];

@@ -25,7 +25,12 @@ describe("GET /envelopes/:id/ledger (R15)", () => {
 
   test("rows newest-first; deposit amount positive, withdrawal amount negative", async () => {
     const acct = (
-      await post("/accounts", { name: "Checking", kind: "checking", startingBalance: "500.00" })
+      await post("/accounts", {
+        openedOn: "2026-07-02",
+        name: "Checking",
+        kind: "checking",
+        startingBalance: "500.00",
+      })
     ).json().account;
     const env = (await post("/envelopes", { name: "Groceries" })).json().envelope;
 
@@ -57,11 +62,18 @@ describe("GET /envelopes/:id/ledger (R15)", () => {
 
   test("opening-kind rows are included", async () => {
     const acct = (
-      await post("/accounts", { name: "Savings", kind: "savings", startingBalance: "500.00" })
+      await post("/accounts", {
+        openedOn: "2026-07-02",
+        name: "Savings",
+        kind: "savings",
+        startingBalance: "500.00",
+      })
     ).json().account;
     const env = (await post("/envelopes", { name: "Emergency" })).json().envelope;
 
-    const txns = (await get(`/accounts/${acct.id}/transactions`)).json().transactions;
+    const txns = (
+      await get(`/accounts/${acct.id}/transactions?from=2026-07-01&to=2026-07-31`)
+    ).json().transactions;
     const opening = txns.find((t: { kind: string }) => t.kind === "opening");
     await put(`/transactions/${opening.id}/allocations`, {
       allocations: [{ envelopeId: env.id, amount: "500.00" }],
@@ -75,7 +87,12 @@ describe("GET /envelopes/:id/ledger (R15)", () => {
 
   test("ledger only returns allocations for the requested envelope", async () => {
     const acct = (
-      await post("/accounts", { name: "Checking", kind: "checking", startingBalance: "0" })
+      await post("/accounts", {
+        openedOn: "2026-07-02",
+        name: "Checking",
+        kind: "checking",
+        startingBalance: "0",
+      })
     ).json().account;
     const env1 = (await post("/envelopes", { name: "Groceries" })).json().envelope;
     const env2 = (await post("/envelopes", { name: "Gas" })).json().envelope;
@@ -83,6 +100,7 @@ describe("GET /envelopes/:id/ledger (R15)", () => {
     await post(`/accounts/${acct.id}/transactions`, {
       kind: "withdrawal",
       amount: "100.00",
+      occurredOn: "2026-07-02",
       payee: "Store",
       allocations: [
         { envelopeId: env1.id, amount: "60.00" },

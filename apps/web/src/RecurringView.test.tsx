@@ -2,10 +2,17 @@ import { describe, expect, test } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RecurringView } from "./RecurringView";
+import { localToday } from "./dates";
 import { makeFakeApi } from "./test/fakeApi";
 
-const isoOffset = (days: number): string =>
-  new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+// Local-calendar offsets (EH8): the fake derives due-ness from the user's LOCAL today, so the
+// fixtures must be local too — a UTC offset would drift a day from evening on west of UTC.
+const isoOffset = (days: number): string => {
+  const [y, m, d] = localToday().split("-").map(Number) as [number, number, number];
+  const dt = new Date(y, m - 1, d + days);
+  const pad = (n: number): string => String(n).padStart(2, "0");
+  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+};
 
 describe("RecurringView (FEAT-009)", () => {
   test("create a rule, post due to generate transactions, then delete it", async () => {

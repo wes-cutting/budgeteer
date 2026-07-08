@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { todayStr } from "../../util/dates";
 import { NotFoundError, ValidationError } from "../../services/errors";
 import { DATE_RE, type IdParams, type RoutePlugin, fail, parsePositiveMagnitude } from "./shared";
 
@@ -7,7 +6,7 @@ const createTransferBody = z.object({
   fromAccountId: z.string().min(1),
   toAccountId: z.string().min(1),
   amount: z.string(),
-  occurredOn: z.string().optional(),
+  occurredOn: z.string(),
   memo: z.string().optional(),
 });
 
@@ -15,7 +14,7 @@ const createEnvelopeTransferBody = z.object({
   fromEnvelopeId: z.string().min(1),
   toEnvelopeId: z.string().min(1),
   amount: z.string(),
-  occurredOn: z.string().optional(),
+  occurredOn: z.string(),
   memo: z.string().optional(),
 });
 
@@ -28,7 +27,7 @@ export const transferRoutes: RoutePlugin = async (app, opts) => {
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const magnitude = parsePositiveMagnitude(parsed.data.amount);
     if (magnitude === null) return fail(reply, 400, "Enter an amount greater than 0.");
-    const occurredOn = parsed.data.occurredOn ?? todayStr(opts.clock);
+    const occurredOn = parsed.data.occurredOn;
     if (!DATE_RE.test(occurredOn)) return fail(reply, 400, "Date must be YYYY-MM-DD.");
     try {
       const transfer = await transfers.create({
@@ -63,7 +62,7 @@ export const transferRoutes: RoutePlugin = async (app, opts) => {
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const magnitude = parsePositiveMagnitude(parsed.data.amount);
     if (magnitude === null) return fail(reply, 400, "Enter an amount greater than 0.");
-    const occurredOn = parsed.data.occurredOn ?? todayStr(opts.clock);
+    const occurredOn = parsed.data.occurredOn;
     if (!DATE_RE.test(occurredOn)) return fail(reply, 400, "Date must be YYYY-MM-DD.");
     try {
       const envelopeTransfer = await envelopeTransfers.create({

@@ -49,7 +49,12 @@ describe("structured API logging (R13)", () => {
       await app.inject({
         method: "POST",
         url: "/accounts",
-        payload: { name: "Checking", kind: "checking", startingBalance: "0" },
+        payload: {
+          openedOn: "2026-07-02",
+          name: "Checking",
+          kind: "checking",
+          startingBalance: "0",
+        },
       })
     ).json().account.id as string;
     const envelopeId = (
@@ -67,6 +72,7 @@ describe("structured API logging (R13)", () => {
       payload: {
         kind: "withdrawal",
         amount: "1234.56",
+        occurredOn: "2026-07-02",
         payee: "Landlord PII",
         memo: SECRET_MEMO,
         allocations: [{ envelopeId, amount: "1234.56" }],

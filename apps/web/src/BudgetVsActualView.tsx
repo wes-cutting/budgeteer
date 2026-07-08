@@ -1,11 +1,10 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { formatMoney } from "@budgeteer/domain";
 import { type Api, type BudgetVsActualReport, type BudgetVsActualRow } from "./api";
+import { localMonth as thisMonth } from "./dates";
 import { formatCents } from "./format";
 import { BarChart, Button, Field, Input, ProgressBar, Skeleton, type ProgressTone } from "./ui";
 import styles from "./Insights.module.css";
-
-const thisMonth = (): string => new Date().toISOString().slice(0, 7);
 
 /** Budget-health tone for a spent-of-target ratio (UX13): over budget → over; nearing the target
  *  (>=80%) → caution; otherwise on track. Colour is only ever a reinforcement — the row always shows

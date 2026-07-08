@@ -15,8 +15,8 @@ const put = (url: string, body?: Record<string, unknown>) =>
   ctx.app.inject({ method: "PUT", url, payload: body });
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
-// Anchor everything relative to the server's notion of "today" (UTC), so the projection is
-// deterministic whatever date the suite runs on.
+// The caller supplies the projection's day zero (EH8) — every fixture is relative to the same
+// TODAY string we send, so the projection is deterministic whatever date the suite runs on.
 const TODAY = new Date().toISOString().slice(0, 10);
 const plus = (n: number): string => {
   const [y, m, d] = TODAY.split("-").map(Number) as [number, number, number];
@@ -24,8 +24,9 @@ const plus = (n: number): string => {
 };
 
 async function makeAccount(name = "Checking", startingBalance = "0"): Promise<string> {
-  return (await post("/accounts", { name, kind: "checking", startingBalance })).json().account
-    .id as string;
+  return (
+    await post("/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
+  ).json().account.id as string;
 }
 async function makeEnvelope(name: string): Promise<string> {
   return (await post("/envelopes", { name, kind: "standard" })).json().envelope.id as string;
@@ -39,7 +40,7 @@ function makeRule(body: {
   payee?: string;
   lines: { envelopeId: string; amount: string }[];
 }) {
-  return post("/recurring", body);
+  return post("/recurring", { ...body, today: TODAY });
 }
 
 interface ForecastPoint {
@@ -64,7 +65,8 @@ interface Forecast {
   firstNegativeDate: string | null;
 }
 async function forecast(qs: string): Promise<Forecast> {
-  return (await get(`/analysis/cash-flow-forecast${qs}`)).json().forecast as Forecast;
+  return (await get(`/analysis/cash-flow-forecast${qs}&today=${TODAY}`)).json()
+    .forecast as Forecast;
 }
 
 describe("analysis — cash-flow forecast (FEAT-013)", () => {
@@ -145,9 +147,16 @@ describe("analysis — cash-flow forecast (FEAT-013)", () => {
       (await get(`/analysis/cash-flow-forecast?accountId=${acct}&horizonDays=abc`)).statusCode,
     ).toBe(400);
     expect((await get(`/analysis/cash-flow-forecast`)).statusCode).toBe(400);
+    // Missing today → 400: the caller supplies the projection's day zero (EH8).
     expect(
-      (await get(`/analysis/cash-flow-forecast?accountId=00000000-0000-0000-0000-000000000000`))
-        .statusCode,
+      (await get(`/analysis/cash-flow-forecast?accountId=${acct}&horizonDays=20`)).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await get(
+          `/analysis/cash-flow-forecast?accountId=00000000-0000-0000-0000-000000000000&today=${TODAY}`,
+        )
+      ).statusCode,
     ).toBe(404);
   });
 });

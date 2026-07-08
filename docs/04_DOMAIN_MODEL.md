@@ -10,7 +10,7 @@ to Postgres per ADR-0002). Money per ADR-0003. Keep in sync with code in the sam
 | ------------ | -------------- |
 | Status       | Accepted       |
 | Owner        | Wesley Cutting |
-| Last updated | 2026-06-16     |
+| Last updated | 2026-07-03     |
 
 > Realizes [`02_PRD.md`](02_PRD.md); money per [`ADR-0003`](adr/ADR-0003-money-integer-minor-units.md);
 > validated-in-TS by [`SPIKE-02`](spikes/02-stack-feasibility.md). The **Foundation** slice
@@ -264,6 +264,17 @@ allocated` indefinitely; the app surfaces these via a **needs-allocation** indic
   (spine §8) — a future epic, designed toward, not built now.
 - **Validation at the boundary:** names trimmed + non-empty; money parsed from validated
   strings; invalid input fails loudly.
+- **Timezone policy (EH8, decided 2026-07-03):** every calendar date in the model
+  (`occurredOn`, `reconciledOn`, `anchorOn`, months, "today") is a **user-local calendar
+  date**, stored and transported as a plain `YYYY-MM-DD`/`YYYY-MM` string with no timezone.
+  **The client derives the current one from the user's local clock** (`apps/web/src/dates.ts`
+  — never `toISOString()`, which is UTC and rolls a day/month early from evening on west of
+  UTC); **the server never derives a user-facing calendar date** — every "today"/"this month"
+  parameter is required at the HTTP boundary and a missing/malformed date fails loudly with
+  `400` (`06_API_CONTRACT` §1). The server's injected clock (EH7) survives only for
+  operational stamps (the backup filename) and tests. Event *instants* (`createdAt`,
+  `archivedAt`) are unaffected: they stay full UTC timestamps — they record when something
+  happened, not which budget day the user meant.
 - **Account `kind`** is descriptive for the **ledger** (every account balance is uniformly the
   signed sum of its transactions — no kind-specific storage). The **liability** reading lives in the
   **analysis** layer, not the ledger: credit utilization (FEAT-014a, `kind='credit'`) and debt payoff

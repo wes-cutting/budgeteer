@@ -9,6 +9,7 @@ import {
   type RecurringView,
   type TransactionView,
 } from "./api";
+import { localMonth as currentMonth } from "./dates";
 import { formatCents } from "./format";
 import { Badge, Card, EmptyState, ProgressBar, Skeleton, type ProgressTone } from "./ui";
 import styles from "./Cockpit.module.css";
@@ -46,7 +47,6 @@ const MONTHS = [
   "December",
 ];
 /** Current calendar month "YYYY-MM" — the budget endpoint keys targets/spend by month. */
-const currentMonth = (): string => new Date().toISOString().slice(0, 7);
 /** "2026-06" → "June 2026" (deterministic; no locale dependence for tests). */
 function monthLabel(month: string): string {
   const [year, mo] = month.split("-");

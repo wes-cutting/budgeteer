@@ -8,6 +8,7 @@ import {
   type TemplateView,
 } from "./api";
 import { tryParseMoney } from "@budgeteer/domain";
+import { localToday } from "./dates";
 import { AllocationEditor } from "./AllocationEditor";
 import { FieldError } from "./ui";
 import { amountFieldError } from "./validation";
@@ -40,7 +41,7 @@ export function AddTransactionForm({
   const [kind, setKind] = useState<"deposit" | "withdrawal">("withdrawal");
   const [amount, setAmount] = useState("");
   const [payee, setPayee] = useState("");
-  const [occurredOn, setOccurredOn] = useState(new Date().toISOString().slice(0, 10));
+  const [occurredOn, setOccurredOn] = useState(localToday());
   const [amountTouched, setAmountTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

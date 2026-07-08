@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { type Api, type BudgetVsActualReport } from "./api";
+import { localMonth as thisMonth } from "./dates";
 import { formatCents } from "./format";
 import { Button, Field, Input, LineChart, Skeleton, type LineSeries } from "./ui";
 import styles from "./Insights.module.css";
@@ -26,8 +27,6 @@ import styles from "./Insights.module.css";
 
 const HORIZONS = [3, 6, 12] as const;
 const TOP_N = 2;
-
-const thisMonth = (): string => new Date().toISOString().slice(0, 7);
 
 /** Ascending "YYYY-MM" window of `n` months ending at (and including) `end`. */
 function monthsBack(n: number, end: string): string[] {

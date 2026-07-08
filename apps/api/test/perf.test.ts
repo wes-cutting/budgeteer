@@ -48,6 +48,7 @@ async function seedAccounts(n: number, prefix = "Acct"): Promise<string[]> {
   const ids: string[] = [];
   for (let i = 0; i < n; i++) {
     const r = await post("/accounts", {
+      openedOn: "2026-07-02",
       name: uid(prefix),
       kind: "checking",
       startingBalance: "1000.00",

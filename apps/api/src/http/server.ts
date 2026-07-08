@@ -33,10 +33,9 @@ export function buildServer(
     logger?: FastifyServerOptions["logger"];
     corsOrigins?: string[];
     /**
-     * The clock every service/route derives "today" from (EH7 — the clock is I/O, passed in,
-     * never reached for). Defaults to the real wall clock; tests inject a fixed one so
-     * date-sensitive behavior (recurring due-ness, the register's default month window,
-     * default occurred-on dates) is deterministic.
+     * The injected clock (EH7 — the clock is I/O, passed in, never reached for). Since EH8,
+     * user-facing calendar dates come from the caller (client-local, required at the boundary);
+     * the clock remains only for operational stamps (the backup filename) and tests.
      */
     clock?: Clock;
   } = {},
@@ -79,15 +78,15 @@ export function buildServer(
   // One service container, constructed once and shared (by reference) with every route plugin —
   // modularizing the routes does not duplicate service instances or DB wiring.
   const services: Services = {
-    accounts: makeAccountService(db, clock),
+    accounts: makeAccountService(db),
     envelopes: makeEnvelopeService(db),
     transactions: makeTransactionService(db),
     transfers: makeTransferService(db),
     envelopeTransfers: makeEnvelopeTransferService(db),
-    recurring: makeRecurringService(db, clock),
+    recurring: makeRecurringService(db),
     reconcile: makeReconcileService(db),
     templates: makeTemplateService(db),
-    analysis: makeAnalysisService(db, clock),
+    analysis: makeAnalysisService(db),
     targets: makeTargetService(db),
     creditLimits: makeCreditLimitService(db),
     loanPrincipals: makeLoanPrincipalService(db),

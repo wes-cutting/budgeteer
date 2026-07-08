@@ -39,7 +39,8 @@ export interface Services {
 /** Options every route plugin receives from `buildServer`. */
 export interface RouteOptions {
   services: Services;
-  /** The injected clock (EH7) — the only source of "today" for route-level defaults. */
+  /** The injected clock (EH7) — operational stamps only (backup filename); user-facing
+   *  calendar dates come from the caller (EH8, 04_DOMAIN_MODEL §6). */
   clock: Clock;
 }
 
