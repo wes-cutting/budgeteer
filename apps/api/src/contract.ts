@@ -31,6 +31,7 @@ export type {
   BudgetVsActualReport,
   CashFlowForecast,
   NetWorthRollup,
+  PayPeriodPlanView,
 } from "./services/analysisService";
 
 // Domain-defined wire types (the analysis services serialize these verbatim), re-exported so the
@@ -47,4 +48,7 @@ export type {
   LoanAccountPayoff,
   DebtPayoffReport,
   NetWorthPoint,
+  PayPeriodBill,
+  PayPeriodBucket,
+  PayPeriodPlan,
 } from "@budgeteer/domain";

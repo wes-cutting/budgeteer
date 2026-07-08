@@ -28,6 +28,7 @@ type ForecastQuery = {
     today?: string;
   };
 };
+type PayPeriodsQuery = { Querystring: { accountId?: string; today?: string } };
 
 // --- Analysis (FEAT-011 … FEAT-014b, R9) + the reference-number setters those reports read ---
 export const analysisRoutes: RoutePlugin = async (app, opts) => {
@@ -78,6 +79,27 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
         forecast: await analysis.cashFlowForecast(accountId, {
           horizonDays,
           includeExpected,
+          today,
+        }),
+      };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "Account not found.");
+      throw e;
+    }
+  });
+
+  // --- Analysis: pay-period plan (FEAT-S7) ---
+  // Horizon is fixed at the forecast's default in V1 (FEAT-S7 §6); `today` is required (EH8).
+  app.get<PayPeriodsQuery>("/analysis/pay-periods", async (req, reply) => {
+    const accountId = req.query.accountId;
+    if (!accountId) return fail(reply, 400, "accountId is required.");
+    const today = req.query.today;
+    if (today === undefined || !DATE_RE.test(today))
+      return fail(reply, 400, "today is required, YYYY-MM-DD.");
+    try {
+      return {
+        plan: await analysis.payPeriodPlan(accountId, {
+          horizonDays: FORECAST_HORIZON_DEFAULT,
           today,
         }),
       };

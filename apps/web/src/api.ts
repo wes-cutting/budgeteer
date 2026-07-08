@@ -20,6 +20,7 @@ import type {
   EnvelopeView,
   LoanPrincipalView,
   NetWorthRollup,
+  PayPeriodPlanView,
   PostDueResult,
   ReconciliationView,
   RecurringFrequency,
@@ -141,6 +142,7 @@ export interface Api {
   getEnvelopeSpend(grain: SpendGrain): Promise<EnvelopeSpendRollup>;
   getBudgetVsActual(month: string): Promise<BudgetVsActualReport>;
   getCashFlowForecast(accountId: string, opts?: ForecastOptions): Promise<CashFlowForecast>;
+  getPayPeriodPlan(accountId: string): Promise<PayPeriodPlanView>;
   setEnvelopeTarget(envelopeId: string, amount: string): Promise<EnvelopeTargetView>;
   clearEnvelopeTarget(envelopeId: string): Promise<void>;
   getCreditUtilization(): Promise<CreditUtilizationReport>;
@@ -370,6 +372,11 @@ export const httpApi: Api = {
       params.set("includeExpected", String(opts.includeExpected));
     return (await request<{ forecast: CashFlowForecast }>(`/analysis/cash-flow-forecast?${params}`))
       .forecast;
+  },
+  async getPayPeriodPlan(accountId) {
+    // The plan's day zero is the user's local today (EH8); horizon is fixed server-side (V1).
+    const params = new URLSearchParams({ accountId, today: localToday() });
+    return (await request<{ plan: PayPeriodPlanView }>(`/analysis/pay-periods?${params}`)).plan;
   },
   async setEnvelopeTarget(envelopeId, amount) {
     return (

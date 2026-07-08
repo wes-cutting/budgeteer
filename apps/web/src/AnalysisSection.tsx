@@ -7,6 +7,7 @@ import { SpendingTrendsView } from "./SpendingTrendsView";
 import { BudgetVsActualView } from "./BudgetVsActualView";
 import { BudgetBurndownView } from "./BudgetBurndownView";
 import { ForecastView } from "./ForecastView";
+import { PayPeriodsView } from "./PayPeriodsView";
 import { CreditView } from "./CreditView";
 import { PayoffView } from "./PayoffView";
 import { NetWorthView } from "./NetWorthView";
@@ -25,6 +26,8 @@ import styles from "./Insights.module.css";
  * UX9 adds the "breakdown" view — a new share-of-outflow composition next to Spend. UX10 adds
  * "trends" — a new month-over-month outflow trend (total + top envelopes) next to Breakdown. UX11
  * adds "burndown" — within-month pace vs. target — next to Budget (its before-month-end companion).
+ * S7 adds "pay-periods" — which paycheck covers what, the forecast's commitment-time twin — next to
+ * Forecast.
  */
 const TABS = [
   { id: "spend", label: "Spend" },
@@ -33,6 +36,7 @@ const TABS = [
   { id: "budget", label: "Budget" },
   { id: "burndown", label: "Burn-down" },
   { id: "forecast", label: "Forecast" },
+  { id: "pay-periods", label: "Pay periods" },
   { id: "credit", label: "Credit" },
   { id: "payoff", label: "Payoff" },
   { id: "networth", label: "Net worth" },
@@ -54,6 +58,8 @@ function renderView(view: AnalysisTab, api: Api): ReactElement {
       return <BudgetBurndownView api={api} />;
     case "forecast":
       return <ForecastView api={api} />;
+    case "pay-periods":
+      return <PayPeriodsView api={api} />;
     case "credit":
       return <CreditView api={api} />;
     case "payoff":

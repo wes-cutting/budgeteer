@@ -8,7 +8,7 @@ by structure (bills grouped inside their paycheck's section) + explicit text, pe
 
 | Field        | Value                                              |
 | ------------ | -------------------------------------------------- |
-| Status       | **Proposed** (follows FEAT-S7's §9 validation)     |
+| Status       | **Validated** (FEAT-S7 §9 ran 2026-07-03 — SPIKE-10; view structure unchanged, over-committed badge added) |
 | Feature      | FEAT-S7 ([feature spec](../features/pay-periods.md)) |
 | Owner        | Wesley Cutting                                     |
 | Last updated | 2026-07-03                                         |
@@ -45,6 +45,8 @@ sections**, each an `<h3>`-titled group so the join is structural:
    - Footer figures (`<dl>`): **Bucket total** and **Headroom after this check** — headroom
      carries a text badge: **Covered** or **Plan breaks here** (first negative bucket), with the
      signed money value as the non-colour signal; subsequent negative buckets read **Short**.
+   - When the bucket's total exceeds its check (the FEAT-S7 §5 overflow fallback), the heading
+     row carries an **Over-committed** text badge — the fallback is never silent.
 
 Money is plain labelled text; direction carried by sign and words. Nothing in the view encodes
 meaning by colour alone (WCAG 1.4.1); badges are the existing text `Badge` primitive.

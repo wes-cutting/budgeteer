@@ -291,6 +291,31 @@ or view.** Money is **integer cents**. Household-scoped server-side.
   **true**. Errors: `400` (`horizonDays` non-integer / out of range; `today` missing/malformed);
   `404` (account missing / not in the household).
 
+### Analysis: pay-period plan (FEAT-S7)
+
+`PayPeriodPlanView = PayPeriodPlan & { accountId, accountName }`;
+`PayPeriodPlan = { startDate, endDate, horizonDays, leadDays, startingBalanceCents,
+buckets: PayPeriodBucket[], firstBreakOn: string|null }`;
+`PayPeriodBucket = { kind: "balance"|"paycheck", label, committedOn, incomeCents,
+bills: PayPeriodBill[], plannedSpendCents, totalCents, overCommitted, headroomAfterCents }`;
+`PayPeriodBill = { label, dueOn, amountCents }`. The forecast's **commitment-time twin** (same
+gather: derived balance, recurring rules, targets, current-month actuals): every recurring
+**deposit** occurrence in the horizon is an expected paycheck bucket; each **withdrawal**
+occurrence is assigned by the SPIKE-10-validated **balanced latest-fit** policy (largest first
+into the latest check ≥ `leadDays`=7 before its due date **with capacity left**; all-full →
+latest feasible, `overCommitted` surfaced; none feasible → the leading `"balance"` bucket,
+committed at `today`). Planned spending is the SPIKE-05-netted monthly residual split evenly
+across that month's checks (a check-less month charges the balance bucket).
+`headroomAfterCents` runs at **commitment time** (payday, not due date); `firstBreakOn` names
+the first bucket that goes negative. The plan math is a **pure domain function**
+(`payPeriodPlan`); the service feeds it I/O. **Read-only — no new table or view.** Money is
+**integer cents**. Household-scoped server-side.
+
+- **`GET /analysis/pay-periods?accountId=<uuid>&today=YYYY-MM-DD`** → `200 { plan }`. `today` is
+  **required** — the caller-local day zero (EH8). The horizon is **fixed at 90 days** and
+  `leadDays` at **7** in V1 (no parameters). Errors: `400` (`accountId` missing; `today`
+  missing/malformed); `404` (account missing / not in the household).
+
 ### Analysis: credit utilization (FEAT-014a)
 
 `CreditUtilizationReport = { accounts: CreditAccountUtilization[], totalOwedCents, totalLimitCents,

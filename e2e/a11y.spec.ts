@@ -10,6 +10,7 @@ import AxeBuilder from "@axe-core/playwright";
 import {
   createAccount,
   createEnvelope,
+  createRecurringRule,
   goToDashboard,
   goToManage,
   openAccount,
@@ -432,6 +433,55 @@ async function scanForecast(page: Page) {
   await assertNoViolations(page);
 }
 
+/** Seed an expected paycheck + a covered bill for the pay-periods view (S7); returns the account. */
+async function seedPayPeriods(page: Page): Promise<string> {
+  const stamp = `pp-${Date.now()}`;
+  const account = `A11y-${stamp}-acct`;
+  const plus = (n: number): string => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    const pad = (x: number): string => String(x).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  await createAccount(page, account, { balance: "1000.00" });
+  await createEnvelope(page, `A11y-${stamp}-salary`);
+  await createEnvelope(page, `A11y-${stamp}-rent`);
+  await createRecurringRule(page, {
+    account,
+    kind: "Deposit",
+    amount: "2000.00",
+    payee: `A11y-${stamp}-pay`,
+    anchorOn: plus(10),
+    envelope: `A11y-${stamp}-salary`,
+  });
+  await createRecurringRule(page, {
+    account,
+    kind: "Withdrawal",
+    amount: "1500.00",
+    payee: `A11y-${stamp}-bill`,
+    anchorOn: plus(25),
+    envelope: `A11y-${stamp}-rent`,
+  });
+  return account;
+}
+
+async function openPayPeriodsFor(page: Page, account: string) {
+  await openAnalysis(page, "Pay periods");
+  await expect(
+    page.getByRole("heading", { name: "Insights — pay periods", level: 1 }),
+  ).toBeVisible();
+  await page.getByLabel("Account", { exact: true }).selectOption({ label: account });
+  await expect(page.getByText("Bucket total").first()).toBeVisible();
+}
+
+/** Scan the populated pay-periods view (S7): bucket sections, bill tables in their scroll
+ *  regions, `<dl>` figures, and the Covered/breaks text badges. */
+async function scanPayPeriods(page: Page) {
+  const account = await seedPayPeriods(page);
+  await openPayPeriodsFor(page, account);
+  await assertNoViolations(page);
+}
+
 async function scanCredit(page: Page) {
   await seedCredit(page, "util"); // leaves us on the Credit view with a limit set
   await expect(
@@ -478,6 +528,10 @@ test.describe("a11y — Insights views (UX8 charts)", () => {
   test("cash-flow forecast (line chart) is accessible", async ({ page }) => {
     await page.goto("/");
     await scanForecast(page);
+  });
+  test("pay periods (bucket sections) is accessible (S7)", async ({ page }) => {
+    await page.goto("/");
+    await scanPayPeriods(page);
   });
   test("credit utilization (gauge) is accessible", async ({ page }) => {
     await page.goto("/");
@@ -644,6 +698,10 @@ test.describe("a11y — dark mode", () => {
     await page.goto("/");
     await scanForecast(page);
   });
+  test("pay periods is accessible in dark mode (S7)", async ({ page }) => {
+    await page.goto("/");
+    await scanPayPeriods(page);
+  });
   test("credit gauge is accessible in dark mode (UX8)", async ({ page }) => {
     await page.goto("/");
     await scanCredit(page);
@@ -690,6 +748,17 @@ async function scanReflow(page: Page) {
   await assertNoViolations(page);
 }
 
+/** S7/AC7 — the pay-periods bucket tables must reflow at 320px inside their own focusable scroll
+ *  regions (UX15), never scrolling the page. Seeds at desktop width, then shrinks and scans. */
+async function scanPayPeriodsReflow(page: Page) {
+  const account = await seedPayPeriods(page);
+  await page.setViewportSize(PHONE);
+  await openPayPeriodsFor(page, account);
+  await expect(page.getByRole("group", { name: /Bills — / }).first()).toBeVisible();
+  await assertNoHorizontalPageScroll(page);
+  await assertNoViolations(page);
+}
+
 test.describe("a11y — responsive reflow at phone width (UX15)", () => {
   test("a wide Insights table reflows without page scroll and stays accessible", async ({
     page,
@@ -698,11 +767,24 @@ test.describe("a11y — responsive reflow at phone width (UX15)", () => {
     await scanReflow(page);
   });
 
+  test("the pay-periods buckets reflow without page scroll and stay accessible (S7)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await scanPayPeriodsReflow(page);
+  });
+
   test.describe("dark mode", () => {
     test.use({ colorScheme: "dark" });
     test("a wide Insights table reflows and stays accessible in dark mode", async ({ page }) => {
       await page.goto("/");
       await scanReflow(page);
+    });
+    test("the pay-periods buckets reflow and stay accessible in dark mode (S7)", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      await scanPayPeriodsReflow(page);
     });
   });
 });

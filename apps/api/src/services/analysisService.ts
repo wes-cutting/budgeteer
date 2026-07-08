@@ -10,8 +10,10 @@ import {
   type LoanAccountInput,
   type NetWorthFlow,
   type NetWorthReport,
+  type PayPeriodPlan,
   type RecurringFrequency,
   cashFlowForecast as computeForecast,
+  payPeriodPlan as computePayPeriodPlan,
   creditUtilization as computeCreditUtilization,
   debtPayoff as computeDebtPayoff,
   netWorthOverTime as computeNetWorth,
@@ -77,12 +79,126 @@ export interface CashFlowForecast extends Forecast {
   accountName: string;
 }
 
+/** The pure-domain `PayPeriodPlan` plus the account it was planned for (FEAT-S7). */
+export interface PayPeriodPlanView extends PayPeriodPlan {
+  accountId: string;
+  accountName: string;
+}
+
 /** The pure-domain `NetWorthReport` plus the grain it was rolled up at (FEAT-R9). */
 export interface NetWorthRollup extends NetWorthReport {
   grain: SpendGrain;
 }
 
 const HH = DEFAULT_HOUSEHOLD_ID;
+
+/** Everything the projecting reads (forecast, pay-period plan) start from — one gather. */
+interface ProjectionInputs {
+  account: { id: string; name: string };
+  startingBalanceCents: number;
+  rules: ForecastRule[];
+  targets: ForecastTarget[];
+  actualThisMonth: Map<string, number>;
+}
+
+/**
+ * Gather the projection inputs for one account (FEAT-013 §4, reused verbatim by FEAT-S7): the
+ * derived balance (`v_account_balances`), the account's recurring rules + split lines, the
+ * household's envelope targets, and the current month's actual outflow per envelope (the
+ * FEAT-012 basis: −Σ allocations on withdrawals). Throws NotFoundError for an unknown account.
+ */
+async function gatherProjectionInputs(
+  db: Kysely<DB>,
+  accountId: string,
+  today: string,
+): Promise<ProjectionInputs> {
+  const account = await db
+    .selectFrom("accounts")
+    .select(["id", "name"])
+    .where("id", "=", accountId)
+    .where("household_id", "=", HH)
+    .executeTakeFirst();
+  if (!account) throw new NotFoundError("account");
+
+  const bal = await db
+    .selectFrom("v_account_balances")
+    .select("balance_cents")
+    .where("account_id", "=", accountId)
+    .executeTakeFirst();
+  const startingBalanceCents = Number(bal?.balance_cents ?? 0);
+
+  // Recurring rules on this account (the scheduled events) + their split lines.
+  const ruleRows = await db
+    .selectFrom("recurring_transactions")
+    .select([
+      "id",
+      "direction",
+      "amount_cents",
+      "payee",
+      "frequency",
+      "anchor_on",
+      "next_occurrence_on",
+    ])
+    .where("household_id", "=", HH)
+    .where("account_id", "=", accountId)
+    .execute();
+  const lineRows =
+    ruleRows.length === 0
+      ? []
+      : await db
+          .selectFrom("recurring_lines")
+          .select(["recurring_id", "envelope_id", "amount_cents", "refund"])
+          .where(
+            "recurring_id",
+            "in",
+            ruleRows.map((r) => r.id),
+          )
+          .execute();
+  const linesByRule = groupBy(
+    lineRows,
+    (r) => r.recurring_id,
+    (r) => ({
+      envelopeId: r.envelope_id,
+      magnitudeCents: Number(r.amount_cents),
+      refund: Boolean(r.refund),
+    }),
+  );
+  const rules: ForecastRule[] = ruleRows.map((r) => ({
+    label: r.payee ?? (r.direction === "deposit" ? "Deposit" : "Withdrawal"),
+    direction: r.direction === "deposit" ? "deposit" : "withdrawal",
+    amountCents: Number(r.amount_cents),
+    frequency: r.frequency as RecurringFrequency,
+    anchorOn: toDateStr(r.anchor_on),
+    nextOccurrenceOn: toDateStr(r.next_occurrence_on),
+    lines: linesByRule.get(r.id) ?? [],
+  }));
+
+  // Targets (the budget side, household-wide).
+  const targetRows = await db
+    .selectFrom("envelope_targets")
+    .select(["envelope_id", "monthly_target_cents"])
+    .where("household_id", "=", HH)
+    .execute();
+  const targets: ForecastTarget[] = targetRows.map((r) => ({
+    envelopeId: r.envelope_id,
+    monthlyTargetCents: Number(r.monthly_target_cents),
+  }));
+
+  // Current-month actual outflow per envelope (the FEAT-012 basis: −Σ allocations on withdrawals).
+  const month = today.slice(0, 7);
+  const spendRows = await db
+    .selectFrom("allocations as al")
+    .innerJoin("transactions as t", "t.id", "al.transaction_id")
+    .where("t.household_id", "=", HH)
+    .where(sql<boolean>`t.amount_cents < 0`)
+    .where(sql<boolean>`to_char(t.occurred_on, 'YYYY-MM') = ${month}`)
+    .select(["al.envelope_id as envelope_id", sql<string>`sum(al.amount_cents)`.as("net_cents")])
+    .groupBy("al.envelope_id")
+    .execute();
+  const actualThisMonth = new Map(spendRows.map((r) => [r.envelope_id, -Number(r.net_cents ?? 0)]));
+
+  return { account, startingBalanceCents, rules, targets, actualThisMonth };
+}
 
 export function makeAnalysisService(db: Kysely<DB>) {
   return {
@@ -244,101 +360,11 @@ export function makeAnalysisService(db: Kysely<DB>) {
       // `today` is the caller's local calendar date (EH8) — the projection's day zero.
       opts: { horizonDays: number; includeExpected: boolean; today: string },
     ): Promise<CashFlowForecast> {
-      const account = await db
-        .selectFrom("accounts")
-        .select(["id", "name"])
-        .where("id", "=", accountId)
-        .where("household_id", "=", HH)
-        .executeTakeFirst();
-      if (!account) throw new NotFoundError("account");
-
-      const today = opts.today;
-
-      const bal = await db
-        .selectFrom("v_account_balances")
-        .select("balance_cents")
-        .where("account_id", "=", accountId)
-        .executeTakeFirst();
-      const startingBalanceCents = Number(bal?.balance_cents ?? 0);
-
-      // Recurring rules on this account (the scheduled events) + their split lines.
-      const ruleRows = await db
-        .selectFrom("recurring_transactions")
-        .select([
-          "id",
-          "direction",
-          "amount_cents",
-          "payee",
-          "frequency",
-          "anchor_on",
-          "next_occurrence_on",
-        ])
-        .where("household_id", "=", HH)
-        .where("account_id", "=", accountId)
-        .execute();
-      const lineRows =
-        ruleRows.length === 0
-          ? []
-          : await db
-              .selectFrom("recurring_lines")
-              .select(["recurring_id", "envelope_id", "amount_cents", "refund"])
-              .where(
-                "recurring_id",
-                "in",
-                ruleRows.map((r) => r.id),
-              )
-              .execute();
-      const linesByRule = groupBy(
-        lineRows,
-        (r) => r.recurring_id,
-        (r) => ({
-          envelopeId: r.envelope_id,
-          magnitudeCents: Number(r.amount_cents),
-          refund: Boolean(r.refund),
-        }),
-      );
-      const rules: ForecastRule[] = ruleRows.map((r) => ({
-        label: r.payee ?? (r.direction === "deposit" ? "Deposit" : "Withdrawal"),
-        direction: r.direction === "deposit" ? "deposit" : "withdrawal",
-        amountCents: Number(r.amount_cents),
-        frequency: r.frequency as RecurringFrequency,
-        anchorOn: toDateStr(r.anchor_on),
-        nextOccurrenceOn: toDateStr(r.next_occurrence_on),
-        lines: linesByRule.get(r.id) ?? [],
-      }));
-
-      // Targets (the budget side, household-wide).
-      const targetRows = await db
-        .selectFrom("envelope_targets")
-        .select(["envelope_id", "monthly_target_cents"])
-        .where("household_id", "=", HH)
-        .execute();
-      const targets: ForecastTarget[] = targetRows.map((r) => ({
-        envelopeId: r.envelope_id,
-        monthlyTargetCents: Number(r.monthly_target_cents),
-      }));
-
-      // Current-month actual outflow per envelope (the FEAT-012 basis: −Σ allocations on withdrawals).
-      const month = today.slice(0, 7);
-      const spendRows = await db
-        .selectFrom("allocations as al")
-        .innerJoin("transactions as t", "t.id", "al.transaction_id")
-        .where("t.household_id", "=", HH)
-        .where(sql<boolean>`t.amount_cents < 0`)
-        .where(sql<boolean>`to_char(t.occurred_on, 'YYYY-MM') = ${month}`)
-        .select([
-          "al.envelope_id as envelope_id",
-          sql<string>`sum(al.amount_cents)`.as("net_cents"),
-        ])
-        .groupBy("al.envelope_id")
-        .execute();
-      const actualThisMonth = new Map(
-        spendRows.map((r) => [r.envelope_id, -Number(r.net_cents ?? 0)]),
-      );
-
+      const { account, startingBalanceCents, rules, targets, actualThisMonth } =
+        await gatherProjectionInputs(db, accountId, opts.today);
       const forecast = computeForecast(
         startingBalanceCents,
-        today,
+        opts.today,
         rules,
         targets,
         actualThisMonth,
@@ -348,6 +374,31 @@ export function makeAnalysisService(db: Kysely<DB>) {
         },
       );
       return { accountId: account.id, accountName: account.name, ...forecast };
+    },
+
+    /**
+     * Pay-period plan for one account (FEAT-S7): expected paychecks become buckets, each bill
+     * occurrence is assigned by the SPIKE-10-validated balanced latest-fit policy, planned
+     * spending is the SPIKE-05-netted monthly residual split across that month's checks, and a
+     * commitment-time headroom line runs down the plan (S8). Same gather as the forecast — the
+     * plan itself is the pure domain `payPeriodPlan`. Read-only; no schema change.
+     */
+    async payPeriodPlan(
+      accountId: string,
+      // `today` is the caller's local calendar date (EH8) — the plan's day zero.
+      opts: { horizonDays: number; today: string },
+    ): Promise<PayPeriodPlanView> {
+      const { account, startingBalanceCents, rules, targets, actualThisMonth } =
+        await gatherProjectionInputs(db, accountId, opts.today);
+      const plan = computePayPeriodPlan(
+        startingBalanceCents,
+        opts.today,
+        rules,
+        targets,
+        actualThisMonth,
+        { horizonDays: opts.horizonDays },
+      );
+      return { accountId: account.id, accountName: account.name, ...plan };
     },
 
     /**

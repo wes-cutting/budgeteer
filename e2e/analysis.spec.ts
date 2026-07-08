@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, createEnvelope, goToDashboard, openAccount, openAnalysis } from "./setup";
+import {
+  createAccount,
+  createEnvelope,
+  createRecurringRule,
+  goToDashboard,
+  openAccount,
+  openAnalysis,
+} from "./setup";
 
 async function fundEnvelope(
   page: Parameters<typeof createAccount>[0],
@@ -243,6 +250,63 @@ test("cash-flow forecast: forward projection renders with expected spend", async
   // The $500 derived starting balance appears, and the expected-spend toggle is shown.
   await expect(page.getByText("$500.00").first()).toBeVisible();
   await expect(page.getByText("Expected discretionary spend").first()).toBeVisible();
+});
+
+// FEAT-S7 — pay periods: an expected paycheck's bucket lists the bill it funds (data → API → UI).
+test("pay periods: an expected paycheck covers its bill with commitment-time headroom", async ({
+  page,
+}) => {
+  const stamp = Date.now();
+  const ACCOUNT = `E2E Account ${stamp}`;
+  const SALARY = `E2E Salary ${stamp}`;
+  const RENT = `E2E RentEnv ${stamp}`;
+  const PAYEE = `E2E Paycheck ${stamp}`;
+  const BILL = `E2E Rent Bill ${stamp}`;
+  // Local calendar dates (EH8) — the app derives today from the browser's local clock.
+  const plus = (n: number): string => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    const pad = (x: number): string => String(x).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  await page.goto("/");
+  await createAccount(page, ACCOUNT, { balance: "1000.00" });
+  await createEnvelope(page, SALARY);
+  await createEnvelope(page, RENT);
+  // Paycheck +$2,000 in 10 days; rent −$1,500 in 25 days (cutoff +18 → the +10 check covers it).
+  await createRecurringRule(page, {
+    account: ACCOUNT,
+    kind: "Deposit",
+    amount: "2000.00",
+    payee: PAYEE,
+    anchorOn: plus(10),
+    envelope: SALARY,
+  });
+  await createRecurringRule(page, {
+    account: ACCOUNT,
+    kind: "Withdrawal",
+    amount: "1500.00",
+    payee: BILL,
+    anchorOn: plus(25),
+    envelope: RENT,
+  });
+
+  await openAnalysis(page, "Pay periods");
+  await expect(
+    page.getByRole("heading", { name: "Insights — pay periods", level: 1 }),
+  ).toBeVisible();
+  await page.getByLabel("Account", { exact: true }).selectOption({ label: ACCOUNT });
+
+  // The bucket join is structural: the bill sits INSIDE its paycheck's section (never colour).
+  const section = page.getByRole("region", { name: `${PAYEE} · ${plus(10)} · +$2,000.00` });
+  await expect(section).toBeVisible();
+  await expect(section.getByRole("rowheader", { name: BILL })).toBeVisible();
+  await expect(section.getByText("Bucket total")).toBeVisible();
+  // The commitment-time headroom figure carries its text badge. Targets are household-wide, so
+  // the shared e2e store's other fixtures legitimately swing the sign — the exact badge states
+  // are unit-tested (PayPeriodsView.test.tsx); here we assert the figure + badge render.
+  await expect(section.getByText("Headroom after this check")).toBeVisible();
+  await expect(section.getByText(/Covered|Plan breaks here|Short/)).toBeVisible();
 });
 
 // FEAT-014a — credit utilization: guards the cross-origin PUT /accounts/:id/credit-limit

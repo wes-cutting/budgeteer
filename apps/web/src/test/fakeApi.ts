@@ -11,6 +11,7 @@ import {
   debtPayoff,
   dueOccurrences,
   netWorthOverTime,
+  payPeriodPlan,
   tryParseMoney,
 } from "@budgeteer/domain";
 import {
@@ -107,6 +108,46 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       transferCounterpartName: transfer?.counterpartName ?? null,
       recurringId: null,
     };
+  }
+
+  /** Gather one account's projection inputs (FEAT-013/FEAT-S7) — mirrors the server's gather. */
+  function projectionInputs(accountId: string): {
+    account: AccountView;
+    rules: ForecastRule[];
+    targetList: ForecastTarget[];
+    actualThisMonth: Map<string, number>;
+  } {
+    recompute();
+    const account = accounts.find((a) => a.id === accountId);
+    if (!account) throw new ApiError("Account not found.");
+    const month = today().slice(0, 7);
+    const rules: ForecastRule[] = recurrings
+      .filter((r) => r.accountId === accountId)
+      .map((r) => ({
+        label: r.payee ?? (r.direction === "deposit" ? "Deposit" : "Withdrawal"),
+        direction: r.direction,
+        amountCents: r.amountCents,
+        frequency: r.frequency,
+        anchorOn: r.anchorOn,
+        nextOccurrenceOn: r.nextOccurrenceOn,
+        lines: r.lines.map((l) => ({
+          envelopeId: l.envelopeId,
+          magnitudeCents: l.amountCents,
+          refund: l.refund,
+        })),
+      }));
+    const targetList: ForecastTarget[] = [...targets.entries()].map(
+      ([envelopeId, monthlyTargetCents]) => ({ envelopeId, monthlyTargetCents }),
+    );
+    const netSpend = new Map<string, number>();
+    for (const txn of txns) {
+      if (txn.amountCents >= 0 || txn.occurredOn.slice(0, 7) !== month) continue;
+      for (const al of txn.allocations) {
+        netSpend.set(al.envelopeId, (netSpend.get(al.envelopeId) ?? 0) + al.amountCents);
+      }
+    }
+    const actualThisMonth = new Map([...netSpend].map(([id, net]) => [id, -net]));
+    return { account, rules, targetList, actualThisMonth };
   }
 
   const api: Api = {
@@ -535,40 +576,10 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
     },
     async getCashFlowForecast(accountId, opts) {
       // Mirror the server: gather the in-memory inputs and run the SAME pure domain projection.
-      recompute();
-      const account = accounts.find((a) => a.id === accountId);
-      if (!account) throw new ApiError("Account not found.");
-      const t = today();
-      const month = t.slice(0, 7);
-      const rules: ForecastRule[] = recurrings
-        .filter((r) => r.accountId === accountId)
-        .map((r) => ({
-          label: r.payee ?? (r.direction === "deposit" ? "Deposit" : "Withdrawal"),
-          direction: r.direction,
-          amountCents: r.amountCents,
-          frequency: r.frequency,
-          anchorOn: r.anchorOn,
-          nextOccurrenceOn: r.nextOccurrenceOn,
-          lines: r.lines.map((l) => ({
-            envelopeId: l.envelopeId,
-            magnitudeCents: l.amountCents,
-            refund: l.refund,
-          })),
-        }));
-      const targetList: ForecastTarget[] = [...targets.entries()].map(
-        ([envelopeId, monthlyTargetCents]) => ({ envelopeId, monthlyTargetCents }),
-      );
-      const netSpend = new Map<string, number>();
-      for (const txn of txns) {
-        if (txn.amountCents >= 0 || txn.occurredOn.slice(0, 7) !== month) continue;
-        for (const al of txn.allocations) {
-          netSpend.set(al.envelopeId, (netSpend.get(al.envelopeId) ?? 0) + al.amountCents);
-        }
-      }
-      const actualThisMonth = new Map([...netSpend].map(([id, net]) => [id, -net]));
+      const { account, rules, targetList, actualThisMonth } = projectionInputs(accountId);
       const forecast = cashFlowForecast(
         account.balanceCents,
-        t,
+        today(),
         rules,
         targetList,
         actualThisMonth,
@@ -578,6 +589,21 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
         },
       );
       return { accountId: account.id, accountName: account.name, ...forecast };
+    },
+    async getPayPeriodPlan(accountId) {
+      // Mirror the server: same gather, same pure domain plan (FEAT-S7; horizon fixed in V1).
+      const { account, rules, targetList, actualThisMonth } = projectionInputs(accountId);
+      const plan = payPeriodPlan(
+        account.balanceCents,
+        today(),
+        rules,
+        targetList,
+        actualThisMonth,
+        {
+          horizonDays: 90,
+        },
+      );
+      return { accountId: account.id, accountName: account.name, ...plan };
     },
     async getCreditUtilization() {
       // Mirror the server: per credit account, owed = −balance and a monthly net-flow trend, run

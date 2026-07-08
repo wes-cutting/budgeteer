@@ -67,6 +67,34 @@ export async function createEnvelope(page: Page, name: string) {
   ).toBeVisible();
 }
 
+/** Create a recurring rule via the /recurring form (FEAT-009), single-envelope allocation. */
+export async function createRecurringRule(
+  page: Page,
+  rule: {
+    account: string;
+    kind: "Deposit" | "Withdrawal";
+    amount: string;
+    payee: string;
+    anchorOn: string; // YYYY-MM-DD
+    envelope: string;
+    frequency?: string;
+  },
+) {
+  await openRecurring(page);
+  await page.getByRole("radio", { name: rule.kind }).check();
+  await page.getByLabel("Account").selectOption({ label: rule.account });
+  await page.getByLabel("Amount").fill(rule.amount);
+  await page.getByLabel("Payee").fill(rule.payee);
+  await page.getByLabel("Frequency").selectOption(rule.frequency ?? "monthly");
+  await page.getByLabel("First date").fill(rule.anchorOn);
+  await page.getByLabel("Envelope", { exact: true }).selectOption({ label: rule.envelope });
+  await page.getByRole("button", { name: "Create recurring rule" }).click();
+  // The rules list shows the envelope line (not the payee) — assert the rule landed.
+  await expect(
+    page.getByRole("list", { name: "Recurring rules" }).getByText(rule.envelope).first(),
+  ).toBeVisible();
+}
+
 /** Open an account's register by clicking its <Link> on the /accounts list (UX6 — was a button). */
 export async function openAccount(page: Page, name: string) {
   await goToAccounts(page);

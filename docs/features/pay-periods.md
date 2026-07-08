@@ -1,9 +1,9 @@
 <!--
 FEATURE SPEC — roadmap S7 (pay-period planning), the last sheet-parity gap (SPIKE-08 §6 S7 + S8).
-SPEC-FIRST per the roadmap: this document + docs/ux/pay-periods.md precede any code. Status is
-Proposed — the §5 assignment policy is the unvalidated core; §9 names the cheap validation step
-that must run before the build slice. Money + a candidate data-model fork ⇒ §11 ceremony held at
-full weight (no compression).
+SPEC-FIRST per the roadmap: this document + docs/ux/pay-periods.md preceded any code. The §9
+validation ran 2026-07-03 (SPIKE-10): it INVALIDATED the original date-only policy and replaced
+§5 with the capacity-aware "balanced latest-fit" that survived the owner's real data. Money + a
+candidate data-model fork ⇒ §11 ceremony held at full weight (no compression).
 -->
 
 # Feature Spec — Pay-period planning ("which paycheck covers what")
@@ -11,10 +11,10 @@ full weight (no compression).
 | Field        | Value                                                                 |
 | ------------ | --------------------------------------------------------------------- |
 | Feature ID   | FEAT-S7                                                               |
-| Status       | **Proposed** (assignment policy unvalidated — see §9)                 |
+| Status       | **Implemented** (§9 ran against the sheet 2026-07-03, SPIKE-10; §5 revised to balanced latest-fit and built the same day, gate-green — the residual float divergence stays flagged in §5/SPIKE-10 §3.6 for owner ratification) |
 | Owner        | Wesley Cutting                                                        |
 | Last updated | 2026-07-03                                                            |
-| Related      | [SPIKE-08](../spikes/08-budgethome-sheet-analysis.md) §4–§6 (S7/S8) · [Recurring](recurring.md) (FEAT-009) · [Forecast](cash-flow-forecast.md) (FEAT-013, SPIKE-05 netting) · [FEAT-S9](still-owed.md) · [UX spec](../ux/pay-periods.md) |
+| Related      | [SPIKE-08](../spikes/08-budgethome-sheet-analysis.md) §4–§6 (S7/S8) · [SPIKE-10](../spikes/10-payperiod-policy-validation.md) (§9 validation) · [Recurring](recurring.md) (FEAT-009) · [Forecast](cash-flow-forecast.md) (FEAT-013, SPIKE-05 netting) · [FEAT-S9](still-owed.md) · [UX spec](../ux/pay-periods.md) |
 
 ## 1. Summary
 
@@ -58,29 +58,43 @@ enumeration reuses `dueOccurrences`; expected discretionary spend reuses SPIKE-0
 **netting** (`target − actual − scheduled, floored at 0`) so a fully-scheduled envelope
 contributes zero planned spending — the same anti-double-count rule the forecast proved.
 
-## 5. The assignment policy (the core design decision — Proposed)
+## 5. The assignment policy (the core design decision — **Validated**, SPIKE-10)
 
 The sheet's bucket split is the owner's hand judgment (blue = due 1st–2nd, red = due 7th–30th,
-whole clusters on alternating checks). A derived plan needs a deterministic rule. **Proposed
-policy:**
+whole clusters on alternating checks). A derived plan needs a deterministic rule. **The policy
+(balanced latest-fit):**
 
-> A bill occurrence is covered by the **latest expected paycheck dated at least `leadDays`
-> before the bill's due date** (default `leadDays = 7`). Bills due sooner than `leadDays` after
-> the first upcoming paycheck — or before it — are covered **from the current balance** (bucket
-> zero). Deposits are never assigned; every recurring deposit occurrence on the account is an
-> expected paycheck.
+> Every recurring **deposit** occurrence on the account is an expected paycheck; deposits are
+> never assigned. Each paycheck has a **capacity**: its deposit amount minus its planned-spending
+> share (below). Bill occurrences are placed **largest amount first** (ties: earlier due date,
+> then label) into the **latest expected paycheck dated at least `leadDays` (default 7) before
+> the bill's due date that still has capacity remaining**. If every feasible paycheck is full,
+> the bill falls back to the **latest feasible paycheck anyway** (an over-committed bucket —
+> surfaced, never silent). Bills with no paycheck ≥ `leadDays` ahead of them are covered **from
+> the current balance** (bucket zero).
 
-Properties: deterministic and order-independent; money always arrives ≥ `leadDays` before the
-bill; a third monthly paycheck simply becomes a bucket like any other (it collects whatever
-falls in its window — possibly nothing, which is the honest answer the sheet's ×2 rollup gets
-wrong twice a year); the ~month-ahead reservation buffer emerges as **headroom** rather than
-being hand-maintained.
+Properties: deterministic (input order is irrelevant — the processing order is defined by the
+rule); money always arrives ≥ `leadDays` before the bill; buckets stay load-balanced whenever a
+balanced assignment exists (on the owner's real data: every bucket at 95–100% of its check,
+exactly the sheet's hand balance — SPIKE-10 §3.5); horizon-stable (a bill's bucket depends on
+its own neighborhood, not on how far out the plan runs); a third monthly paycheck simply becomes
+a bucket like any other; the ~month-ahead reservation buffer emerges as **headroom** rather than
+being hand-maintained. When capacity never binds, the rule reduces to the simple "latest check ≥
+`leadDays` before due".
 
-**Known divergence from the sheet, flagged for review:** the sheet parks the entire 7th–30th
-cluster on one check; this policy spreads those bills across the checks that precede them —
-arguably sounder (each check carries roughly one period's obligations) but *different*. §9's
-validation decides whether the divergence is acceptable or pulls §8 forward. `leadDays` is a
-constant in V1 (no UI control) — tuning it is cheap once real output is visible.
+**History (SPIKE-10):** the originally-proposed date-only rule (latest check ≥ `leadDays`, no
+capacity) was **invalidated** against the owner's real bills — due dates cluster at the month
+boundary, so it parked ~149% of a check on the late-month paycheck while the mid-month one sat
+at ~47%, and no constant `leadDays` fixes that (7/14/21 swept). Reservation-style earliest-fit
+failed differently (horizon-dependent early hoarding). Capacity-awareness is what the owner's
+hand method actually encodes.
+
+**Residual divergence, owner-ratified at review:** the sheet pre-reserves whole clusters ~a
+month out (its big 1st-of-month cluster gets 22–27 days of float); this policy guarantees only
+≥ `leadDays` (that cluster gets 8–13 days) and mirror-balances membership rather than
+cluster-parking. Loads and viability match the sheet; *which* check carries a specific bill may
+not — wanting to pin one is §8's trigger, not a policy change. `leadDays` is a constant in V1
+(no UI control).
 
 **Planned spending per bucket (US-4):** each calendar month's netted residual (SPIKE-05) is
 split evenly (`splitEvenly`) across the expected paychecks of that month and added to each
@@ -110,8 +124,10 @@ at `today`. Negative headroom at any bucket = "the plan breaks here" (text badge
 
 1. Every future bill occurrence in the horizon appears in **exactly one** bucket (bucket zero or
    one paycheck); every expected paycheck in the horizon appears exactly once, in date order.
-2. Each bill is covered by the latest paycheck ≥ `leadDays` before its due date; bills with no
-   such paycheck land in bucket zero.
+2. Each bill is covered by the latest paycheck ≥ `leadDays` before its due date **that has
+   capacity remaining** (bills placed largest-first; ties by earlier due date, then label);
+   when every feasible paycheck is full it lands on the latest feasible one and that bucket is
+   marked **over-committed**; bills with no feasible paycheck land in bucket zero.
 3. A month with three expected paychecks produces three buckets and splits that month's planned
    spending three ways (no ×2 assumption anywhere).
 4. Bucket totals = Σ covered bills + planned-spending share; planned spending reuses the
@@ -131,11 +147,16 @@ never matches how they actually juggle), V1's derived plan becomes the default a
 overridden rule/occurrence changes or posts), and endpoint writes with boundary validation.
 That is a §11 scale-up **decided by the §9 validation, not pre-built**.
 
-## 9. Validation before build (Proposed → Validated)
+## 9. Validation before build (Proposed → Validated) — **ran 2026-07-03, SPIKE-10**
 
-Cheap and against reality, per ways-of-working §6: run the §5 policy **on the owner's live
-rules** (the real store has the actual paycheck + bill cadence — S9's session verified figures
-against it) for the next ~6 paychecks and compare with how the owner would bucket them today.
-Agreement (or acceptable divergence) → `Validated`, build the slice; structural disagreement →
-revisit `leadDays`/policy or pull §8 forward. This is a script-or-hand-simulation time-boxed to
-an hour, not a formal spike.
+The plan was to run the §5 policy on the owner's live rules; **reality check: the dev store has
+no real bill cadence** (one demo paycheck rule + one subscription + `E2E ` fixtures), so the
+validation ran against `BudgetHome.xlsx` itself — the sheet carries the actual biweekly paydays,
+the 15 real bills, *and* the owner's own bucketing, making it the strictly better §9 baseline.
+Outcome ([SPIKE-10](../spikes/10-payperiod-policy-validation.md)): **structural disagreement**
+for the original date-only policy (buckets at ~149%/~47% of a check; no `leadDays` constant
+helps) → per this section's own fork, the policy was revised rather than §8 pulled forward:
+**balanced latest-fit** (§5) reproduces the sheet's load balance (95–100% per bucket, ≥ 7-day
+float, ~19-day mean) on the real data. Residual divergence (float on the big month-boundary
+cluster; mirror-balanced membership) is recorded in §5 and SPIKE-10 §3.6 for owner ratification;
+wanting to pin a specific bill to a specific check remains §8's explicit trigger.
