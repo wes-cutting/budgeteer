@@ -8,6 +8,13 @@
   color: var(--color-text);
 }
 
+.fieldError {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-danger); /* ~6.5:1 on bg + surface, light & dark — text, not color-only */
+  font-size: var(--text-sm);
+}
+
 .empty {
   padding: var(--space-6) var(--space-4);
   text-align: center;

@@ -10,6 +10,18 @@ export function Alert({ className, children, ...rest }: HTMLAttributes<HTMLParag
   );
 }
 
+/** Field-level validation message (FEAT-UX12d) — the quiet, field-scoped counterpart to the
+ *  assertive whole-form `Alert`. It carries a stable `id` so the input can point its
+ *  `aria-describedby` at it (a description, NOT a live region — so it doesn't re-announce on every
+ *  keystroke); the input pairs it with `aria-invalid`. Conveyed by text, never color alone. */
+export function FieldError({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <span id={id} className={styles.fieldError}>
+      {children}
+    </span>
+  );
+}
+
 /** First-run / no-data state (FEAT-UX4) — a title plus an optional next action. */
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (

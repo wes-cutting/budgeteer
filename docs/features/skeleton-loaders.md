@@ -40,8 +40,8 @@ pure presentation swap across the loading branch of each view.
 | ------ | ----------------------- |
 | Confirm on destructive actions | ✅ UX12a |
 | **Skeleton loaders** | **✅ this slice (UX12b)** |
+| Inline validation surfaces | ✅ shipped next — [FEAT-UX12d](inline-validation.md) |
 | Success toasts | Deferred — needs a new Radix Toast primitive (UX12c) |
-| Inline validation surfaces | Deferred — follow-on (UX12d) |
 
 ## 3. Design — swap the loading branch to `<Skeleton />`
 

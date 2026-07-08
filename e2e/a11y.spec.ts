@@ -252,6 +252,22 @@ test.describe("a11y — destructive-action confirm (UX12)", () => {
   });
 });
 
+// UX12d — inline (field-level) validation. Scan a form with an amount field's inline error VISIBLE
+// (aria-invalid + aria-describedby pointing at the FieldError message) so the pattern's a11y — the
+// invalid-field association AND the --color-danger message contrast — is gated in light AND dark.
+test.describe("a11y — inline validation (UX12d)", () => {
+  test("an amount field's inline error is accessible", async ({ page }) => {
+    await page.goto("/accounts");
+    await page.getByRole("button", { name: "Add account" }).click();
+    const form = page.getByRole("form", { name: "Add account" });
+    const balance = form.getByLabel("Starting balance");
+    await balance.fill("12,00"); // not a valid amount
+    await balance.blur();
+    await expect(form.getByText("Enter an amount like 12.34.")).toBeVisible();
+    await assertNoViolations(page);
+  });
+});
+
 test.describe("a11y — Account register", () => {
   test("account register view is accessible", async ({ page }) => {
     await page.goto("/");
@@ -513,6 +529,17 @@ test.describe("a11y — dark mode", () => {
     await expect(page.getByRole("dialog", { name: "Archive envelope?" })).toBeVisible();
     await assertNoViolations(page);
     await page.keyboard.press("Escape");
+  });
+
+  test("inline validation error is accessible in dark mode (UX12d)", async ({ page }) => {
+    await page.goto("/accounts");
+    await page.getByRole("button", { name: "Add account" }).click();
+    const form = page.getByRole("form", { name: "Add account" });
+    const balance = form.getByLabel("Starting balance");
+    await balance.fill("12,00"); // not a valid amount
+    await balance.blur();
+    await expect(form.getByText("Enter an amount like 12.34.")).toBeVisible();
+    await assertNoViolations(page);
   });
 
   // UX8 — re-scan every Insights chart under the dark token set, so the --chart-* stroke/fill

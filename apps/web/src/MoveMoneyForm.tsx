@@ -1,5 +1,7 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
 import { type Api, ApiError, type EnvelopeView } from "./api";
+import { FieldError } from "./ui";
+import { amountFieldError } from "./validation";
 
 /** Re-budget money between two envelopes (no account movement, FEAT-007 #7b / ADR-0004 B). */
 export function MoveMoneyForm({
@@ -16,8 +18,13 @@ export function MoveMoneyForm({
   const [toEnvelopeId, setToEnvelopeId] = useState("");
   const [amount, setAmount] = useState("0.00");
   const [memo, setMemo] = useState("");
+  const [amountTouched, setAmountTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const amountErrorId = useId();
+  // Inline (UX12d): un-parseable amount surfaces as a field-level error on blur, live thereafter.
+  const amountError = amountTouched ? amountFieldError(amount) : null;
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -29,6 +36,10 @@ export function MoveMoneyForm({
     if (fromEnvelopeId === toEnvelopeId) {
       setError("Choose two different envelopes.");
       return;
+    }
+    if (amountFieldError(amount)) {
+      setAmountTouched(true);
+      return; // don't round-trip an amount we already know won't parse
     }
     setSubmitting(true);
     try {
@@ -78,8 +89,16 @@ export function MoveMoneyForm({
         </select>
       </label>
       <label>
-        Amount <input value={amount} onChange={(e) => setAmount(e.target.value)} />
+        Amount{" "}
+        <input
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          onBlur={() => setAmountTouched(true)}
+          aria-invalid={amountError ? true : undefined}
+          aria-describedby={amountError ? amountErrorId : undefined}
+        />
       </label>
+      {amountError ? <FieldError id={amountErrorId}>{amountError}</FieldError> : null}
       <label>
         Memo <input value={memo} onChange={(e) => setMemo(e.target.value)} />
       </label>

@@ -9,6 +9,7 @@ import {
   Dialog,
   EmptyState,
   Field,
+  FieldError,
   Input,
   Select,
   Skeleton,
@@ -43,6 +44,14 @@ describe("ui primitives (FEAT-UX4)", () => {
   test("Alert exposes role=alert with its message", () => {
     render(<Alert>Couldn&apos;t save</Alert>);
     expect(screen.getByRole("alert").textContent).toContain("save");
+  });
+
+  test("FieldError (UX12d) carries the given id so an input can aria-describedby it — a description, not a live region", () => {
+    render(<FieldError id="amt-err">Enter an amount like 12.34.</FieldError>);
+    const msg = screen.getByText("Enter an amount like 12.34.");
+    expect(msg.id).toBe("amt-err");
+    // Field-scoped, not assertive: it must NOT claim role=alert (which would announce app-wide).
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   test("EmptyState shows a title and a next action", () => {

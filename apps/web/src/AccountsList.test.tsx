@@ -77,6 +77,34 @@ describe("AccountsList (UX6 — /accounts)", () => {
     expect(alert.textContent).toMatch(/already exists/i);
   });
 
+  test("inline validation (UX12d): an un-parseable starting balance shows a field error and blocks the create", async () => {
+    const user = userEvent.setup();
+    const api = makeFakeApi();
+    renderAccounts(api);
+    await screen.findByText(/No accounts yet/i);
+
+    const form = await openAddForm(user);
+    await user.type(within(form).getByLabelText(/Name/i), "Checking");
+    const balance = within(form).getByLabelText(/Starting balance/i);
+    await user.clear(balance);
+    await user.type(balance, "12,00"); // not a valid amount
+    await user.click(within(form).getByRole("button", { name: /add account/i }));
+
+    // Field-level error, input marked invalid + described by it, and no account was created.
+    const err = within(form).getByText("Enter an amount like 12.34.");
+    expect(balance.getAttribute("aria-invalid")).toBe("true");
+    expect(balance.getAttribute("aria-describedby")).toBe(err.id);
+    expect(screen.queryByRole("link", { name: "Checking" })).toBeNull();
+
+    // Correcting it clears the error live and lets the account through.
+    await user.clear(balance);
+    await user.type(balance, "2140.00");
+    expect(within(form).queryByText("Enter an amount like 12.34.")).toBeNull();
+    await user.click(within(form).getByRole("button", { name: /add account/i }));
+    const list = await screen.findByRole("list", { name: "Accounts list" });
+    expect(within(list).getByRole("link", { name: "Checking" })).toBeTruthy();
+  });
+
   test("archiving an account confirms first, then moves it behind the Show archived toggle (R7, UX12)", async () => {
     const api = makeFakeApi();
     await api.createAccount({ name: "Old Card", kind: "credit", startingBalance: "0.00" });

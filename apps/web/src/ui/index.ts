@@ -3,7 +3,7 @@
 export { Button } from "./Button";
 export { Badge } from "./Badge";
 export { Card } from "./Card";
-export { Alert, EmptyState, Skeleton } from "./Feedback";
+export { Alert, FieldError, EmptyState, Skeleton } from "./Feedback";
 export { Field, Input, Select } from "./Field";
 export { Dialog } from "./Dialog";
 export { ConfirmDialog } from "./ConfirmDialog";

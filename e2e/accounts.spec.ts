@@ -27,6 +27,36 @@ test("create a checking account and open its register", async ({ page }) => {
   await expect(page.getByText("Balance: $0.00", { exact: true })).toBeVisible();
 });
 
+test("inline validation (UX12d): an un-parseable starting balance blocks the create until fixed", async ({
+  page,
+}) => {
+  const stamp = Date.now();
+  const ACCOUNT = `E2E Inline ${stamp}`;
+  await page.goto("/accounts");
+  await page.getByRole("button", { name: "Add account" }).click();
+  const form = page.getByRole("form", { name: "Add account" });
+  await form.getByLabel("Name", { exact: true }).fill(ACCOUNT);
+  const balance = form.getByLabel("Starting balance");
+  await balance.fill("12,00"); // not a valid amount
+  await balance.blur();
+
+  // The field surfaces its own error and the create is blocked — no account link appears.
+  await expect(form.getByText("Enter an amount like 12.34.")).toBeVisible();
+  await expect(balance).toHaveAttribute("aria-invalid", "true");
+  await form.getByRole("button", { name: "Add account" }).click();
+  await expect(
+    page.getByRole("list", { name: "Accounts list" }).getByRole("link", { name: ACCOUNT }),
+  ).toHaveCount(0);
+
+  // Correcting it clears the error live and the account is created.
+  await balance.fill("2140.00");
+  await expect(form.getByText("Enter an amount like 12.34.")).toHaveCount(0);
+  await form.getByRole("button", { name: "Add account" }).click();
+  await expect(
+    page.getByRole("list", { name: "Accounts list" }).getByRole("link", { name: ACCOUNT }),
+  ).toBeVisible();
+});
+
 test("archive and unarchive an account (R7)", async ({ page }) => {
   const stamp = Date.now();
   const ACCOUNT = `E2E Archive ${stamp}`;

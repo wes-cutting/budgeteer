@@ -1,8 +1,9 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useId, useState } from "react";
 import { Link } from "react-router";
 import { type AccountKind, type AccountView, type Api, ApiError } from "./api";
 import { formatCents } from "./format";
-import { Button, ConfirmDialog, Skeleton } from "./ui";
+import { Button, ConfirmDialog, FieldError, Skeleton } from "./ui";
+import { amountFieldError } from "./validation";
 
 const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "loan", "cash", "other"];
 
@@ -236,12 +237,22 @@ function AddAccountForm({ api, onCreated }: { api: Api; onCreated: (a: AccountVi
   const [name, setName] = useState("");
   const [kind, setKind] = useState<AccountKind>("checking");
   const [startingBalance, setStartingBalance] = useState("0.00");
+  const [balanceTouched, setBalanceTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const balanceErrorId = useId();
+  // Inline (UX12d): an un-parseable starting balance surfaces field-level on blur (live thereafter),
+  // instead of the server's generic "Couldn't save" only at submit.
+  const balanceError = balanceTouched ? amountFieldError(startingBalance) : null;
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    if (amountFieldError(startingBalance)) {
+      setBalanceTouched(true);
+      return; // don't round-trip a balance we already know won't parse
+    }
     setSubmitting(true);
     try {
       const account = await api.createAccount({ name, kind, startingBalance });
@@ -270,8 +281,15 @@ function AddAccountForm({ api, onCreated }: { api: Api; onCreated: (a: AccountVi
       </label>
       <label>
         Starting balance
-        <input value={startingBalance} onChange={(e) => setStartingBalance(e.target.value)} />
+        <input
+          value={startingBalance}
+          onChange={(e) => setStartingBalance(e.target.value)}
+          onBlur={() => setBalanceTouched(true)}
+          aria-invalid={balanceError ? true : undefined}
+          aria-describedby={balanceError ? balanceErrorId : undefined}
+        />
       </label>
+      {balanceError ? <FieldError id={balanceErrorId}>{balanceError}</FieldError> : null}
       {error ? <p role="alert">{error}</p> : null}
       <button type="submit" disabled={submitting}>
         Add account

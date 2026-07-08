@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   type AccountView,
   type AllocationDraft,
@@ -9,6 +9,8 @@ import {
 } from "./api";
 import { tryParseMoney } from "@budgeteer/domain";
 import { AllocationEditor } from "./AllocationEditor";
+import { FieldError } from "./ui";
+import { amountFieldError } from "./validation";
 
 interface Props {
   api: Api;
@@ -39,8 +41,15 @@ export function AddTransactionForm({
   const [amount, setAmount] = useState("");
   const [payee, setPayee] = useState("");
   const [occurredOn, setOccurredOn] = useState(new Date().toISOString().slice(0, 10));
+  const [amountTouched, setAmountTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const amountErrorId = useId();
+  // Inline (UX12d): an un-parseable amount surfaces field-level on blur (live thereafter). The
+  // AllocationEditor already disables Save when the amount can't parse (magnitudeCents falls to 0);
+  // this message tells the user *why* the button is disabled instead of leaving it silent.
+  const amountError = amountTouched ? amountFieldError(amount) : null;
 
   const magnitudeCents = tryParseMoney(amount) ?? 0;
   // Picker mode resolves the account from the in-form select; embedded mode uses the fixed prop.
@@ -116,8 +125,12 @@ export function AddTransactionForm({
           aria-label="Transaction amount"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
+          onBlur={() => setAmountTouched(true)}
+          aria-invalid={amountError ? true : undefined}
+          aria-describedby={amountError ? amountErrorId : undefined}
         />
       </label>
+      {amountError ? <FieldError id={amountErrorId}>{amountError}</FieldError> : null}
       <label>
         Date{" "}
         <input

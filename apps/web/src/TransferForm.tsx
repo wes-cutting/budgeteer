@@ -1,5 +1,7 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
 import { type AccountView, type Api, ApiError } from "./api";
+import { FieldError } from "./ui";
+import { amountFieldError } from "./validation";
 
 /** Move money from this account to another (account↔account double-entry, FEAT-007). */
 export function TransferForm({
@@ -17,8 +19,14 @@ export function TransferForm({
   const [toAccountId, setToAccountId] = useState("");
   const [amount, setAmount] = useState("0.00");
   const [memo, setMemo] = useState("");
+  const [amountTouched, setAmountTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const amountErrorId = useId();
+  // Inline (UX12d): surface an un-parseable amount as a field-level error once the field is touched;
+  // shown live thereafter so it clears as the user fixes it. Positivity/funds stay server-checked.
+  const amountError = amountTouched ? amountFieldError(amount) : null;
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -26,6 +34,10 @@ export function TransferForm({
     if (!toAccountId) {
       setError("Choose an account to transfer to.");
       return;
+    }
+    if (amountFieldError(amount)) {
+      setAmountTouched(true);
+      return; // don't round-trip an amount we already know won't parse
     }
     setSubmitting(true);
     try {
@@ -65,8 +77,16 @@ export function TransferForm({
             </select>
           </label>
           <label>
-            Amount <input value={amount} onChange={(e) => setAmount(e.target.value)} />
+            Amount{" "}
+            <input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              onBlur={() => setAmountTouched(true)}
+              aria-invalid={amountError ? true : undefined}
+              aria-describedby={amountError ? amountErrorId : undefined}
+            />
           </label>
+          {amountError ? <FieldError id={amountErrorId}>{amountError}</FieldError> : null}
           <label>
             Memo <input value={memo} onChange={(e) => setMemo(e.target.value)} />
           </label>
