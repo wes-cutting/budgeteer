@@ -201,13 +201,30 @@ async function assertNoViolations(page: Page) {
   ).toEqual([]);
 }
 
+// UX14 — first-run onboarding. Placed FIRST so it runs before any test seeds the run-scoped (never
+// reset) e2e store — i.e. against a GENUINELY empty app, where the home derives first-run and shows
+// the guided onboarding. Scanned in DARK here and in LIGHT by the "a11y — home (cockpit)" block
+// below, so the empty guided surface is axe-gated in BOTH schemes with it visible.
+test.describe("a11y — first-run onboarding (UX14, dark)", () => {
+  test.use({ colorScheme: "dark" });
+
+  test("the empty-app first-run onboarding is accessible in dark mode", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("region", { name: "Get started" })).toBeVisible();
+    await assertNoViolations(page);
+  });
+});
+
 test.describe("a11y — home (cockpit)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Budgeteer", level: 1 })).toBeVisible();
   });
 
-  test("empty state is accessible", async ({ page }) => {
+  test("first-run onboarding (empty app) is accessible", async ({ page }) => {
+    // Still an empty store here (only the dark onboarding scan above has run, which seeds nothing),
+    // so the home shows the guided onboarding — scan it in LIGHT with the surface VISIBLE (UX14).
+    await expect(page.getByRole("region", { name: "Get started" })).toBeVisible();
     await assertNoViolations(page);
   });
 

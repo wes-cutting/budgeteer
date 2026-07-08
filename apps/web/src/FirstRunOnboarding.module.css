@@ -1,0 +1,45 @@
+/* UX14 — first-run onboarding. Sits on the FEAT-UX4 EmptyState (dashed panel); this only sizes the
+   surface and turns the two guided steps into a left-aligned numbered list with accent CTA links. */
+.wrap {
+  max-width: 40rem;
+  margin: var(--space-6) auto;
+}
+
+.lead {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text);
+}
+
+/* Override EmptyState's centered text: an ordered list reads left-aligned, keeping its decimal
+   markers so the "step 1 / step 2" order is conveyed by structure, not colour. */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding-left: var(--space-4);
+  text-align: left;
+  color: var(--color-text);
+}
+
+.stepText {
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+/* Link styled as an accent action — mirrors Button's .accent, but a <Link> so it routes. Contrast
+   is carried by --color-on-accent on --color-accent (≥ 4.5:1 light + dark, per the UX4 tokens). */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--text-sm);
+  line-height: 1.2;
+  text-decoration: none;
+}
+.cta:hover {
+  background: var(--color-accent-hover);
+}
