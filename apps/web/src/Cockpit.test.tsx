@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { Cockpit } from "./Cockpit";
@@ -246,6 +246,70 @@ describe("Cockpit (UX5 — budget + future-planning home)", () => {
     expect(within(p).getByRole("link", { name: "Manage recurring" }).getAttribute("href")).toBe(
       "/recurring",
     );
+  });
+
+  test("upcoming panel derives 'Still owed this month' from unposted withdrawals (FEAT-S9)", async () => {
+    // Pin the clock (BudgetBurndownView precedent) so month-end and the expected sum are exact.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 6, 3)); // 2026-07-03 local
+    try {
+      const api = makeFakeApi();
+      const acct = await api.createAccount({
+        name: "Checking",
+        kind: "checking",
+        startingBalance: "0.00",
+      });
+      const env = await api.createEnvelope({ name: "Bills", kind: "standard" });
+      const mk = (over: {
+        kind: "deposit" | "withdrawal";
+        amount: string;
+        frequency: "weekly" | "biweekly" | "monthly";
+        anchorOn: string;
+      }) =>
+        api.createRecurring({
+          accountId: acct.id,
+          kind: over.kind,
+          amount: over.amount,
+          payee: over.kind,
+          frequency: over.frequency,
+          anchorOn: over.anchorOn,
+          lines: [{ envelopeId: env.id, amount: over.amount }],
+        });
+      // Monthly rent on the 15th: 1 July occurrence. Weekly $25 from the 10th: 10/17/24/31 = 4.
+      // June 1 bill never posted: June 1 + July 1 both still owed. The paycheck deposit: excluded.
+      await mk({
+        kind: "withdrawal",
+        amount: "1200.00",
+        frequency: "monthly",
+        anchorOn: "2026-07-15",
+      });
+      await mk({
+        kind: "withdrawal",
+        amount: "25.00",
+        frequency: "weekly",
+        anchorOn: "2026-07-10",
+      });
+      await mk({
+        kind: "withdrawal",
+        amount: "60.00",
+        frequency: "monthly",
+        anchorOn: "2026-06-01",
+      });
+      await mk({
+        kind: "deposit",
+        amount: "1500.00",
+        frequency: "biweekly",
+        anchorOn: "2026-07-03",
+      });
+
+      renderCockpit(api);
+      const p = await panel("Upcoming");
+      expect(await within(p).findByText("Still owed this month")).toBeTruthy();
+      // 1200 + 4×25 + 2×60 = $1,420.00
+      expect(figureCents(p)).toEqual([142_000]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("upcoming panel is an empty state with no recurring rules", async () => {

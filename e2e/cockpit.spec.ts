@@ -97,6 +97,16 @@ test("cockpit panels deep-link to their detail routes (UX5)", async ({ page }) =
     page.getByRole("list", { name: "Recurring rules" }).getByText(ENVELOPE).first(),
   ).toBeVisible();
   await goToDashboard(page);
+
+  // FEAT-S9: with a withdrawal rule in place, the panel derives "Still owed this month" — a
+  // parseable non-negative money figure (exact sums are unit-tested; the e2e DB is shared).
+  const upcoming = page
+    .getByRole("region", { name: "Overview" })
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "Upcoming", level: 3 }) });
+  await expect(upcoming.getByText("Still owed this month")).toBeVisible();
+  expect(parseCents(await upcoming.locator("dd").first().innerText())).toBeGreaterThanOrEqual(0);
+
   await page.getByRole("link", { name: "Manage recurring" }).click();
   await expect(page.getByRole("heading", { name: "Recurring", level: 1 })).toBeVisible();
   await goToDashboard(page);

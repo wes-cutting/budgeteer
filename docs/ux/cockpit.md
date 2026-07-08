@@ -10,7 +10,7 @@ deep-linking to its detail route; management stays below (demoted in UX6). Pairs
 | Status       | Accepted                                       |
 | Feature      | FEAT-UX5 ([feature spec](../features/cockpit.md)) |
 | Owner        | Wesley Cutting                                 |
-| Last updated | 2026-06-27                                     |
+| Last updated | 2026-07-03                                     |
 
 ## 1. User & job
 
@@ -49,8 +49,10 @@ Each panel handles all four states:
     they reconcile) + a badge: **On track** or **N over budget**.
   - **Needs allocation:** the count (large), "N transactions need allocation", Σ unallocated, and
     **Allocate now** (link present only when count > 0).
-  - **Upcoming:** a "due to post" badge (when any are due) + the next ≤4 rules (payee · signed amount
-    · next date) + **Manage recurring**.
+  - **Upcoming:** a "due to post" badge (when any are due) + a **Still owed this month** figure
+    (FEAT-S9: Σ unposted withdrawal occurrences through local month-end — the sheet's D-column
+    countdown, derived; a labelled `<dl>` figure, never colour) + the next ≤4 rules (payee · signed
+    amount · next date) + **Manage recurring**.
   - **Cash-flow forecast:** "<account> · next N days" + Now / Projected end / Lowest + a badge
     **Stays positive** or **Projected negative on <date>** + **View forecast**.
   - **Net worth:** Assets / Liabilities / Net worth + **Net worth over time**.

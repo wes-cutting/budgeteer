@@ -1,10 +1,12 @@
 import { describe, expect, test } from "vitest";
 import {
+  type StillOwedRule,
   anchorDayOf,
   daysInMonth,
   dueOccurrences,
   isRecurringFrequency,
   nextOccurrence,
+  stillOwedCents,
 } from "../src/index";
 
 describe("recurring schedule (FEAT-009)", () => {
@@ -49,5 +51,43 @@ describe("recurring schedule (FEAT-009)", () => {
   test("isRecurringFrequency guards the enum", () => {
     expect(isRecurringFrequency("monthly")).toBe(true);
     expect(isRecurringFrequency("yearly")).toBe(false);
+  });
+});
+
+describe("stillOwedCents (FEAT-S9)", () => {
+  const rule = (over: Partial<StillOwedRule>): StillOwedRule => ({
+    direction: "withdrawal",
+    amountCents: 10_000,
+    frequency: "monthly",
+    anchorOn: "2026-01-15",
+    nextOccurrenceOn: "2026-07-15",
+    ...over,
+  });
+
+  test("sums withdrawal occurrences from each rule's cursor through month-end", () => {
+    const rules = [
+      // Monthly on the 15th, unposted from July: one occurrence left this month.
+      rule({}),
+      // Weekly on Fridays, cursor 2026-07-10: 10th, 17th, 24th, 31st = 4 × $25.
+      rule({
+        amountCents: 2_500,
+        frequency: "weekly",
+        anchorOn: "2026-07-03",
+        nextOccurrenceOn: "2026-07-10",
+      }),
+    ];
+    expect(stillOwedCents(rules, "2026-07-31")).toBe(10_000 + 4 * 2_500);
+  });
+
+  test("past-due unposted occurrences still count — posting is what clears them", () => {
+    // Monthly on the 1st, never posted since June: June 1 + July 1 both still owed.
+    const r = rule({ anchorOn: "2026-06-01", nextOccurrenceOn: "2026-06-01" });
+    expect(stillOwedCents([r], "2026-07-31")).toBe(2 * 10_000);
+  });
+
+  test("deposits contribute nothing; a cursor past month-end contributes nothing", () => {
+    const deposit = rule({ direction: "deposit", amountCents: 150_000 });
+    const nextMonth = rule({ nextOccurrenceOn: "2026-08-15" });
+    expect(stillOwedCents([deposit, nextMonth], "2026-07-31")).toBe(0);
   });
 });

@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router";
-import { isLiabilityKind } from "@budgeteer/domain";
+import { isLiabilityKind, stillOwedCents } from "@budgeteer/domain";
 import {
   type AccountView,
   type Api,
@@ -9,7 +9,7 @@ import {
   type RecurringView,
   type TransactionView,
 } from "./api";
-import { localMonth as currentMonth } from "./dates";
+import { localMonth as currentMonth, localMonthRange } from "./dates";
 import { formatCents } from "./format";
 import { Badge, Card, EmptyState, ProgressBar, Skeleton, type ProgressTone } from "./ui";
 import styles from "./Cockpit.module.css";
@@ -300,12 +300,16 @@ function UpcomingPanel({ state }: { state: Loadable<RecurringView[]> }) {
           );
         }
         const dueNow = rules.reduce((s, r) => s + r.dueCount, 0);
+        // FEAT-S9: the sheet's D-column countdown, derived — Σ unposted withdrawal occurrences
+        // through the last day of the user's local month (past-due unposted count; posting clears).
+        const owedCents = stillOwedCents(rules, localMonthRange().to);
         const soon = [...rules]
           .sort((a, b) => a.nextOccurrenceOn.localeCompare(b.nextOccurrenceOn))
           .slice(0, 4);
         return (
           <>
             {dueNow > 0 ? <Badge tone="warning">{dueNow} due to post</Badge> : null}
+            <Figures items={[{ term: "Still owed this month", value: formatCents(owedCents) }]} />
             <ul className={styles.list} aria-label="Upcoming recurring">
               {soon.map((r) => (
                 <li key={r.id}>

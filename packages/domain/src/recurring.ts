@@ -79,3 +79,33 @@ export function dueOccurrences(
   }
   return { dates, nextCursor: cur };
 }
+
+/** The rule fields the still-owed derivation needs (structurally satisfied by RecurringView). */
+export interface StillOwedRule {
+  direction: "deposit" | "withdrawal";
+  amountCents: number; // positive magnitude
+  frequency: RecurringFrequency;
+  anchorOn: string; // YYYY-MM-DD
+  nextOccurrenceOn: string; // YYYY-MM-DD — the unposted-occurrence cursor
+}
+
+/**
+ * "Still owed this month" (FEAT-S9): Σ over WITHDRAWAL rules of amount × unposted occurrences on
+ * or before `through` (the last day of the user's current local month). Occurrences start at each
+ * rule's cursor, so posting is what clears the figure — and past-due unposted occurrences count:
+ * that money is still owed. Deposits are the balance side, not the owed side; they contribute 0.
+ */
+export function stillOwedCents(rules: StillOwedRule[], through: string): number {
+  let total = 0;
+  for (const r of rules) {
+    if (r.direction !== "withdrawal") continue;
+    const { dates } = dueOccurrences(
+      r.nextOccurrenceOn,
+      through,
+      r.frequency,
+      anchorDayOf(r.anchorOn),
+    );
+    total += dates.length * r.amountCents;
+  }
+  return total;
+}
