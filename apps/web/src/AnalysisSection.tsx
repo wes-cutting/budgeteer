@@ -2,6 +2,7 @@ import { type ReactElement } from "react";
 import { Navigate, NavLink, useNavigate, useParams } from "react-router";
 import { type Api } from "./api";
 import { AnalysisView } from "./AnalysisView";
+import { SpendingBreakdownView } from "./SpendingBreakdownView";
 import { BudgetVsActualView } from "./BudgetVsActualView";
 import { ForecastView } from "./ForecastView";
 import { CreditView } from "./CreditView";
@@ -10,17 +11,19 @@ import { NetWorthView } from "./NetWorthView";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 /**
- * UX3 — the Insights area, now URL-addressable at `/insights/:view` (ADR-0006). Each of the six
- * analysis views (spend-by-envelope, budget vs. actual, cash-flow forecast, credit utilization,
+ * UX3 — the Insights area, now URL-addressable at `/insights/:view` (ADR-0006). Each analysis view
+ * (spend-by-envelope, spending breakdown, budget vs. actual, cash-flow forecast, credit utilization,
  * debt payoff, net worth) is its own deep-linkable route; the sub-nav is `<NavLink>`s (which set
  * `aria-current="page"` on the active one) instead of the old in-component tab state. The active
  * view stays a self-contained full page with its own <h1> and data fetch, and only it is mounted.
  *
  * Each view keeps its own <h1>. UX8 completed the Analysis → Insights migration: the headings now read
  * "Insights — …" and each view renders a hand-rolled accessible chart (ADR-0007) above its data table.
+ * UX9 adds the "breakdown" view — a new share-of-outflow composition next to Spend.
  */
 const TABS = [
   { id: "spend", label: "Spend" },
+  { id: "breakdown", label: "Breakdown" },
   { id: "budget", label: "Budget" },
   { id: "forecast", label: "Forecast" },
   { id: "credit", label: "Credit" },
@@ -34,6 +37,8 @@ function renderView(view: AnalysisTab, api: Api): ReactElement {
   switch (view) {
     case "spend":
       return <AnalysisView api={api} />;
+    case "breakdown":
+      return <SpendingBreakdownView api={api} />;
     case "budget":
       return <BudgetVsActualView api={api} />;
     case "forecast":

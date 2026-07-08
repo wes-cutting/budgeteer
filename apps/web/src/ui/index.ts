@@ -9,8 +9,10 @@ export { Dialog } from "./Dialog";
 export {
   LineChart,
   BarChart,
+  BreakdownBars,
   Gauge,
   type ChartToken,
   type LineSeries,
   type BarSeries,
+  type BreakdownSlice,
 } from "./Chart";

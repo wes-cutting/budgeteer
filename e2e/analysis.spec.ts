@@ -39,6 +39,50 @@ test("spend by envelope: allocated deposit appears in the monthly grid", async (
   await expect(envelopeRow).toContainText("$500.00");
 });
 
+// FEAT-UX9 — spending breakdown: each envelope's share of the month's OUTFLOW, ranked.
+test("spending breakdown: outflow is ranked by share of the month total", async ({ page }) => {
+  const stamp = Date.now();
+  const ACCOUNT = `E2E Brk Acct ${stamp}`;
+  const FOOD = `E2E Brk Food ${stamp}`;
+  const FUN = `E2E Brk Fun ${stamp}`;
+  const month = new Date().toISOString().slice(0, 7);
+  await page.goto("/");
+  await createAccount(page, ACCOUNT, { balance: "1000.00" });
+  await createEnvelope(page, FOOD);
+  await createEnvelope(page, FUN);
+
+  // Two withdrawals this month: Food −$300, Fun −$100.
+  const spend = async (envelope: string, amount: string, payee: string) => {
+    await openAccount(page, ACCOUNT);
+    const txnForm = page.getByRole("form", { name: "Add transaction" });
+    await txnForm.getByRole("radio", { name: "Withdrawal" }).check();
+    await txnForm.getByLabel("Transaction amount").fill(amount);
+    await txnForm.getByLabel("Payee").fill(payee);
+    await txnForm.getByLabel("Envelope", { exact: true }).selectOption({ label: envelope });
+    await txnForm.getByRole("button", { name: "Save transaction" }).click();
+    await goToDashboard(page);
+  };
+  await spend(FOOD, "300.00", `E2E Brk PayFood ${stamp}`);
+  await spend(FUN, "100.00", `E2E Brk PayFun ${stamp}`);
+
+  await openAnalysis(page, "Breakdown");
+  await expect(
+    page.getByRole("heading", { name: "Insights — spending breakdown", level: 1 }),
+  ).toBeVisible();
+
+  // The shared e2e store accretes outflow from parallel specs, so the household-wide total (and thus
+  // exact shares) isn't deterministic. Assert the robust facts instead: each envelope's own outflow,
+  // and that Food ($300) is RANKED ABOVE Fun ($100) — true regardless of what else spent this month.
+  const table = page.getByRole("table", { name: new RegExp(`Share of ${month} outflow`) });
+  await expect(table.getByRole("row", { name: new RegExp(FOOD) })).toContainText("$300.00");
+  await expect(table.getByRole("row", { name: new RegExp(FUN) })).toContainText("$100.00");
+  const headers = await table.getByRole("rowheader").allTextContents();
+  const iFood = headers.findIndex((h) => h.includes(FOOD));
+  const iFun = headers.findIndex((h) => h.includes(FUN));
+  expect(iFood).toBeGreaterThanOrEqual(0);
+  expect(iFun).toBeGreaterThan(iFood);
+});
+
 // FEAT-012 — budget vs. actual: guards the CORS allow-methods fix (cross-origin PUT /envelopes/:id/target)
 test("budget vs. actual: set a monthly target and see it against spend", async ({ page }) => {
   const stamp = Date.now();

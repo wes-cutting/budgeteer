@@ -328,6 +328,70 @@ export function BarChart({
   );
 }
 
+export interface BreakdownSlice {
+  label: string; // category name (envelope)
+  fraction: number; // 0..1 — this slice's share of the displayed total
+  valueLabel: string; // the truthful magnitude, e.g. "$360.00"
+  shareLabel: string; // the truthful share, e.g. "42.0%"
+}
+
+/**
+ * Composition / breakdown — each category's SHARE of a whole (e.g. where the month's outflow went),
+ * as RANKED HORIZONTAL BARS (FEAT-UX9). The hardest case for the no-colour-only rule is a
+ * many-category breakdown, so this shape leans entirely on NON-colour signals:
+ *
+ *  - every bar is the SAME colour (`--chart-1`) — colour carries NO categorical meaning, so it can
+ *    never be the sole signal;
+ *  - each bar is distinguished by a DIRECT TEXT LABEL ("rank. name — value (share%)"), by RANK ORDER
+ *    (slices are pre-sorted descending; longest = largest), and by BAR LENGTH (∝ the share).
+ *
+ * `summary` is the screen-reader headline; `table` (envelope · outflow · % share) is the exact-figures
+ * source of truth. Slices must arrive sorted descending by share.
+ */
+export function BreakdownBars({
+  caption,
+  summary,
+  slices,
+  table,
+}: {
+  caption: string;
+  summary: string;
+  slices: BreakdownSlice[];
+  table: ReactNode;
+}) {
+  const BW = 640;
+  const pad = { x: 16, top: 16, bottom: 12 };
+  const rowH = 38;
+  const barH = 12;
+  const trackW = BW - pad.x * 2;
+  const height = pad.top + slices.length * rowH + pad.bottom;
+
+  return (
+    <ChartFigure caption={caption} summary={summary} viewBox={`0 0 ${BW} ${height}`} table={table}>
+      {slices.map((s, i) => {
+        const y = pad.top + i * rowH;
+        const fillW = Math.max(0, Math.min(1, s.fraction)) * trackW;
+        return (
+          <g key={s.label}>
+            <text x={pad.x} y={y + 13} className={styles.breakdownLabel}>
+              {`${i + 1}. ${s.label} — ${s.valueLabel} (${s.shareLabel})`}
+            </text>
+            <rect
+              x={pad.x}
+              y={y + 18}
+              width={trackW}
+              height={barH}
+              rx={3}
+              className={styles.gaugeTrack}
+            />
+            <rect x={pad.x} y={y + 18} width={fillW} height={barH} rx={3} fill="var(--chart-1)" />
+          </g>
+        );
+      })}
+    </ChartFigure>
+  );
+}
+
 /**
  * Progress gauge — one ratio (credit utilization, debt payoff) as a horizontal bar with a direct
  * percentage label and an optional threshold marker (e.g. the 100% credit limit). The filled portion
