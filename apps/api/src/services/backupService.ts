@@ -1,4 +1,4 @@
-import type { Kysely } from "kysely";
+import { type Kysely, sql } from "kysely";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
 
@@ -6,6 +6,9 @@ export interface BudgeteerBackup {
   version: 1;
   exportedAt: string;
   householdId: string;
+  /** Executed migration names at export time (EH10) — what schema this snapshot was taken
+   *  against; restore refuses a file listing migrations the target store doesn't have. */
+  schema: { migrations: string[] };
   tables: {
     households: Record<string, unknown>[];
     accounts: Record<string, unknown>[];
@@ -70,6 +73,7 @@ export function makeBackupService(db: Kysely<DB>) {
         envelopeTargets,
         creditLimits,
         loanPrincipals,
+        migrationRows,
       ] = await Promise.all([
         db.selectFrom("households").where("id", "=", hid).selectAll().execute(),
         db.selectFrom("accounts").where("household_id", "=", hid).selectAll().execute(),
@@ -108,12 +112,15 @@ export function makeBackupService(db: Kysely<DB>) {
         db.selectFrom("envelope_targets").where("household_id", "=", hid).selectAll().execute(),
         db.selectFrom("credit_limits").where("household_id", "=", hid).selectAll().execute(),
         db.selectFrom("loan_principals").where("household_id", "=", hid).selectAll().execute(),
+        // kysely_migration is Kysely-managed and not in the DB type — raw sql (EH9).
+        sql<{ name: string }>`select name from kysely_migration order by name`.execute(db),
       ]);
 
       return {
         version: 1,
         exportedAt: new Date().toISOString(),
         householdId: hid,
+        schema: { migrations: migrationRows.rows.map((r) => r.name) },
         tables: {
           households: norm(households),
           accounts: norm(accounts),

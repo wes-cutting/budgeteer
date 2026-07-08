@@ -129,6 +129,10 @@ npm run db:reset
 
 # Reset + re-seed in one shot (the usual "start fresh" command):
 npm run db:fresh
+
+# Restore a downloaded backup into an EMPTY store (run db:reset first — restore
+# refuses a store that already contains data; see docs/06_API_CONTRACT.md):
+npm run db:restore -- path/to/budgeteer-backup-YYYY-MM-DD.json
 ```
 
 `seed` is **idempotent** — it exits quietly if data already exists. Run `db:fresh` if you want

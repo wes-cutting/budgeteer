@@ -389,6 +389,8 @@ BudgeteerBackup = {
   version:     1,
   exportedAt:  string,   // ISO-8601 timestamp of the export
   householdId: string,   // uuid of the exported household
+  schema: { migrations: string[] },  // executed migration names at export time (EH10);
+                                     // absent on pre-EH10 files — restore then warns
   tables: {
     households, accounts, envelopes, transfers, envelope_transfers,
     transactions, allocations, templates, template_lines,
@@ -403,6 +405,27 @@ BudgeteerBackup = {
 > **Security:** the backup contains the user's complete financial history. Do not commit a
 > real backup to the repo (`.gitignore` already excludes data files). Tests use synthetic
 > fixtures only. The endpoint has no auth in V1 — auth-gating is part of roadmap `#19`.
+
+### Restore (EH10 / `#15b`) — a CLI, not an endpoint
+
+`npm run db:restore -- <file>` (from `apps/api`) restores a `BudgeteerBackup` file into the
+configured store. Deliberately not exposed over HTTP in V1: `GET /export` has no auth, and a
+write-side counterpart would be a remote wipe-and-replace primitive — revisit with `#19`.
+Semantics (decided in [SPIKE-09](spikes/09-restore-roundtrip.md), proven by the
+`export → restore → export` equivalence gate test):
+
+- **Non-destructive:** refuses a store containing user data (anything beyond the untouched
+  seed household); the recovery flow is `db:reset` → restore. It never deletes rows.
+- **Insert order is the FK-safe topological order** owned by `restoreService` — not the
+  file's key order (which lists `transactions` before the `recurring_transactions` they
+  reference).
+- **Schema versioning:** the file's `schema.migrations` must be a subset of the store's
+  executed migrations — a file from a newer schema is refused naming the missing
+  migration(s); a pre-EH10 file (no `schema` field) restores with a printed warning. The
+  store is migrated to latest first; all inserts run in one transaction, so a partial
+  failure restores nothing.
+- Original UUIDs are preserved; the seeded default-household row is upserted so the
+  exported values win exactly. The CLI prints row **counts** only — never row contents.
 
 ## 4. Internal contracts (non-network)
 

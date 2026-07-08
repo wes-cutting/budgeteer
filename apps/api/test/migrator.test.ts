@@ -26,6 +26,10 @@ const indexExists = async (name: string): Promise<boolean> => {
   return rows.length === 1;
 };
 
+/** The baseline migration is deliberately schema-agnostic (`Kysely<unknown>`); calling it
+ *  directly (as the pre-migrator simulations below do) means viewing the typed db untyped. */
+const untyped = (d: Kysely<DB>) => d as unknown as Kysely<unknown>;
+
 describe("versioned migrator (EH9)", () => {
   test("a fresh store runs every migration once, in order, and seeds the default household", async () => {
     await migrateToLatest(db);
@@ -49,7 +53,7 @@ describe("versioned migrator (EH9)", () => {
   test("a pre-migrator store adopts the migrator cleanly (baseline is idempotent)", async () => {
     // Simulate a store created by the old single-function migrate.ts: full schema, no
     // kysely_migration bookkeeping.
-    await baselineUp(db);
+    await baselineUp(untyped(db));
     await migrateToLatest(db);
     expect(await executedMigrations()).toEqual([
       "0001-baseline",
@@ -69,7 +73,7 @@ describe("versioned migrator (EH9)", () => {
   test("a failing migration throws loudly and names the migration (duplicate occurrences block 0002)", async () => {
     // A legacy store where the double-post race already happened: 0002's unique index cannot
     // build, startup must fail with the migration named — never silently run half-migrated.
-    await baselineUp(db);
+    await baselineUp(untyped(db));
     await sql`insert into households (id, name) values (${DEFAULT_HOUSEHOLD_ID}::uuid, 'H')`.execute(
       db,
     );

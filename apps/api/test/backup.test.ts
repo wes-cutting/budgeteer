@@ -35,6 +35,7 @@ type BackupBody = {
   version: number;
   exportedAt: string;
   householdId: string;
+  schema: { migrations: string[] };
   tables: BackupTables;
 };
 
@@ -78,6 +79,9 @@ describe("GET /export (FEAT-015a)", () => {
     expect(body.version).toBe(1);
     expect(body.exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(body.householdId).toBeTruthy();
+    // EH10: the snapshot records which schema it was exported from (restore validates it).
+    expect(body.schema.migrations).toContain("0001-baseline");
+    expect(body.schema.migrations).toContain("0002-recurring-occurrence-idempotency");
 
     for (const table of EXPECTED_TABLES) {
       expect(Array.isArray(body.tables[table]), `tables.${table} should be an array`).toBe(true);

@@ -9,6 +9,7 @@
     "start": "tsx src/index.ts",
     "seed": "tsx src/db/seed.ts",
     "db:reset": "tsx src/db/reset.ts",
+    "db:restore": "tsx src/db/restore.ts",
     "db:fresh": "npm run db:reset && npm run seed"
   },
   "dependencies": {

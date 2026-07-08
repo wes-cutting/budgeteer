@@ -105,9 +105,11 @@ modest and sized for one household's real financial history.
   - **`#15a` (export, done):** `GET /export` → `budgeteer-backup-YYYY-MM-DD.json`. A
     JSON snapshot of all 15 tables; integer cents as numbers; dated filename. The user can
     download on demand from the Dashboard.
-  - **`#15b` (import/restore, planned):** restores a snapshot into the local store.
-    Gated on a spike to confirm round-trip fidelity (IDs, FK ordering, partial-failure
-    handling). Tracked as roadmap `#15b`.
+  - **`#15b` (import/restore, done — EH10):** `npm run db:restore -- <file>` restores a
+    snapshot into an empty store (non-destructive: `db:reset` first). Round-trip fidelity,
+    FK ordering, ID handling, and schema versioning proven by
+    [SPIKE-09](spikes/09-restore-roundtrip.md); the `export → restore → export`
+    equivalence test keeps it proven in the gate.
 
 ---
 
@@ -177,8 +179,9 @@ Pre-production checklist. Checked as items land; `#16` completes most of these f
 
 - [x] **Backup (export) available** — `GET /export` delivers a complete JSON snapshot;
   user can download from the Dashboard. (#15a done.)
-- [ ] **Restore (import) proven** — restore path exercised against a real backup file;
-  round-trip fidelity confirmed by a spike. (#15b — planned.)
+- [x] **Restore (import) proven** — `npm run db:restore -- <file>` (apps/api); round-trip
+  fidelity proven by [SPIKE-09](spikes/09-restore-roundtrip.md) and locked in by the
+  `export → restore → export` equivalence gate test. (#15b/EH10 done.)
 - [ ] **Deploy & rollback documented** — a repeatable "how to run the app" guide for V1
   (local-only: `npm run start` + `npm run dev`). Currently undocumented outside the README.
 - [ ] **Config validated at startup** — `DATABASE_URL`, `CORS_ORIGINS`, and `PORT` are
@@ -195,6 +198,6 @@ Pre-production checklist. Checked as items land; `#16` completes most of these f
 
 | Question | Owner | Status |
 | -------- | ----- | ------ |
-| Should the backup file be encrypted (e.g. passphrase-protected zip) in V1? | Wesley Cutting | open — deferred to #15b scoping |
-| What is the correct FK insert order for restore? (households → accounts/envelopes → transactions → allocations → …) | Agent | open — spike at #15b start |
+| Should the backup file be encrypted (e.g. passphrase-protected zip) in V1? | Wesley Cutting | open — considered at #15b scoping (SPIKE-09), deliberately not built; revisit with `#19` |
+| What is the correct FK insert order for restore? (households → accounts/envelopes → transactions → allocations → …) | Agent | **closed** — SPIKE-09 F1: explicit topological order owned by `restoreService` (the file's key order is FK-unsafe) |
 | Should `GET /export` stream the response for very large datasets, or is a single JSON payload sufficient for V1 volumes? | Wesley Cutting | open — likely fine for V1 (~5 000 txns); revisit if performance budget fails |
