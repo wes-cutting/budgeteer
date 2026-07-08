@@ -2,6 +2,10 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "types": ["node"],
+    // Playwright `page.evaluate` callbacks execute IN THE BROWSER, so they need the DOM lib
+    // (e.g. the reflow check in a11y.spec.ts reads document.documentElement). Scoped to e2e only —
+    // the app + unit builds keep their own libs.
+    "lib": ["ES2022", "DOM"],
     "noEmit": true,
     "rootDir": "."
   },

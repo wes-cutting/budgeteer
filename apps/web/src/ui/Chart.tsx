@@ -70,7 +70,16 @@ function ChartFigure({
       >
         {shown ? "Hide data table" : "Show data table"}
       </button>
-      <div id={tableId} hidden={!shown}>
+      {/* UX15 — reflow (WCAG 1.4.10): the exact-figures fallback table scrolls within its own
+          focusable region at phone width, so a wide table never forces the whole page to scroll. */}
+      <div
+        id={tableId}
+        hidden={!shown}
+        className="table-scroll"
+        tabIndex={0}
+        role="group"
+        aria-label={`${caption} — data table`}
+      >
         {table}
       </div>
     </figure>

@@ -11,6 +11,7 @@ import { CreditView } from "./CreditView";
 import { PayoffView } from "./PayoffView";
 import { NetWorthView } from "./NetWorthView";
 import { ErrorBoundary } from "./ErrorBoundary";
+import styles from "./Insights.module.css";
 
 /**
  * UX3 — the Insights area, now URL-addressable at `/insights/:view` (ADR-0006). Each analysis view
@@ -72,7 +73,7 @@ export function AnalysisSection({ api }: { api: Api }) {
 
   return (
     <>
-      <nav aria-label="Insights views">
+      <nav aria-label="Insights views" className={styles.subnav}>
         {TABS.map((t) => (
           <NavLink key={t.id} to={`/insights/${t.id}`} end>
             {t.label}

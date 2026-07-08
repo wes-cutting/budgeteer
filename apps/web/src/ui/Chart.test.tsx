@@ -40,6 +40,27 @@ describe("Chart primitives (FEAT-UX8 · ADR-0007)", () => {
     expect(within(screen.getByRole("table")).getByRole("rowheader", { name: "Jan" })).toBeTruthy();
   });
 
+  test("the data-table fallback is a focusable scroll region (reflow, UX15)", () => {
+    render(
+      <LineChart
+        caption="Net worth over time"
+        summary="Net worth rose from $0 to $1,000."
+        axis={["Jan", "Feb"]}
+        series={[
+          { label: "Net", token: "var(--chart-3)", dash: "0", marker: "circle", values: [0, 1000] },
+        ]}
+        formatY={dollars}
+        table={fallback}
+      />,
+    );
+    // The wide table scrolls within its own focusable region so it never overflows the page at phone
+    // width; the region is keyboard-reachable (a read-only table holds no controls of its own).
+    const region = screen.getByRole("group", { name: "Net worth over time — data table" });
+    expect(region.className).toContain("table-scroll");
+    expect(region.getAttribute("tabindex")).toBe("0");
+    expect(within(region).getByRole("table", { name: "Figures" })).toBeTruthy();
+  });
+
   test("the disclosure toggle hides and shows the data table", async () => {
     const user = userEvent.setup();
     render(

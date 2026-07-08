@@ -55,33 +55,38 @@ export function EnvelopeLedger({ api, envelope }: Props) {
         ) : rows !== null && rows.length === 0 ? (
           <p>No transactions in this envelope yet.</p>
         ) : rows !== null ? (
-          <table aria-labelledby="ledger-heading">
-            <thead>
-              <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Payee / Memo</th>
-                <th scope="col">Account</th>
-                <th scope="col">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.allocationId}>
-                  <td>{r.occurredOn}</td>
-                  <td>
-                    {r.payee ??
-                      r.memo ??
-                      (r.transactionKind === "opening" ? "(opening balance)" : "—")}
-                  </td>
-                  <td>{r.accountName}</td>
-                  <td>
-                    {r.amountCents >= 0 ? "+" : "−"}
-                    {formatCents(Math.abs(r.amountCents))}
-                  </td>
+          // UX15 — reflow (WCAG 1.4.10): the four-column ledger scrolls within its own focusable
+          // region at phone width instead of overflowing the page. Focusable (tabindex) because the
+          // read-only table holds no controls of its own (axe scrollable-region-focusable).
+          <div className="table-scroll" tabIndex={0} role="group" aria-label="Transactions ledger">
+            <table aria-labelledby="ledger-heading">
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Payee / Memo</th>
+                  <th scope="col">Account</th>
+                  <th scope="col">Amount</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.allocationId}>
+                    <td>{r.occurredOn}</td>
+                    <td>
+                      {r.payee ??
+                        r.memo ??
+                        (r.transactionKind === "opening" ? "(opening balance)" : "—")}
+                    </td>
+                    <td>{r.accountName}</td>
+                    <td>
+                      {r.amountCents >= 0 ? "+" : "−"}
+                      {formatCents(Math.abs(r.amountCents))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : null}
       </section>
     </main>

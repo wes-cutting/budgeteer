@@ -85,3 +85,25 @@
     transform: translateY(0);
   }
 }
+
+/* UX15 — the shell degrades gracefully to phone width (desktop-first, not a mobile hamburger). The
+   header stacks the brand above the nav, the nav already wraps, and each link gains a comfortable tap
+   target (>= 24px, WCAG 2.5.8) so the wrapped rows stay usable by touch. No JS, no new interactive
+   surface — the same links, laid out for a narrow column. */
+@media (max-width: 640px) {
+  .banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+  .nav {
+    gap: var(--space-2) var(--space-3);
+  }
+  /* Comfortable tap targets for the wrapped links (the base layer only sizes form controls). */
+  .nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+  }
+}

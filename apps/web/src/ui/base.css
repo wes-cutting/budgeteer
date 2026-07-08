@@ -104,6 +104,25 @@ label {
   border: 0;
 }
 
+/* UX15 — reflow (WCAG 1.4.10). Data tables are the standard reflow exception: they may scroll
+   rather than wrap. Wrapping a wide table in this container keeps the SCROLL on the table alone, so
+   the page itself never scrolls horizontally at phone width. `tabindex="0"` on the wrapper makes the
+   scroll region reachable by keyboard (axe scrollable-region-focusable), for the read-only tables
+   that hold no focusable controls of their own. A global utility (like .sr-only above) so the
+   handful of table sites — CSS-Module and module-less alike — share one definition. */
+.table-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* UX15 — desktop-first, degrading to phone width. Below the tablet breakpoint the generous desktop
+   page padding is reclaimed so content (and the scrollable tables above) get the full narrow width. */
+@media (max-width: 640px) {
+  main {
+    padding: var(--space-4) var(--space-3);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

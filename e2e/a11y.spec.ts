@@ -659,6 +659,54 @@ test.describe("a11y — dark mode", () => {
   });
 });
 
+// UX15 — responsive pass. Proof of the slice's whole point: at phone width (320px) the wide Insights
+// tables must scroll within their OWN focusable region (WCAG 1.4.10 reflow — data tables are the
+// exception), so the PAGE never scrolls horizontally, and the app must stay axe-clean LIGHT AND DARK.
+// Seeds at the default desktop viewport (steady form-filling), then shrinks and scans.
+const PHONE = { width: 320, height: 800 };
+
+/** Fail if the document scrolls horizontally at phone width (the reflow regression this slice fixes). */
+async function assertNoHorizontalPageScroll(page: Page) {
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(
+    overflow,
+    "the page scrolls horizontally at 320px — a table is overflowing the page (WCAG 1.4.10)",
+  ).toBeLessThanOrEqual(1);
+}
+
+async function scanReflow(page: Page) {
+  await seedBudgeted(page, "reflow"); // seed at desktop width, then go narrow
+  await page.setViewportSize(PHONE);
+  await openAnalysis(page, "Spend"); // the widest table — one column per month
+  await expect(
+    page.getByRole("heading", { name: "Insights — spend by envelope", level: 1 }),
+  ).toBeVisible();
+  await expectChart(page);
+  // The wide table lives inside a focusable scroll region, so only it scrolls — not the page.
+  await expect(page.getByRole("group", { name: /data table/ })).toBeVisible();
+  await assertNoHorizontalPageScroll(page);
+  await assertNoViolations(page);
+}
+
+test.describe("a11y — responsive reflow at phone width (UX15)", () => {
+  test("a wide Insights table reflows without page scroll and stays accessible", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await scanReflow(page);
+  });
+
+  test.describe("dark mode", () => {
+    test.use({ colorScheme: "dark" });
+    test("a wide Insights table reflows and stays accessible in dark mode", async ({ page }) => {
+      await page.goto("/");
+      await scanReflow(page);
+    });
+  });
+});
+
 // Cleanup: return to the home so subsequent tests (if any) start clean.
 test.afterEach(async ({ page }) => {
   await goToDashboard(page);
