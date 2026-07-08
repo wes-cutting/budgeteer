@@ -17,6 +17,9 @@
 *.dump
 *.bak
 !tests/**/fixtures/**
+# Screenshot of the owner's real BudgetHome.xlsx (creditors/amounts/income) — a UX-spec
+# reference kept local-only; see docs/ux/assets/README.md
+docs/ux/assets/2026-07-06-payperiod-sheet-reference.png
 
 # ============================================================================
 # SECRETS & CONFIG

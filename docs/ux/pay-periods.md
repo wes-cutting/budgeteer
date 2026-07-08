@@ -6,6 +6,11 @@ by structure (bills grouped inside their paycheck's section) + explicit text, pe
 
 # UX Spec — Insights: pay periods ("which paycheck covers what")
 
+> **Redesign proposed (2026-07-06):** [UXR2 — Pay-period planner](pay-periods-planner.md)
+> (`Draft`) supersedes this spec's **§3 presentation** (stacked bucket sections → side-by-side
+> ledgers at a first-class `/pay-periods`) when it ships. The states, copy, badges, policy, and
+> a11y stance here carry forward; this spec describes the shipped surface until then.
+
 | Field        | Value                                              |
 | ------------ | -------------------------------------------------- |
 | Status       | **Validated** (FEAT-S7 §9 ran 2026-07-03 — SPIKE-10; view structure unchanged, over-committed badge added) |

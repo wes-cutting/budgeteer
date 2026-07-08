@@ -11,7 +11,7 @@ Adapted from templates/NFR-TEMPLATE.md.
 | ------------ | ----------------------------------------------------------------------- |
 | Status       | Active                                                                  |
 | Owner        | Wesley Cutting                                                          |
-| Last updated | 2026-06-21                                                              |
+| Last updated | 2026-07-06                                                              |
 | Sources      | [`SECURITY.md`](SECURITY.md) · [`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) · [`ADR-0003`](adr/ADR-0003-money-integer-minor-units.md) · [`03_ROADMAP.md`](03_ROADMAP.md) `#15a`/`#16` |
 
 > **Measure before optimizing.** Every budget must be verified against a realistic data
@@ -31,7 +31,7 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 | `GET /analysis/envelope-spend` (monthly grid) | < 200 ms p95 | 10 envelopes × 120 txns¹ | **3.4 ms** | `apps/api/test/perf.test.ts` · same |
 | `GET /export` (backup snapshot) | < 500 ms p95 | 5 accounts + 5 envelopes + 200 txns | **11.5 ms** | `apps/api/test/perf.test.ts` · same |
 | Web initial load (LCP) | < 2.5 s | Cold load, production build | < 1 s² | Manual Lighthouse on `vite build` output |
-| Web initial JS bundle (gz) | < 120 KB gz | Production `vite build`, single chunk | **117.27 KB gz** (+ 3.80 KB gz CSS)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
+| Web initial JS bundle (gz) | < 140 KB gz (re-baselined 2026-07-06; was 120)³ | Production `vite build`, single chunk | **118.67 KB gz** (+ 3.85 KB gz CSS, re-measured 2026-07-06)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
 
 > ¹ Half-scale of the original budget (2 yrs × 20 env × 100/mo = 48 000 txns); PGlite performance
 >   at full scale is expected to remain well under budget given the measured p95 at half-scale.
@@ -69,8 +69,18 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >   [ADR-0007](adr/ADR-0007-accessible-charting.md) measured ~1.94 KB gz for the primitive** vs **Recharts
 >   129 KB gz** — a charting library *alone* exceeds this whole budget, which is *why* charts are
 >   hand-rolled, and the realised six-chart cost (2.9 KB) confirms it. New `--chart-1/2/3` + `--chart-grid`
->   tokens (≥ 3:1 for WCAG 1.4.11) landed with `UX8`. Revisit if a slice pushes past 120 KB; no
->   code-splitting yet — a single chunk is fine at this size.
+>   tokens (≥ 3:1 for WCAG 1.4.11) landed with `UX8`. Post-Uplift growth (EH8's client date
+>   derivation · **`S7`'s Pay-periods view, +0.97 KB**) → **118.67 KB gz**, ~1.3 KB of headroom
+>   against the original 120 — the S7 status entry's predicted "next UI-bearing slice forces the
+>   budget conversation." **Re-baselined 2026-07-06 (owner decision): 120 → 140 KB gz**, ahead of
+>   the UX Redesign ([`UXR1`+](reviews/2026-07-06-ux-redesign-initiative.md)) — the initiative's
+>   first icon set + sidebar chrome plus its per-page slices (est. +7–14 KB total) cannot fit in
+>   1.3 KB. 140 funds the initiative while preserving the budget's *discipline* function:
+>   dependency-class additions (an icon library, another Radix suite, any charting library —
+>   Recharts alone is ~129 KB gz, still roughly this entire app) remain a deliberate conversation,
+>   and per-slice costs stay logged here. The rule carries: **revisit if a slice pushes past
+>   140 KB** — route-level code-splitting is the recorded lever for that conversation. No
+>   code-splitting yet; a single chunk is fine at this size.
 
 ---
 
