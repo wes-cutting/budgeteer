@@ -25,10 +25,15 @@ export type ChartToken = "var(--chart-1)" | "var(--chart-2)" | "var(--chart-3)";
 type MarkerKind = "circle" | "square" | "triangle" | "diamond";
 
 const W = 640;
-const H = 320;
-const PAD = { top: 16, right: 116, bottom: 40, left: 76 };
+const H = 360;
+// UXR10 — bottom padding is deep enough to hold SLANTED (-35°) x-axis labels without clipping long
+// envelope names; slanting lets us show far more labels than horizontal ones before they collide.
+const PAD = { top: 16, right: 116, bottom: 84, left: 76 };
 const INNER_W = W - PAD.left - PAD.right;
 const INNER_H = H - PAD.top - PAD.bottom;
+const AXIS_LABEL_Y = H - PAD.bottom + 14; // anchor baseline just below the plot; labels slant down-left
+// Keep every x label up to 24, then thin — slanted labels pack ~3× tighter than horizontal ones.
+const xLabelStep = (count: number) => Math.max(1, Math.ceil(count / 24));
 
 /** The a11y scaffold every chart shape renders through. `children` are the decorative SVG innards. */
 function ChartFigure({
@@ -158,8 +163,8 @@ export function LineChart({
   const x = (i: number) => PAD.left + (n <= 1 ? INNER_W / 2 : (INNER_W * i) / (n - 1));
   const y = (v: number) => PAD.top + INNER_H - (INNER_H * (v - min)) / (max - min || 1);
   const ticks = ticksOf(min, max);
-  // Thin out x labels so they never collide (show ~ every ceil(n/8)th).
-  const step = Math.max(1, Math.ceil(n / 8));
+  // Thin out x labels so they never collide; slanted labels (below) tolerate far denser spacing.
+  const step = xLabelStep(n);
 
   return (
     <ChartFigure caption={caption} summary={summary} table={table}>
@@ -177,9 +182,10 @@ export function LineChart({
           <text
             key={`x${i}`}
             x={x(i)}
-            y={H - PAD.bottom + 22}
+            y={AXIS_LABEL_Y}
             className={styles.axis}
-            textAnchor="middle"
+            textAnchor="end"
+            transform={`rotate(-35 ${x(i)} ${AXIS_LABEL_Y})`}
           >
             {label}
           </text>
@@ -249,7 +255,7 @@ export function BarChart({
   const groupW = g <= 0 ? INNER_W : INNER_W / g;
   const inner = Math.min(groupW * 0.7, 64);
   const barW = inner / series.length;
-  const labelStep = Math.max(1, Math.ceil(g / 8));
+  const labelStep = xLabelStep(g);
 
   return (
     <ChartFigure
@@ -303,9 +309,10 @@ export function BarChart({
             {ci % labelStep === 0 || ci === g - 1 ? (
               <text
                 x={gx + inner / 2}
-                y={H - PAD.bottom + 22}
+                y={AXIS_LABEL_Y}
                 className={styles.axis}
-                textAnchor="middle"
+                textAnchor="end"
+                transform={`rotate(-35 ${gx + inner / 2} ${AXIS_LABEL_Y})`}
               >
                 {cat}
               </text>

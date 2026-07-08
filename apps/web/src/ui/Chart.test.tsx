@@ -125,6 +125,53 @@ describe("Chart primitives (FEAT-UX8 · ADR-0007)", () => {
     expect(screen.getByRole("table", { name: "Figures" })).toBeTruthy();
   });
 
+  test("LineChart: x-axis labels are slanted -35° and end-anchored (UXR10)", () => {
+    const { container } = render(
+      <LineChart
+        caption="Net worth over time"
+        summary="Net worth trend."
+        axis={["January", "February", "March"]}
+        series={[
+          { label: "Net", token: "var(--chart-3)", dash: "0", marker: "circle", values: [1, 2, 3] },
+        ]}
+        formatY={dollars}
+        table={fallback}
+      />,
+    );
+    // Only the axis labels carry their own rotate transform (the legend rotates a wrapping <g>, not text).
+    const slanted = Array.from(container.querySelectorAll("text[transform]")).filter((t) =>
+      t.getAttribute("transform")?.includes("rotate(-35"),
+    );
+    expect(slanted).toHaveLength(3); // all three shown — slanted labels don't collide
+    expect(slanted.every((t) => t.getAttribute("text-anchor") === "end")).toBe(true);
+  });
+
+  test("BarChart: slanted labels let many long envelope names show without thinning (UXR10)", () => {
+    const categories = Array.from({ length: 20 }, (_, i) => `Envelope ${i}`);
+    const { container } = render(
+      <BarChart
+        caption="Spend by envelope"
+        summary="Spend across 20 envelopes."
+        categories={categories}
+        series={[
+          { label: "Spent", token: "var(--chart-1)", values: categories.map((_, i) => i * 10) },
+        ]}
+        formatY={dollars}
+        table={fallback}
+      />,
+    );
+    const img = screen.getByRole("img", { name: "Spend across 20 envelopes." });
+    // Every category label shows (<= 24 → no thinning), where the old ceil(n/8) thinning dropped most.
+    for (const name of categories) {
+      expect(within(img).getByText(name)).toBeTruthy();
+    }
+    const slanted = Array.from(container.querySelectorAll("text[transform]")).filter((t) =>
+      t.getAttribute("transform")?.includes("rotate(-35"),
+    );
+    expect(slanted).toHaveLength(categories.length);
+    expect(slanted[0]?.getAttribute("text-anchor")).toBe("end");
+  });
+
   test("Gauge: role=img with the truthful value label carried as text", () => {
     render(
       <Gauge

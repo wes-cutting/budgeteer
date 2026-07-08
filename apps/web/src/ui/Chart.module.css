@@ -18,7 +18,8 @@
   display: block;
   width: 100%;
   height: auto;
-  max-width: 720px;
+  /* UXR10 — no width cap: the chart fills its figure so it's as wide as the data table below it
+     (both are bounded by the page reading measure). The viewBox scales fluidly to the width. */
 }
 
 .grid {
