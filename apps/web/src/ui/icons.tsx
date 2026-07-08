@@ -157,13 +157,16 @@ export function DownloadIcon(props: IconProps) {
   );
 }
 
-/** lucide `piggy-bank` — brand mark. */
+/** lucide `landmark` — brand mark. */
 export function BrandIcon(props: IconProps) {
   return (
     <Icon {...props}>
-      <path d="M11 17h3v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a3.16 3.16 0 0 0 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1a5 5 0 0 0-2-4V3a4 4 0 0 0-3.2 1.6l-.3.4H11a6 6 0 0 0-6 6v1a5 5 0 0 0 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1z" />
-      <path d="M16 10h.01" />
-      <path d="M2 8v1a2 2 0 0 0 2 2h1" />
+      <path d="M10 18v-7" />
+      <path d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z" />
+      <path d="M14 18v-7" />
+      <path d="M18 18v-7" />
+      <path d="M3 22h18" />
+      <path d="M6 18v-7" />
     </Icon>
   );
 }

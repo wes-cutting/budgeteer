@@ -9,7 +9,7 @@ The core guarantee: a transaction's allocations always sum exactly to its amount
 envelope balances are **derived** from that ledger — so the books are penny-exact by construction,
 not by hand.
 
-> **Status:** V1 in progress (single-user, local-first). The domain, the full analysis area, and
+> **Status:** V1 in progress (single-user, local-first). The domain, the full Insights area, and
 > hardening (a11y/perf budgets, CI gate, backup/export) are built and gate-green; restore/import
 > and multi-user (auth + household isolation) are still ahead. See
 > [`docs/03_ROADMAP.md`](docs/03_ROADMAP.md) for the live plan.
@@ -34,9 +34,17 @@ not by hand.
   difference, and record the reconciliation (with history).
 - **Envelope ledger** — click any envelope to drill into every transaction that funded or spent
   from it, newest-first.
-- **Analysis** — spend by envelope over time, budget vs. actual against monthly targets, a
-  per-account pay-period cash-flow forecast, credit-card utilization, and installment-loan payoff %.
+- **Insights** — spend by envelope over time, budget vs. actual against monthly targets, a
+  per-account cash-flow forecast, credit-card utilization, and installment-loan payoff %.
+- **Pay-period planner** — a first-class `/pay-periods` view that lays each paycheck and the bills
+  it covers out as two side-by-side ledgers, with per-check headroom, projected payday balance, and
+  a running reserve.
 - **Backup** — download a complete JSON snapshot of all your data in one click.
+
+The UI is a **grouped sidebar app shell** — **Budget** (Home · Insights), **Ledgers** (Accounts ·
+Envelopes · Needs allocation), **Planning** (Templates · Recurring · Pay periods), and
+**Administration** (Manage) — with a global **Add transaction** action, a desktop collapse-to-icon
+rail, and an off-canvas drawer at phone width.
 
 ## Tech stack
 
