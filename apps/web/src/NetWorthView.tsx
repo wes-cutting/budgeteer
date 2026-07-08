@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { type Api, type NetWorthReport, type SpendGrain } from "./api";
+import { type Api, type NetWorthRollup, type SpendGrain } from "./api";
 import { formatCents } from "./format";
 import { LineChart, Skeleton, type LineSeries } from "./ui";
 import styles from "./Insights.module.css";
@@ -24,7 +24,7 @@ const SERIES_DEFS = [
   { key: "netCents", label: "Net worth", token: "var(--chart-3)", dash: "2 3", marker: "triangle" },
 ] as const;
 
-function buildChart(report: NetWorthReport): {
+function buildChart(report: NetWorthRollup): {
   axis: string[];
   series: LineSeries[];
   summary: string;
@@ -51,7 +51,7 @@ function buildChart(report: NetWorthReport): {
 
 export function NetWorthView({ api }: { api: Api }) {
   const [grain, setGrain] = useState<SpendGrain>("month");
-  const [report, setReport] = useState<NetWorthReport | null>(null);
+  const [report, setReport] = useState<NetWorthRollup | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

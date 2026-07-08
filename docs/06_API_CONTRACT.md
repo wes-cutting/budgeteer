@@ -435,6 +435,18 @@ Semantics (decided in [SPIKE-09](spikes/09-restore-roundtrip.md), proven by the
   unit-tested in isolation.
 - **Repository seam** (impure shell): services depend on the Kysely `DB` schema; the
   domain never imports the datastore (pure-core/impure-shell, ARCHITECTURE.md).
+- **Client boundary (EH12):** the web app's response/view types are **the server's own
+  definitions**, imported types-only from `@budgeteer/api/contract` (a types-only module —
+  it must never export a value; the web-zone boundary lint fails any runtime import from
+  the api workspace). **Stance: the client trusts the typed contract on reads** — responses
+  are not re-validated in the browser. Rationale: a single first-party client on a
+  loopback-bound API (EH11); the types come from the code that serializes them, so drift is
+  a compile error rather than a runtime surprise; and a client-side schema mirror would
+  recreate the two-sources-of-truth problem EH1 removed while spending bundle budget
+  re-checking what the server already guarantees. Revisit alongside `/v1` when a second
+  consumer arrives (§5). Writes are unaffected: the server validates every input at the
+  boundary; the client keeps its own form-shaped input types (dollar-string amounts,
+  adapter-filled dates).
 
 ## 5. Change policy
 

@@ -33,4 +33,74 @@ export default tseslint.config(
       "react-hooks/exhaustive-deps": "warn",
     },
   },
+  // EH13 — the ARCHITECTURE §1 layer boundaries, tooling-enforced per zone so erosion fails the
+  // gate instead of waiting for the next review. The strict tsc carries the type checks; these
+  // rules carry the dependency direction.
+  {
+    files: ["packages/domain/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "fastify",
+                "@fastify/*",
+                "kysely",
+                "kysely/*",
+                "pg",
+                "pg/*",
+                "react",
+                "react-dom",
+                "react/*",
+                "node:*",
+              ],
+              message: "domain is pure: no framework, no datastore, no I/O (ARCHITECTURE §1).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["apps/web/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["kysely", "kysely/*", "pg", "pg/*", "fastify", "@fastify/*"],
+              message:
+                "the web app never touches the datastore or server framework (ARCHITECTURE §1).",
+            },
+            {
+              group: ["@budgeteer/api", "@budgeteer/api/*"],
+              allowTypeImports: true,
+              message:
+                "the api workspace is shared types-only (EH12) — talk to the server over HTTP.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["apps/api/src/http/routes/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/db/**"],
+              message:
+                "routes go through services, never the data layer directly (ARCHITECTURE §1).",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

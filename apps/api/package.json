@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./contract": "./src/contract.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "tsx watch src/index.ts",

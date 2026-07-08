@@ -53,7 +53,10 @@ logic.** Outer layers may depend on inner layers; inner layers must not depend o
 - Cross-cutting concerns (auth context, tenancy, logging) are passed *in*, not reached
   for from deep inside pure code.
 - Prefer enforcing these with lint rules / module-boundary tooling so they can't quietly
-  erode.
+  erode. (Budgeteer: enforced per-zone via `no-restricted-imports` in `eslint.config.js` —
+  domain bans frameworks/datastore/`node:*`; web bans the datastore/server framework and
+  any **runtime** import from the api workspace (types-only sharing, EH12); HTTP routes ban
+  the data layer. EH13.)
 
 ## 3. What is decided per project (via ADR)
 

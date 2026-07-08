@@ -1,64 +1,37 @@
-// API client + the view types the UI depends on (mirrors apps/api responses; shared types are
-// a future refinement once the domain package ships a build — see docs/06_API_CONTRACT.md).
+// API client. The response/view types are the server's own definitions, imported types-only from
+// `@budgeteer/api/contract` (EH12) and re-exported so the UI keeps importing them from "./api".
+// The client trusts the typed contract on reads — no runtime re-validation (see
+// docs/06_API_CONTRACT.md, "Client boundary"). Only the client-side input shapes live here:
+// form-shaped (dollar-string amounts), with omitted dates filled by this adapter (EH8).
 
-export type AccountKind = "checking" | "savings" | "credit" | "loan" | "cash" | "other";
-export type EnvelopeKind = "standard" | "sinking_fund";
+import type {
+  AccountKind,
+  AccountView,
+  BudgetVsActualReport,
+  CashFlowForecast,
+  CreditLimitView,
+  CreditUtilizationReport,
+  DebtPayoffReport,
+  EnvelopeKind,
+  EnvelopeLedgerRow,
+  EnvelopeSpendRollup,
+  EnvelopeTargetView,
+  EnvelopeTransferView,
+  EnvelopeView,
+  LoanPrincipalView,
+  NetWorthRollup,
+  PostDueResult,
+  ReconciliationView,
+  RecurringFrequency,
+  RecurringView,
+  SpendGrain,
+  TemplateView,
+  TransactionView,
+  TransferView,
+} from "@budgeteer/api/contract";
+import { localMonthRange, localToday } from "./dates";
 
-export interface AccountView {
-  id: string;
-  name: string;
-  kind: AccountKind;
-  balanceCents: number;
-  archivedAt: string | null;
-}
-
-export interface EnvelopeView {
-  id: string;
-  name: string;
-  kind: EnvelopeKind;
-  balanceCents: number;
-  archivedAt: string | null;
-}
-
-export interface AllocationView {
-  id: string;
-  envelopeId: string;
-  envelopeName: string;
-  amountCents: number;
-}
-
-export interface TransactionView {
-  id: string;
-  accountId: string;
-  accountName: string;
-  kind: "opening" | "normal" | "transfer";
-  amountCents: number;
-  occurredOn: string;
-  payee: string | null;
-  memo: string | null;
-  allocations: AllocationView[];
-  allocatedCents: number;
-  unallocatedCents: number;
-  transferId: string | null;
-  transferCounterpartName: string | null;
-  recurringId: string | null;
-}
-
-export interface TransferLegView {
-  transactionId: string;
-  accountId: string;
-  accountName: string;
-  amountCents: number; // signed
-}
-
-export interface TransferView {
-  id: string;
-  occurredOn: string;
-  memo: string | null;
-  amountCents: number; // positive magnitude
-  from: TransferLegView;
-  to: TransferLegView;
-}
+export type * from "@budgeteer/api/contract";
 
 export interface CreateTransferInput {
   fromAccountId: string;
@@ -66,20 +39,6 @@ export interface CreateTransferInput {
   amount: string;
   occurredOn?: string; // defaults to the user's local today (EH8) — filled by the adapter
   memo?: string;
-}
-
-export interface EnvelopeTransferEndpointView {
-  envelopeId: string;
-  envelopeName: string;
-}
-
-export interface EnvelopeTransferView {
-  id: string;
-  occurredOn: string;
-  memo: string | null;
-  amountCents: number; // positive magnitude
-  from: EnvelopeTransferEndpointView;
-  to: EnvelopeTransferEndpointView;
 }
 
 export interface CreateEnvelopeTransferInput {
@@ -107,44 +66,6 @@ export interface CreateTransactionInput {
   allocations: AllocationDraft[];
 }
 
-export interface TemplateLineView {
-  id: string;
-  envelopeId: string;
-  envelopeName: string;
-  amountCents: number;
-}
-
-export interface TemplateView {
-  id: string;
-  name: string;
-  lines: TemplateLineView[];
-}
-
-export type RecurringFrequency = "weekly" | "biweekly" | "monthly";
-
-export interface RecurringLineView {
-  id: string;
-  envelopeId: string;
-  envelopeName: string;
-  amountCents: number;
-  refund: boolean;
-}
-
-export interface RecurringView {
-  id: string;
-  accountId: string;
-  accountName: string;
-  direction: "deposit" | "withdrawal";
-  amountCents: number;
-  payee: string | null;
-  memo: string | null;
-  frequency: RecurringFrequency;
-  anchorOn: string;
-  nextOccurrenceOn: string;
-  dueCount: number;
-  lines: RecurringLineView[];
-}
-
 export interface CreateRecurringInput {
   accountId: string;
   kind: "deposit" | "withdrawal";
@@ -156,83 +77,9 @@ export interface CreateRecurringInput {
   lines: AllocationDraft[];
 }
 
-export interface PostDueResult {
-  posted: number;
-  rules: { recurringId: string; posted: number; error?: string }[];
-}
-
-export interface ReconciliationView {
-  id: string;
-  accountId: string;
-  statementBalanceCents: number;
-  derivedBalanceCents: number;
-  differenceCents: number; // statement − derived
-  matched: boolean;
-  reconciledOn: string;
-}
-
 export interface CreateReconciliationInput {
   statementBalance: string;
   reconciledOn?: string; // defaults to the user's local today (EH8) — filled by the adapter
-}
-
-// --- Envelope ledger (R15) ---
-
-export interface EnvelopeLedgerRow {
-  allocationId: string;
-  transactionId: string;
-  occurredOn: string;
-  payee: string | null;
-  memo: string | null;
-  transactionKind: "opening" | "normal" | "transfer";
-  accountId: string;
-  accountName: string;
-  amountCents: number;
-}
-
-// --- Analysis: spend by envelope over time (FEAT-011) ---
-
-export type SpendGrain = "month" | "year";
-
-export interface EnvelopeSpendRow {
-  envelopeId: string;
-  envelopeName: string;
-  archived: boolean;
-  /** Aligned to the rollup's `periods`; signed integer cents; 0 where no flow that period. */
-  amounts: number[];
-  total: number; // signed cents (row sum)
-}
-
-export interface EnvelopeSpendRollup {
-  grain: SpendGrain;
-  periods: string[]; // ascending; "YYYY-MM" (month) or "YYYY" (year)
-  rows: EnvelopeSpendRow[];
-  periodTotals: number[]; // column sums, aligned to periods
-  grandTotal: number;
-}
-
-// --- Analysis: budget vs. actual (FEAT-012) ---
-
-export interface EnvelopeTargetView {
-  envelopeId: string;
-  monthlyTargetCents: number;
-}
-
-export interface BudgetVsActualRow {
-  envelopeId: string;
-  envelopeName: string;
-  archived: boolean;
-  targetCents: number | null; // null = no target set
-  spentCents: number; // net spend (outflow) this month; ≥ 0 normally
-  remainingCents: number | null; // target − spent; null when no target
-}
-
-export interface BudgetVsActualReport {
-  month: string; // "YYYY-MM"
-  rows: BudgetVsActualRow[];
-  totalTargetCents: number;
-  totalSpentCents: number;
-  totalRemainingCents: number;
 }
 
 // --- Analysis: cash-flow forecast (FEAT-013) ---
@@ -245,109 +92,6 @@ export interface ForecastOptions {
 /** All calendar dates are caller-local (EH8): the server never derives a user-facing date, so
  *  `httpApi` sends every date/month parameter explicitly, deriving omitted ones from the
  *  user's local clock via `dates.ts`. */
-
-export interface ForecastPoint {
-  date: string; // "YYYY-MM-DD"
-  deltaCents: number; // signed cash effect
-  balanceCents: number; // running balance after this event
-  kind: "scheduled" | "expected";
-  label: string;
-}
-
-export interface CashFlowForecast {
-  accountId: string;
-  accountName: string;
-  startDate: string; // today
-  endDate: string; // today + horizonDays
-  horizonDays: number;
-  includeExpected: boolean;
-  startingBalanceCents: number;
-  points: ForecastPoint[]; // date-ascending
-  endingBalanceCents: number;
-  minBalanceCents: number;
-  minBalanceDate: string;
-  firstNegativeDate: string | null; // first date balance < 0, or null
-}
-
-// --- Analysis: credit utilization (FEAT-014a) ---
-
-export interface CreditLimitView {
-  accountId: string;
-  creditLimitCents: number;
-}
-
-export interface UtilizationPoint {
-  period: string; // "YYYY-MM"
-  owedCents: number; // −(cumulative balance through this period); ≤ 0 = no debt
-  utilizationBps: number | null; // owed/limit in basis points; null when no limit
-}
-
-export interface CreditAccountUtilization {
-  accountId: string;
-  accountName: string;
-  archived: boolean;
-  limitCents: number | null;
-  owedCents: number; // −balance (positive = debt; ≤ 0 = credit balance)
-  availableCents: number | null; // limit − owed; null when no limit
-  utilizationBps: number | null; // current utilization in basis points; null when no limit
-  trend: UtilizationPoint[]; // ascending; one point per period with activity
-}
-
-export interface CreditUtilizationReport {
-  accounts: CreditAccountUtilization[];
-  totalOwedCents: number;
-  totalLimitCents: number;
-  utilizationBps: number | null; // aggregate over limited accounts; null when none
-}
-
-// --- Analysis: debt payoff (FEAT-014b) ---
-
-export interface LoanPrincipalView {
-  accountId: string;
-  originalPrincipalCents: number;
-}
-
-export interface PayoffPoint {
-  period: string; // "YYYY-MM"
-  owedCents: number; // −(cumulative balance through this period); ≤ 0 = paid off
-  payoffBps: number | null; // (1 − owed/original) in basis points; null when no original
-}
-
-export interface LoanAccountPayoff {
-  accountId: string;
-  accountName: string;
-  archived: boolean;
-  originalPrincipalCents: number | null;
-  owedCents: number; // −balance (positive = still owed; ≤ 0 = paid off / overpaid)
-  paidDownCents: number | null; // original − owed; null when no original
-  payoffBps: number | null; // current payoff (truthful, not clamped); null when no original
-  trend: PayoffPoint[]; // ascending; one point per period with activity
-}
-
-export interface DebtPayoffReport {
-  accounts: LoanAccountPayoff[];
-  totalOriginalCents: number;
-  totalOwedCents: number;
-  totalPaidDownCents: number;
-  payoffBps: number | null; // aggregate over loans with an original principal; null when none
-}
-
-// --- Analysis: net worth over time (FEAT-R9) ---
-
-export interface NetWorthPoint {
-  period: string; // "YYYY-MM" (month) or "YYYY" (year)
-  assetsCents: number; // cumulative Σ asset-account balances through this period
-  liabilitiesCents: number; // cumulative Σ liability-account balances (≤ 0 = debt)
-  netCents: number; // assets + liabilities (running net worth at period end)
-}
-
-export interface NetWorthReport {
-  grain: SpendGrain;
-  trend: NetWorthPoint[]; // ascending; one point per period with activity
-  assetsCents: number; // current Σ asset-account balances
-  liabilitiesCents: number; // current Σ liability-account balances (≤ 0)
-  netCents: number; // current net worth = assets + liabilities
-}
 
 /** Thrown on a non-2xx response, carrying the server's user-facing message. */
 export class ApiError extends Error {}
@@ -405,10 +149,8 @@ export interface Api {
   getDebtPayoff(): Promise<DebtPayoffReport>;
   setOriginalPrincipal(accountId: string, amount: string): Promise<LoanPrincipalView>;
   clearOriginalPrincipal(accountId: string): Promise<void>;
-  getNetWorth(grain: SpendGrain): Promise<NetWorthReport>;
+  getNetWorth(grain: SpendGrain): Promise<NetWorthRollup>;
 }
-
-import { localMonthRange, localToday } from "./dates";
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
 
@@ -670,6 +412,6 @@ export const httpApi: Api = {
     await request<unknown>(`/accounts/${accountId}/original-principal`, { method: "DELETE" });
   },
   async getNetWorth(grain) {
-    return (await request<{ report: NetWorthReport }>(`/analysis/net-worth?grain=${grain}`)).report;
+    return (await request<{ report: NetWorthRollup }>(`/analysis/net-worth?grain=${grain}`)).report;
   },
 };
