@@ -46,10 +46,17 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   // Playwright owns the stack for the run: it starts both servers, waits for each to answer, runs
   // the tests, then tears them down. The API is booted with a per-run throwaway PGLITE_DIR (see
-  // above), so each run starts from an empty, deterministic store regardless of the local .env; the
-  // test uses unique names so it is also robust against a server you already had running locally
-  // (reuseExistingServer — note that path reuses the dev store, hence the unique names). CI has no
-  // .env (PGLITE_DIR unset → in-memory), so this just makes local runs match CI.
+  // above), so each run starts from an empty, deterministic store regardless of the local .env.
+  //
+  // reuseExistingServer is OFF everywhere (K20/K24). The throwaway-store isolation above only takes
+  // effect when Playwright actually *starts* the API — its `env` override cannot reach a server it
+  // merely attaches to. Any server already holding :3001/:5173 is a *dev* server (started from the
+  // local .env → the persistent dev store), so reusing it would run the suite against — and pollute
+  // — the developer's real data. That is exactly the K24 incident: a "stopped" dev API left an
+  // orphaned node child on :3001, `reuseExistingServer: true` silently attached, and three runs
+  // wrote fixtures into the dev store. With reuse off, Playwright FAILS FAST if either port is held
+  // (telling the developer to free it) and otherwise always starts its own isolated stack. CI
+  // already ran with reuse off (PGLITE_DIR unset → in-memory); this makes local runs match.
   globalTeardown: "./e2e/global-teardown.ts",
   webServer: [
     {
@@ -58,13 +65,13 @@ export default defineConfig({
       // Override PGLITE_DIR for the spawned API only; merged over process.env by Playwright. dotenv
       // (apps/api) won't override this real env var, so the e2e API uses the throwaway store.
       env: { PGLITE_DIR: E2E_PGLITE_DIR },
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false, // K24: own the stack or fail fast — never attach to a dev server
       timeout: 60_000,
     },
     {
       command: "npm run dev --workspace @budgeteer/web",
       url: `http://localhost:${WEB_PORT}`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false, // K24: own the stack or fail fast — never attach to a dev server
       timeout: 60_000,
     },
   ],

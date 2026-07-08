@@ -11,181 +11,35 @@ Sequencing model: docs/00_WAYS_OF_WORKING.md §7.
 | ------------- | -------------- |
 | Status        | Living         |
 | Owner         | Wesley Cutting |
-| Last updated  | 2026-07-02     |
-| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [`spikes/01-split-allocation-ux.md`](spikes/01-split-allocation-ux.md) · [`spikes/04-transfer-modeling.md`](spikes/04-transfer-modeling.md) · [`reviews/2026-06-15-repo-review.md`](reviews/2026-06-15-repo-review.md) · [`status-reports/2026-06-15-eh1.md`](status-reports/2026-06-15-eh1.md) · [`status-reports/2026-06-15-eh2.md`](status-reports/2026-06-15-eh2.md) · [`status-reports/2026-06-15-eh3.md`](status-reports/2026-06-15-eh3.md) · [`status-reports/2026-06-15-eh4.md`](status-reports/2026-06-15-eh4.md) · [`status-reports/2026-06-15-eh5.md`](status-reports/2026-06-15-eh5.md) · [`status-reports/2026-06-15-eh6.md`](status-reports/2026-06-15-eh6.md) · [`features/analysis-envelope-spend.md`](features/analysis-envelope-spend.md) · [`ux/analysis-envelope-spend.md`](ux/analysis-envelope-spend.md) · [`status-reports/2026-06-15-slice-11.md`](status-reports/2026-06-15-slice-11.md) · [`features/budget-vs-actual.md`](features/budget-vs-actual.md) · [`ux/budget-vs-actual.md`](ux/budget-vs-actual.md) · [`status-reports/2026-06-16-slice-12.md`](status-reports/2026-06-16-slice-12.md) · [`spikes/05-cashflow-forecast.md`](spikes/05-cashflow-forecast.md) · [`features/cash-flow-forecast.md`](features/cash-flow-forecast.md) · [`ux/cash-flow-forecast.md`](ux/cash-flow-forecast.md) · [`status-reports/2026-06-16-slice-13.md`](status-reports/2026-06-16-slice-13.md) · [`features/credit-utilization.md`](features/credit-utilization.md) · [`ux/credit-utilization.md`](ux/credit-utilization.md) · [`status-reports/2026-06-16-slice-14a.md`](status-reports/2026-06-16-slice-14a.md) · [`features/debt-payoff.md`](features/debt-payoff.md) · [`ux/debt-payoff.md`](ux/debt-payoff.md) · [`status-reports/2026-06-16-slice-14b.md`](status-reports/2026-06-16-slice-14b.md) · [2026-06-17 improvement review](reviews/2026-06-17-improvement-review.md) · [`status-reports/2026-06-17-r14.md`](status-reports/2026-06-17-r14.md) · [`status-reports/2026-06-17-slice-15a.md`](status-reports/2026-06-17-slice-15a.md) · [2026-06-25 UX uplift initiative](reviews/2026-06-25-ux-uplift-initiative.md) · [2026-07-02 architecture review](reviews/2026-07-02-architecture-review.md) · [`spikes/08-budgethome-sheet-analysis.md`](spikes/08-budgethome-sheet-analysis.md) |
+| Last updated  | 2026-07-04     |
+| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [2026-06-15 repo review](reviews/2026-06-15-repo-review.md) · [2026-06-17 improvement review](reviews/2026-06-17-improvement-review.md) · [2026-06-25 UX uplift initiative](reviews/2026-06-25-ux-uplift-initiative.md) · [2026-07-02 architecture review](reviews/2026-07-02-architecture-review.md) · [SPIKE-08 sheet analysis](spikes/08-budgethome-sheet-analysis.md) — per-item sources (spike · feature/UX spec · status report) are linked from each item's row in §4 and the log in §5 |
 
-**Current focus:** **V1 is functionally complete and gate-green (275 Vitest + 47 e2e)** — the domain core, the full
-enter→allocate loop, transfers/refunds/recurring/reconcile, the six-view analysis area, and the DX (`R10`–`R13`),
-UX-polish (`R1`–`R5`), and hardening tracks are all done. The next initiative is a **UX Uplift**: a
-**foundation-first, desktop-first** overhaul of the experience — a design system + client routing/app-shell, a
-**budget-and-future-planning landing cockpit**, and **new ways to visualize spending** — captured thoroughly in the
-[2026-06-25 UX uplift initiative](reviews/2026-06-25-ux-uplift-initiative.md) and tracked below as the **UX Uplift**
-section (`UX1`–`UX15`). It **reverses the repo's deliberate "no design system" stance**, so it is **ADR-gated and
-spike-first**: nothing migrates until the foundation spikes validate the approach on one real screen, exactly as
-`SPIKE-02` produced the stack ADRs. **`UX1` ✅ done** — [SPIKE-06](spikes/06-design-system-routing.md) baked off the
-options on the Account Register and chose **React Router + design tokens/CSS-Modules + Radix Primitives** (both
-primitive libs axe-clean in real Chromium; Radix < half React Aria's bundle, so the lean flipped); `ADR-0005`
-(design system) + `ADR-0006` (routing) are **`Validated`**. **`UX4` is now scoped →
-[FEAT-UX4](features/design-system.md)** — **seed-and-grow** (token sheet + only the primitives the first screen
-needs), **proven by restyling the Account Register in place** (no routing yet), so `UX4` ran **before** `UX3`.
-**`UX4` ✅ done** ([status](status-reports/2026-06-26-ux4.md), 283 Vitest + 49 e2e, gate-green) — the token sheet +
-base layer + seed primitives (`apps/web/src/ui/`) are in and the Account Register is restyled in place, axe-clean in
-**light and dark** (`Dialog`/`Table` deferred per seed-and-grow). **`UX3` ✅ done**
-([FEAT-UX3](features/app-shell.md) · [status](status-reports/2026-06-27-ux3.md), 283 Vitest + 52 e2e, gate-green) —
-the hand-rolled `view` state machine is retired for **React Router 7 (data router)** behind a **persistent app
-shell** (`AppShell`); every screen is URL-addressable, deep-linkable, refresh-safe, with working back/forward and a
-reduced-motion-aware route transition; the per-screen "← Dashboard" buttons are gone (nav lives in the shell);
-`ADR-0006` → **`Accepted`** and the SPIKE-06 throwaway harness was discarded (findings persist in the spike report +
-ADR). `/manage` + the `/accounts`·`/envelopes` list routes are deferred to `UX6` per the brief (not built empty).
-**`UX5` ✅ done** ([FEAT-UX5](features/cockpit.md) · [status](status-reports/2026-06-27-ux5.md), 296 Vitest + 55 e2e,
-gate-green) — the console home at `/` now opens on a **budget + future-planning cockpit**: five panels (this-month
-budget health · needs-allocation · upcoming recurring · cash-flow snapshot · net worth) that **compose existing reads**
-(fan-out, **no new endpoint** — the brief's open Q resolved to fan-out, R4/R5 precedent), each deep-linking to its
-detail route; figures reconcile to the ledger (asserted). **Deliberate scope call (flagged):** account/envelope
-management **stays on the home below the cockpit** — demoting it to `/manage` is `UX6`'s explicit job, so removing it
-now (with nowhere to go) would break usable-at-every-step.
-**`UX6` ✅ done** ([FEAT-UX6](features/manage.md) · [status](status-reports/2026-06-28-ux6.md), 304 Vitest + 61 e2e,
-gate-green) — management is **demoted off the home**: the `/accounts` · `/envelopes` **LIST routes** (deferred from
-UX3, built now) own per-entity CRUD — a **progressive "Add" affordance**, each name a `<Link>` to its detail (UX3 left
-these as buttons), inline rename/archive — while the new `/manage` hub owns the **cross-entity** tools (the R4
-net-worth summary that spans all accounts + Move-money between envelopes) and links to the two list pages. The home
-(`/`) now renders the **UX5 cockpit only**; the shell nav gains **Accounts · Envelopes · Manage**. Figures still
-reconcile to the ledger; fan-out over existing reads (no new endpoint).
-**`UX7` ✅ done** ([FEAT-UX7](features/quick-add-transaction.md) · [status](status-reports/2026-06-28-ux7.md), 311
-Vitest + 66 e2e, gate-green) — **PRD journey #1 is no longer buried**: an always-available **Add transaction** action
-in the shell nav opens a **modal route** (`/transactions/new`) that lets you **pick the account**, enter amount/payee,
-and allocate in Single or Split, then **returns you where you were**. It **reuses the register's editor**
-(`AddTransactionForm` → `AllocationEditor`, + an account picker) and **fans out to the existing
-`createTransaction`/`setAllocations`** — no new endpoint, no schema/API/domain change; a partial allocation's remainder
-still surfaces in needs-allocation. The modal is the new **`Dialog` primitive** (`@radix-ui/react-dialog` per ADR-0005;
-the deferred UX4 Dialog landed here) — focus trap / ESC / overlay-close / focus-restore, **axe-clean light AND dark**;
-bundle 105.4 KB gz (< 120 KB).
-**`UX8` ✅ done** ([FEAT-UX8](features/insights-charts.md) · [UX](ux/insights-charts.md) · [status](status-reports/2026-06-28-ux8.md),
-315 Vitest + 72 e2e, gate-green) — the **Analysis → Insights migration**, the first build slice of the Insights
-phase. The six analysis views are **renamed** ("Insights — …"), **restyled** onto the UX4 design system, and each
-gains a **hand-rolled accessible chart** above its existing table on the [ADR-0007](adr/ADR-0007-accessible-charting.md)
-contract: a shared **`ui/Chart` primitive** (`ChartFigure` + `LineChart`/`BarChart`/`Gauge`) + new
-**`--chart-1/2/3`/`--chart-grid`** tokens. Net worth + cash-flow = **line**, spend + budget = **bar**, credit +
-payoff = **gauge** — every chart `role="img"` with a one-line summary, `aria-hidden` innards, the **existing table
-as the data-table fallback**, and **colour never the sole signal** (dash / marker / hatch / bar-direction / direct
-labels). `e2e/a11y.spec.ts` seeds data per shape and is **axe-green LIGHT AND DARK with each chart rendered**.
-**Presentation-only — no new endpoint/schema/API/domain change** (the six reads were done). Bundle **108.33 KB gz**
-(< 120 KB); `ADR-0007` → **`Accepted`**; the SPIKE-07 throwaway harness was discarded (findings persist in the spike
-report + ADR).
-**`UX9` ✅ done** ([FEAT-UX9](features/spending-breakdown.md) · [UX](ux/spending-breakdown.md) · [status](status-reports/2026-06-28-ux9.md),
-320 Vitest + 75 e2e, gate-green) — the **second build slice of the Insights phase**, a **new
-visualisation**: `/insights/breakdown` ("Breakdown" tab, next to Spend) answers "**where did the money
-go?**" — each envelope's **share of a chosen month's OUTFLOW** as **ranked horizontal bars** on the
-[ADR-0007](adr/ADR-0007-accessible-charting.md) contract, via a new **`BreakdownBars`** shape on the
-shared **`ui/Chart`** primitive. It **composes the existing `getBudgetVsActual(month)` read** (whose
-`spentCents` is pure outflow — funding excluded, refunds netted — the correct breakdown numerator,
-unlike spend-by-envelope's net flow) — **no new endpoint/schema/API/domain change** (R4/R5/UX5 fan-out
-precedent). The hardest a11y case (many categories, no colour-only) is solved by making colour carry
-**no categorical meaning at all**: one bar colour + a **direct text label** per bar (rank · name ·
-outflow · share) + **rank order** + bar length. `role="img"` + one-line summary, `aria-hidden` innards,
-the ranked **table** (envelope · outflow · % share) as the SR/keyboard source of truth; shares sum to
-100%. `e2e/a11y.spec.ts` seeds real outflow and is **axe-green LIGHT AND DARK**. Bundle **108.93 KB gz**
-(< 120 KB).
-**`UX10` ✅ done** ([FEAT-UX10](features/spending-trends.md) · [UX](ux/spending-trends.md) · [status](status-reports/2026-07-01-ux10.md),
-323 Vitest + 78 e2e, gate-green) — the **third build slice of the Insights phase**, a **new
-visualisation**: `/insights/trends` ("Trends" tab, next to Breakdown) answers "**is my spending going
-up or down?**" — a **month-over-month OUTFLOW trend** (household total + top-2 envelopes by outflow)
-as a **multi-series line chart**, reusing the **existing `LineChart` shape** on the
-[ADR-0007](adr/ADR-0007-accessible-charting.md) contract — no new shape. It **composes the existing
-`getBudgetVsActual(month)` read, once per month in a selectable 3/6/12-month window** (`Promise.all`
-— still no new endpoint/schema/API/domain change, extending the R4/R5/UX9 fan-out precedent to
-several calls because that read is per-month only); pure outflow (not `getEnvelopeSpend`'s net flow)
-for the same reason UX9 chose it — funding-then-spend in one month would otherwise understate the
-trend. Three series (Total + top-2 envelopes), **one `--chart-*` token each** (no colour reuse), each
-also carrying its own dash + marker + direct label. `role="img"` + one-line summary (direction + top
-spenders), `aria-hidden` innards, an exact-figures **table** (month · total · each charted envelope)
-mirroring the chart. `e2e/a11y.spec.ts` seeds outflow across two real months and is **axe-green LIGHT
-AND DARK**. Bundle **109.90 KB gz** (< 120 KB).
-**`UX11` ✅ done** ([FEAT-UX11](features/budget-burndown.md) · [UX](ux/budget-burndown.md) · [status](status-reports/2026-07-01-ux11.md),
-335 Vitest + 81 e2e, gate-green) — the **fourth and final new-visualisation slice of the Insights
-phase**: `/insights/burndown` ("Burn-down" tab, next to Budget) answers "**am I on pace this
-month?**" — **within-month** budget-consumed (spent ÷ target) vs. the **elapsed-time pace**, as a
-**`Gauge`** reused **as-is** on the [ADR-0007](adr/ADR-0007-accessible-charting.md) contract (no new
-shape — the gauge's threshold marker is repurposed as "pace today"). It **composes the existing
-`getBudgetVsActual(month)` read — ONE call, no fan-out, no new endpoint/schema/API change** (a scope
-picker selects the household aggregate or one budgeted envelope from that single read); the only new
-code is one **pure, unit-tested domain function** (`assessBurndown`, elapsed-day-fraction linear-burn
-pace) per the pure-core/impure-shell convention. `status ∈ over-budget | over-pace | on-track`,
-carried by **verdict text + marker position + a table Pace column** — never colour alone. `role="img"`
-+ one-line summary, `aria-hidden` innards, an exact-figures **table** (target · spent · % · pace +
-aggregate). `e2e/a11y.spec.ts` seeds a budgeted envelope with mid-month outflow and is **axe-green
-LIGHT AND DARK**. Bundle **111.06 KB gz** (< 120 KB).
-**`UX12` ✅ Done — all 4 threads shipped** ([FEAT-UX12a](features/destructive-confirms.md) ·
-[FEAT-UX12b](features/skeleton-loaders.md) · [FEAT-UX12c](features/success-toasts.md) ·
-[FEAT-UX12d](features/inline-validation.md) ·
-[status](status-reports/2026-07-02-ux12c.md), 354 Vitest + 89 e2e, gate-green) — the **Polish track**.
-UX12 bundles four polish threads; per *vertical, not horizontal* each ships on its own. **Thread 1 —
-confirmation on destructive actions:** a new **`ConfirmDialog`** primitive (controlled/transient, on
-the SPIKE-06-validated Radix `Dialog` — **no new dependency**, +0.42 KB gz) gates the three previously
-one-click destructive actions — **Archive envelope, Archive account, Delete template** — with a
-consistent blocking confirm (owner call: all three, not just the irreversible Delete); state via
-action-word text + dialog title, **never colour**; ESC/overlay = cancel; axe-green **light AND dark**
-with the dialog open. **Thread 2 — skeleton loaders:** the 16 bare `Loading…` strings across the lists
-+ Insights views now render the existing UX4 **`Skeleton`** primitive (as the home `Cockpit` already
-does) — a **net a11y win** (the ~9 sites with a bare `<p>` now announce politely via `role="status"`),
-reduced-motion-safe, **no new dep, no new code, net −0.04 KB gz**. **Thread 3 — inline validation:**
-money-amount inputs that failed *silently* (a greyed-out Save) or only at the server round-trip now
-surface a **field-level** message the moment an amount can't parse — a new pure `amountFieldError`
-(reusing `tryParseMoney`) drives a new **`FieldError`** primitive (`aria-invalid` + `aria-describedby`,
-message text carries the state — **never colour**) across the transaction / transfer / move-money /
-add-account forms; submit is guarded client-side, semantic rules stay server-authoritative. **No new
-dep, no ADR**; axe-clean **light AND dark** with the error visible. **Thread 4 — success toasts:** the
-last thread and the only one needing a **new dependency** — `@radix-ui/react-toast` (the last of the
-hard a11y widgets ADR-0005 reserved for Radix). A new **`ToastProvider`/`useToast()`** (`ui/Toast.tsx`)
-at the app root fires a transient, auto-dismissing success toast on the successful-mutation set
-(create account/envelope/transaction · transfer · move · archive · delete); it announces via
-**`role="status"` polite (never `role="alert"`)**, entrance is **transform-only** (no opacity fade),
-reduced-motion-safe, state carried by text. Proven **axe-clean light AND dark with the toast visible**
-before wiring; **no ADR** (ADR-0005 covers it). Bundle **116.31 KB gz** (+4.63 KB — the Radix Toast;
-< 120 KB, ~3.7 KB headroom).
+**Current focus:** **Every planned track is complete and the gate is fully green** — **415 Vitest + 99 e2e**,
+build **118.67 KB gz** (~1.3 KB of the 120 KB budget left). Done: the V1 core (foundation + domain slices
+`#3`–`#14b` + hardening `#15a`/`#16`) · engineering health `EH1`–`EH6` and `EH7`–`EH14` (the
+[2026-07-02 architecture review](reviews/2026-07-02-architecture-review.md) is closed out) · UX polish `R1`–`R5` ·
+DX `R10`–`R13` · e2e foundation `R14`/`R15` · the **entire UX Uplift `UX1`–`UX15`**
+([initiative brief](reviews/2026-06-25-ux-uplift-initiative.md)) · **sheet parity `S7`/`S9`**
+([SPIKE-08](spikes/08-budgethome-sheet-analysis.md) — the spreadsheet has no remaining feature the app lacks).
+Per-item detail lives in the §4 tables, the §5 re-sequencing log, and each row's linked spec/status report; the
+newest status report ([2026-07-03-s7-slice.md](status-reports/2026-07-03-s7-slice.md)) is the live handoff.
 
-**`UX13` ✅ Done — money & budget-health visual encoding** ([FEAT-UX13](features/budget-health-encoding.md)
-· [status](status-reports/2026-07-02-ux13.md), 360 Vitest + 91 e2e, gate-green). A new **`ProgressBar`**
-primitive — the last UX4 seed-and-grow primitive, hand-rolled on the tokens + CSS with **no charting
-dependency** (the SVG `Gauge`/`BarChart` stay for the Insights charts; the new bar surface is budget
-target-vs-spent) — drives a per-row **spent-of-target** bar in the Budget table and a **summary bar** in
-the cockpit budget panel; over-budget/negative money (remaining · liabilities · net worth) now carries
-**weight + colour** with the minus sign kept as the non-colour signal, **superseding the V1 "minus sign
-only" encoding**. The bar is **decorative** (`aria-hidden` — no new AT surface), the `over` tone lays a
-diagonal **hatch SHAPE** over the danger fill, track+fills clear 3:1, and there is **no animation**
-(reduced-motion-safe by construction); axe-green **light AND dark** with both the under- and
-**over**-budget encoding visible. **No ADR/spike/dep**, no data/API/domain/chart change. Bundle **116.87
-KB gz** (+0.56 KB, no dep; < 120 KB).
-**`UX14` ✅ done** ([FEAT-UX14](features/first-run-onboarding.md) ·
-[status](status-reports/2026-07-02-ux14.md), 364 Vitest + 92 e2e, gate-green) — **first-run onboarding**:
-a brand-new user opening a truly empty app previously met the cockpit's **five disconnected per-panel
-empty states**; now the home **derives** whether the app is completely empty (no accounts AND no
-envelopes — from the ledger reads, **never a stored "has onboarded" flag**; derive-don't-store) and, when
-it is, shows one guided next step — a small **`FirstRunOnboarding`** component that **composes the
-existing UX4 `EmptyState`** with two CTA `<Link>`s ("Add an account" → `/accounts`, "Add envelopes" →
-`/envelopes`), tied to the PRD's week-one success metric. The moment anything exists the cockpit takes
-over (its per-panel empty states guide the rest). **No ADR/spike/dep**, no data/API/domain change; proven
-**axe-green LIGHT AND DARK with the onboarding surface visible** (the empty-store scan runs first, before
-any e2e seeding). Bundle **117.20 KB gz** (+0.33 KB, no dep; < 120 KB, ~2.8 KB headroom).
-**`UX15` ✅ done** ([FEAT-UX15](features/responsive-pass.md) ·
-[status](status-reports/2026-07-02-ux15.md), 366 Vitest + 94 e2e, gate-green) — the **responsive
-pass**, and the **LAST UX-Uplift item**. The uplift was built desktop-first with graceful degradation
-already partly baked in (the cockpit grid + Insights figure lists are `auto-fit minmax(...)` and
-**already stack**; the shell nav + register rows already `flex-wrap`; the ADR-0007 chart SVGs are
-`width:100%` and **already scale**), so this slice is a small **CSS/token-only** pass closing the
-phone-width gaps: (1) **reflow (WCAG 1.4.10)** — wide data tables no longer overflow the page but
-scroll within their own **keyboard-focusable** region (a global `.table-scroll` utility applied once
-in **`ChartFigure`**, which every Insights table flows through, + the standalone envelope-ledger
-table); (2) the **shell header** degrades to a narrow column (brand over the wrapping nav, comfortable
-tap targets) and the **Insights sub-nav** becomes a real wrapping tab row with valid **target-size**
-(WCAG 2.5.8) at any width; (3) **page padding** tightens at ≤ 640px. **Scope call (flagged):** "nav
-collapses" is met by graceful degradation (the nav already wraps) — **no hamburger** (a new
-interactive a11y surface, against the slice's low-risk/desktop-first appetite); a hamburger is an
-available follow-up. Proven **axe-clean at 320px LIGHT AND DARK** with a wide table + the reflow
-layout visible (new "responsive reflow at phone width" e2e describe asserts no horizontal page scroll
-+ the focusable scroll region). **No ADR/spike/dep**, no data/API/domain/chart change. Bundle **117.27
-KB gz** (+0.07 KB, no dep; < 120 KB, ~2.7 KB headroom). **This completes the Phase-4 Polish track and
-the entire UX Uplift (`UX1`–`UX15`).**
+**Open now — one owner decision (ask before picking new work):**
+
+1. **Ratify or veto FEAT-S7 §5's residual divergence** — under balanced latest-fit, big month-boundary bills get
+   ≥ 7-day float rather than the sheet's ~22–27 days ([FEAT-S7 §5](features/pay-periods.md) ·
+   [SPIKE-10 §3.6](spikes/10-payperiod-policy-validation.md)). A veto means scoping the §8 bill↔paycheck
+   **assignment store** (frozen migration `0003` + `05_DATA_MODEL` + ADR — a §11 ceremony scale-up).
+
+**K24 dev-store fixture cleanup — ✅ done (2026-07-04).** The polluted dev store (347 accounts / 271 envelopes /
+96 targets, ~99% leaked `E2E `/`A11y-`/`Dark-*`/`Backup Account ` e2e fixtures — no genuine owner data; the only
+non-fixture rows were the reproducible seed demo) was reset and reseeded (`npm run db:reset && npm run seed`) back
+to the clean baseline (4 accounts · 22 envelopes · 8 targets). The Pay-periods view now reads honestly — every
+bucket "Covered", planned spend $1,450/period, headroom positive throughout (verified live).
+
+**Next fronts (owner's call):** `#17`/`#18` — SPIKE-03 history profiling → historical import, the last unstarted
+track — or the remaining deferred items (`#19` multi-user/auth · `#20` statement import). Watch items (no action,
+keep visible) are listed under the engineering-health section.
 
 ---
 
@@ -316,7 +170,8 @@ by convention only**. Full findings + rationale in the review; suggested order t
 | EH14 | **Make post-due idempotency structural** — concurrent `postDue` calls can double-post (both read the cursor pre-commit). Add `unique (recurring_id, occurred_on) where recurring_id is not null`; treat the violation as already-posted via the EH3 `dbErrors` shim. Bundle with EH9's first migration file. | hardening | P3 | **✅ Done** | Migration `0002`: partial unique `(recurring_id, occurred_on)`; `postDue` treats the violation as already-posted (0 posted, no error — the concurrent winner advanced the cursor). Bundled with EH9 as planned. [status report](status-reports/2026-07-03-eh9-eh14.md) |
 
 Watch items (no action, keep visible — see the review): Insights read fan-out (up to 12 calls);
-`perf.test.ts` flaking under machine load inside the unit gate; ~2.7 KB bundle headroom;
+`perf.test.ts` flaking under machine load inside the unit gate; ~1.3 KB bundle headroom (118.67
+of 120 KB after S7 — the budget conversation is the entry fee of the next UI slice);
 `@budgeteer/domain` ships raw TS (fine while consumers are in-repo).
 
 ### UX polish (from the 2026-06-17 improvement review)
@@ -364,7 +219,7 @@ produces its UX/feature spec (and the spikes their ADRs) as gating work.
 | UX1 | **Spike: design-system + routing foundation** — bake-off on the Account Register → **chose React Router + design tokens/CSS-Modules + Radix Primitives** (both primitive libs axe-clean; Radix < half the bundle, so the lean flipped from React Aria). `ADR-0005` + `ADR-0006` **`Validated`** | 0 Foundation | spike | High | High | — | **✅ Done** — [SPIKE-06](spikes/06-design-system-routing.md) · [ADR-0005](adr/ADR-0005-frontend-design-system.md) · [ADR-0006](adr/ADR-0006-client-routing.md) |
 | UX2 | **Spike: accessible charting / viz a11y** — built one real chart (net-worth-over-time) → **0 axe violations** (WCAG 2.2 AA, light+dark × table-shown/hidden), keyboard + SR via a data-table fallback; **hand-rolled SVG 1.94 KB gz vs Recharts 129 KB gz** → a library blows the budget. `ADR-0007` **`Validated`** | 0 Foundation | spike | High | High | — | **✅ Done** — [SPIKE-07](spikes/07-accessible-charting.md) · [ADR-0007](adr/ADR-0007-accessible-charting.md) |
 | UX4 | **Design-system foundation** (tokens + base layer + primitives · ADR-0005) — **seed-and-grow**: token sheet + dark mode + primitives (Button/Field/Input/Select/Badge/Card/Alert/EmptyState/Skeleton), **proven by restyling the Account Register in place**; Dialog/Table deferred to the first modal/table slice. [FEAT-UX4](features/design-system.md) | 1 Shell | slice | High | Med | UX1 ✅ | **✅ Done** — [status](status-reports/2026-06-26-ux4.md) |
-| UX3 | **Routing + persistent app shell** (React Router · ADR-0006) — retire `App.tsx`'s `view` state machine; URL-addressable, back/forward, refresh-safe, deep-linkable; reduced-motion-aware | 1 Shell | slice | High | Med | UX1 ✅ · after UX4 | **Ready** |
+| UX3 | **Routing + persistent app shell** (React Router · ADR-0006) — retire `App.tsx`'s `view` state machine; URL-addressable, back/forward, refresh-safe, deep-linkable; reduced-motion-aware ([FEAT-UX3](features/app-shell.md)) | 1 Shell | slice | High | Med | UX1 ✅ · after UX4 | **✅ Done** — [status](status-reports/2026-06-27-ux3.md) |
 | UX5 | **Home: budget + future-planning cockpit** — this-month envelope health + upcoming recurring + cash-flow snapshot + needs-allocation + net-worth, composed from existing reads ([FEAT-UX5](features/cockpit.md)·[UX](ux/cockpit.md)) | 2 Cockpit | slice | High | Med | UX3 · UX4 | **✅ Done** — [status](status-reports/2026-06-27-ux5.md) |
 | UX6 | **Demote management to a dedicated surface** — account/envelope CRUD onto the `/accounts`·`/envelopes` LIST routes (progressive add, name-as-Link) + the cross-cutting `/manage` hub (net-worth summary + Move-money); home becomes cockpit-only ([FEAT-UX6](features/manage.md)·[UX](ux/manage.md)) | 2 Cockpit | slice | Med | Low | UX3 · UX4 · UX5 | **✅ Done** — [status](status-reports/2026-06-28-ux6.md) |
 | UX7 | **Global quick-add transaction** — always-available entry (modal route) for PRD journey #1 (the buried common case); reuses the register editor + an account picker, fans out to existing endpoints; new `Dialog` primitive (Radix) ([FEAT-UX7](features/quick-add-transaction.md)·[UX](ux/quick-add-transaction.md)) | 2 Cockpit | slice | High | Med | UX3 · UX4 · UX5 | **✅ Done** — [status](status-reports/2026-06-28-ux7.md) |
@@ -490,8 +345,8 @@ can ride alongside or fold into S7.
 | 2026-07-03 | **`EH10` Done (gate-green)** — restore is proven; the export is finally a backup, not a hope. [SPIKE-09](spikes/09-restore-roundtrip.md) (§11 scale-up honored: spike report before building) answered the three open questions: **FK order** — the file's key order is FK-unsafe (`transactions` precedes `recurring_transactions`); an explicit topological order lives in `restoreService`. **ID collisions** — exactly one by construction: the seeded default-household row every migrated store carries; resolved by upsert so the exported values win, all other UUIDs preserved. **Versioning** — the export now stamps `schema: { migrations }` from `kysely_migration` (additive; `version` stays 1); restore refuses a file from a newer schema naming the missing migration, and pre-stamping files restore with a warning (refusing them would orphan the owner's real accumulated backups). The slice: `restoreService` (zod-validated envelope; PG constraints validate rows; one transaction — partial failure restores nothing; **non-destructive** — refuses any store with user data, flow is `db:reset` → restore) + `npm run db:restore -- <file>` CLI (counts only, never contents). Deliberately CLI-only: an unauthenticated HTTP restore would be a remote wipe-and-replace primitive (`#19`). Docs in the same change: `06_API_CONTRACT` (schema stamp + restore section), `07_NFR` ("Restore proven" ✅, FK-order question closed), README, K22. | Owner picked `EH10` (the review's suggested order, unblocked by EH9) | `07_NFR`'s recovery-path claim is now tested, not asserted: the **`export → restore → export` equivalence gate test** (store populated via the real HTTP API exercising all 15 tables, restored into a fresh store, re-exported deep-equal) locks the round-trip into every future gate run. +6 Vitest (389/389): equivalence · occupied-store refusal · newer-schema refusal · legacy-file warning path · foreign-household refusal · malformed-file fail-loud (plus schema-stamp assertions inside the existing backup contract test). **Verified live:** the owner's real 1,019-row store exported → CLI-restored into a scratch `PGLITE_DIR` → re-exported byte-identical. No web change (the export shape change is additive; bundle untouched). **Next: EH12/EH13 / S7/S9 — owner's call** (S7 is the last spreadsheet-parity gap; EH12/EH13 are small P3s). [status report](status-reports/2026-07-03-eh10.md) |
 | 2026-07-03 | **`EH12` + `EH13` Done (gate-green) — the 2026-07-02 architecture review is CLOSED OUT** (EH7–EH14 all ✅). **EH12:** new types-only `apps/api/src/contract.ts` exposed as **`@budgeteer/api/contract`** (one `exports` line — the same raw-TS-source sharing `@budgeteer/domain` has always used; the api.ts header's "once the domain package ships a build" premise was never needed) re-exports the server's own view types + the domain-defined report types; web `api.ts` swaps its ~25 hand-copied interfaces for `import type` + `export type *` re-exports (components untouched; web's `NetWorthReport` was api's `NetWorthRollup` — renamed at its one use). Client-side **input** shapes (dollar-string amounts, adapter-filled dates) deliberately stay web-local: the wire inputs are the routes' zod schemas. **Stance decided: the client trusts the typed contract on reads** — recorded in `06_API_CONTRACT` §4 (single first-party client on a loopback-bound API; drift is now a compile error; a client-side schema mirror = EH1's two-sources-of-truth one layer up + bundle spend re-checking what the server guarantees; revisit at `/v1`). **EH13:** per-zone `no-restricted-imports` in `eslint.config.js` — domain bans fastify/kysely/pg/react/`node:*`; web bans kysely/pg/fastify **and any runtime import of `@budgeteer/api`** (`allowTypeImports` — the rule that keeps EH12 honest); `http/routes/**` bans `**/db/**`. §11-compressed (refactor + tooling, no behavior change; no spec/ADR). | Owner picked `EH12`+`EH13` bundled (close the engineering-health track before starting S7's spec) | **Zero type drift found** when the hand-copies were swapped for the real definitions, and **zero pre-existing boundary violations** — the conventions had held, but only by manual discipline; erosion now fails the gate. Every ban verified to fire (probe files, then deleted). Bundle **byte-identical** (117.32 KB gz — `import type` is erased). Tests unchanged (389 Vitest + 94 e2e; the lint IS the enforcement). Docs: `06_API_CONTRACT` §4 · `ARCHITECTURE` §2 · K23. One first-run Vitest flake (389→1 failed, 3 clean re-runs — consistent with the `perf.test.ts` watch item). **Next: S7 (spec-first) / S9 — owner's call; engineering health is empty.** [status report](status-reports/2026-07-03-eh12-eh13.md) |
 | 2026-07-03 | **`S9` Done (gate-green) + `S7` specs written — the sheet-parity session.** **S9:** pure **`stillOwedCents`** in `@budgeteer/domain` (Σ over **withdrawal** rules of amount × unposted occurrences through local month-end, from each rule's `nextOccurrenceOn` cursor — **past-due unposted count**, posting is what clears the figure; deposits contribute 0) + a labelled `<dl>` **"Still owed this month"** figure on the cockpit's Upcoming panel, **client-derived** per the cockpit's own R4/R5 compose-existing-reads precedent (month-end via `dates.ts`, EH8) — **no API/schema/contract change**. §11-compressed as planned ([FEAT-S9](features/still-owed.md) note). Verified live against the real store (the figure reconciled to the one unposted July occurrence). **S7 (spec-first, no code):** [FEAT-S7](features/pay-periods.md) + [UX spec](ux/pay-periods.md), both **Proposed** — derived-only V1 (no schema change; the bill↔paycheck assignment store stays a recorded scale-up with an explicit trigger); assignment policy = **latest expected paycheck ≥ `leadDays` (default 7) before the bill's due date**, bucket zero = from current balance; planned spending = SPIKE-05-netted monthly residual split across that month's checks (three-check months handled by construction, the sheet's ×2 bug closed); **S8 headroom folds in at commitment time** (payday, not due date); colour-only blue/red join replaced by structure + text (ADR-0007/UX13). | Owner picked **S9 warm-up then S7 spec** (S9 first validates the unposted-occurrence derivation S7's plan math leans on) | S9's known sheet-divergence: none (the D-column semantics carried over exactly). S7's known sheet-divergence, **flagged in the spec**: the sheet parks a whole 7th–30th cluster on one check; the derived policy spreads bills across preceding checks — **FEAT-S7 §9 names the ~1 h validation against the live rules that decides** (acceptable → build; structural mismatch → tune `leadDays` or pull the §8 store forward). **+4 Vitest (393), 94 e2e** (the cockpit journey gains the S9 figure assertion). **Next: FEAT-S7 §9 validation, then the S7 build slice — owner's call.** [status report](status-reports/2026-07-03-s9-s7-spec.md) |
-
 | 2026-07-03 | **`S7` Done (gate-green) — the sheet's last parity gap is closed.** **§9 validation first ([SPIKE-10](spikes/10-payperiod-policy-validation.md), ~1 h honored):** the dev store turned out to hold **no real bill cadence** (one demo paycheck + `E2E ` fixtures), so the validation ran against `BudgetHome.xlsx` itself (read-only, SPIKE-08 stance) — and **invalidated the specced date-only policy**: bills cluster at the month boundary, so "latest check ≥ 7 days before due" parks ~149% of a check on one payday while its neighbor idles at ~47%; no `leadDays` constant fixes it (7/14/21 swept) and reservation-style earliest-fit is horizon-unstable. **§5 revised to balanced latest-fit** (capacity-aware: largest bills first into the latest feasible check with room; overflow surfaced as `overCommitted`; unfundable → bucket zero) — on the real data every bucket lands at 95–100% of its check, exactly the owner's hand balance, min 7-day float, mean ~19 days. **Then the derived-only V1 slice:** pure `payPeriodPlan` (`packages/domain/src/payperiod.ts`, reusing `dueOccurrences` via `scheduledEvents` + the SPIKE-05 netting via `expectedSpendEvents`) → `analysisService.payPeriodPlan` over the same gather as the forecast (extracted `gatherProjectionInputs`, shared) → **`GET /analysis/pay-periods?accountId&today`** (`today` required, EH8; horizon fixed 90 d; typed via `contract.ts`) → Insights **Pay periods** tab (`/insights/pay-periods`): bucket sections with structural join, coverage sentence, `.table-scroll` bill tables, planned-spending row, `<dl>` figures, text badges (Covered · Plan breaks here · Short · Over-committed). No schema change. | Kickoff plan anticipated the mismatch fork; the third option (capacity-aware policy) was validated against the sheet before building — spec revised in place (`Proposed`, §4 ladder permits one slice) and promoted with evidence | **Residual divergence for owner ratification** (FEAT-S7 §5 / SPIKE-10 §3.6): the sheet pre-reserves whole clusters (~22–27 d float on the big 1st-of-month cluster); the policy guarantees ≥ 7 d (8–13 d there) and mirror-balances membership. Pinning a bill to a check = §8's store (trigger sharpened). **+22 Vitest (415) · +5 e2e (99)** (journey + light/dark a11y + light/dark 320 px reflow) · build **118.67 KB gz** (+0.97; headroom to 120 KB now **~1.3 KB** — next UI-bearing slice likely forces the budget conversation). Verified live against the dev store (honest output: the leaked fixture targets over-commit the demo paycheck — see K24 cleanup). **Next: owner ratifies the §5 divergence + decides the K24 fixture cleanup — then #17/#18 (history import) or hardening, owner's call.** [status report](status-reports/2026-07-03-s7-slice.md) |
+| 2026-07-04 | **Roadmap refocused: the header “Current focus” consolidated** from a ~170-line running changelog (UX3–UX15 narrated in full) to a concise current-state block: all tracks Done · gate 415 Vitest + 99 e2e · the two open owner decisions (FEAT-S7 §5 ratification · K24 fixture cleanup) · next fronts (`#17`/`#18` or deferred). No information lost — every removed paragraph exists in its item row (§4), this log, or its status report. Also fixed the stale `UX3` table status (was `Ready`, shipped 2026-06-27), trimmed the Sources row to the primary docs, and refreshed the watch-items bundle headroom (~1.3 KB after S7) | The block had become a second copy of §4/§5 and buried the entry point it was meant to be | The roadmap header is again a fast “where are we / what's next” orientation; per-item history stays in §4/§5/status reports |
 
 ## 6. Done / shipped
 
