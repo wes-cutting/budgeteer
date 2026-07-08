@@ -32,7 +32,7 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
 
   // --- Analysis: budget vs. actual (FEAT-012) ---
   app.get<MonthQuery>("/analysis/budget-vs-actual", async (req, reply) => {
-    const month = req.query.month ?? todayStr().slice(0, 7);
+    const month = req.query.month ?? todayStr(opts.clock).slice(0, 7);
     if (!MONTH_RE.test(month)) return fail(reply, 400, "month must be 'YYYY-MM'.");
     return { report: await analysis.budgetVsActual(month) };
   });

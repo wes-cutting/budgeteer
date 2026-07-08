@@ -19,7 +19,7 @@ import {
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
 import { groupBy } from "../util/groupBy";
-import { todayStr, toDateStr } from "../util/dates";
+import { type Clock, systemClock, todayStr, toDateStr } from "../util/dates";
 import { NotFoundError } from "./errors";
 
 export type SpendGrain = "month" | "year";
@@ -84,7 +84,7 @@ export interface NetWorthRollup extends NetWorthReport {
 
 const HH = DEFAULT_HOUSEHOLD_ID;
 
-export function makeAnalysisService(db: Kysely<DB>) {
+export function makeAnalysisService(db: Kysely<DB>, clock: Clock = systemClock) {
   return {
     /**
      * Net signed allocation flow per envelope per period (FEAT-011) — the generated replacement for
@@ -251,7 +251,7 @@ export function makeAnalysisService(db: Kysely<DB>) {
         .executeTakeFirst();
       if (!account) throw new NotFoundError("account");
 
-      const today = todayStr();
+      const today = todayStr(clock);
 
       const bal = await db
         .selectFrom("v_account_balances")

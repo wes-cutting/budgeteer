@@ -2,16 +2,28 @@
 // string/Date row values (UTC components only, no timezone library) — kept in one place so the
 // services don't each re-derive them.
 
+/**
+ * The clock is I/O (ARCHITECTURE §1): nothing below the composition root may reach for the
+ * ambient wall clock. `buildServer` resolves a Clock once (callers may inject a fixed one —
+ * tests do) and threads it to every service/route that derives "today". `todayStr`/
+ * `currentMonthRange` REQUIRE the clock rather than defaulting it, so a new call site can't
+ * silently regress to calendar-dependent behavior (EH7).
+ */
+export type Clock = () => Date;
+
+/** The real wall clock — referenced only at composition roots (`buildServer`'s default). */
+export const systemClock: Clock = () => new Date();
+
 /** Today as a 'YYYY-MM-DD' string (UTC). */
-export const todayStr = (): string => new Date().toISOString().slice(0, 10);
+export const todayStr = (clock: Clock): string => clock().toISOString().slice(0, 10);
 
 /**
  * The first and last calendar day of the month containing today (UTC), as 'YYYY-MM-DD'
  * strings — the default window for the account register (R8). Computed here so the HTTP
  * boundary doesn't re-derive month arithmetic.
  */
-export const currentMonthRange = (): { from: string; to: string } => {
-  const now = new Date();
+export const currentMonthRange = (clock: Clock): { from: string; to: string } => {
+  const now = clock();
   const y = now.getUTCFullYear();
   const m = now.getUTCMonth(); // 0-based
   const pad = (n: number): string => String(n).padStart(2, "0");

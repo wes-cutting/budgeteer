@@ -8,7 +8,7 @@ import {
 } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
-import { todayStr, toDateStr } from "../util/dates";
+import { type Clock, systemClock, todayStr, toDateStr } from "../util/dates";
 import { groupBy } from "../util/groupBy";
 import { NotFoundError, ValidationError } from "./errors";
 import { assertEnvelopesUsable } from "./envelopeGuards";
@@ -64,7 +64,7 @@ const HH = DEFAULT_HOUSEHOLD_ID;
 const signed = (mag: number, refund: boolean, dirSign: 1 | -1): number =>
   mag * (refund ? -dirSign : dirSign);
 
-export function makeRecurringService(db: Kysely<DB>) {
+export function makeRecurringService(db: Kysely<DB>, clock: Clock = systemClock) {
   async function linesByRule(
     exec: Kysely<DB>,
     ruleIds: string[],
@@ -198,7 +198,7 @@ export function makeRecurringService(db: Kysely<DB>) {
 
   return {
     async list(): Promise<RecurringView[]> {
-      const today = todayStr();
+      const today = todayStr(clock);
       const rules = await selectRules(db)
         .where("r.household_id", "=", HH)
         .orderBy("r.created_at")
@@ -268,7 +268,7 @@ export function makeRecurringService(db: Kysely<DB>) {
         return rule.id;
       });
 
-      const today = todayStr();
+      const today = todayStr(clock);
       const row = await selectRules(db).where("r.id", "=", id).executeTakeFirstOrThrow();
       const lines = await linesByRule(db, [id]);
       return toView(row, lines.get(id) ?? [], today);
@@ -287,7 +287,7 @@ export function makeRecurringService(db: Kysely<DB>) {
 
     /** Generate every due transaction up to today and advance each rule's cursor. Idempotent. */
     async postDue(): Promise<PostDueResult> {
-      const today = todayStr();
+      const today = todayStr(clock);
       const rules = await selectRules(db).where("r.household_id", "=", HH).execute();
       const lines = await linesByRule(
         db,

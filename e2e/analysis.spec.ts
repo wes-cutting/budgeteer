@@ -234,7 +234,10 @@ test("cash-flow forecast: forward projection renders with expected spend", async
   await expect(
     page.getByRole("heading", { name: "Insights — cash-flow forecast", level: 1 }),
   ).toBeVisible();
-  await page.getByLabel("Account").selectOption({ label: ACCOUNT });
+  // exact: true — the Forecast chart's role="img" aria-label ("Projected cash balance for
+  // {account} …") can contain the substring "Account", which a non-exact getByLabel also
+  // matches (strict-mode collision; the R1 exact-name convention).
+  await page.getByLabel("Account", { exact: true }).selectOption({ label: ACCOUNT });
 
   // The $500 derived starting balance appears, and the expected-spend toggle is shown.
   await expect(page.getByText("$500.00").first()).toBeVisible();

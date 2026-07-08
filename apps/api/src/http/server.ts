@@ -15,6 +15,7 @@ import { makeTargetService } from "../services/targetService";
 import { makeCreditLimitService } from "../services/creditLimitService";
 import { makeLoanPrincipalService } from "../services/loanPrincipalService";
 import { makeBackupService } from "../services/backupService";
+import { type Clock, systemClock } from "../util/dates";
 import { type Services, fail } from "./routes/shared";
 import { accountRoutes } from "./routes/accounts";
 import { envelopeRoutes } from "./routes/envelopes";
@@ -28,8 +29,19 @@ import { backupRoutes } from "./routes/backup";
 
 export function buildServer(
   db: Kysely<DB>,
-  opts: { logger?: FastifyServerOptions["logger"]; corsOrigins?: string[] } = {},
+  opts: {
+    logger?: FastifyServerOptions["logger"];
+    corsOrigins?: string[];
+    /**
+     * The clock every service/route derives "today" from (EH7 — the clock is I/O, passed in,
+     * never reached for). Defaults to the real wall clock; tests inject a fixed one so
+     * date-sensitive behavior (recurring due-ness, the register's default month window,
+     * default occurred-on dates) is deterministic.
+     */
+    clock?: Clock;
+  } = {},
 ): FastifyInstance {
+  const clock = opts.clock ?? systemClock;
   // Structured request/response/error logging via Fastify's bundled pino (R13). `index.ts` passes
   // `{ logger: { level } }` (level from the validated `LOG_LEVEL`); tests omit it → `false` → quiet
   // and deterministic. We deliberately keep pino's DEFAULT serializers: they log only
@@ -67,15 +79,15 @@ export function buildServer(
   // One service container, constructed once and shared (by reference) with every route plugin —
   // modularizing the routes does not duplicate service instances or DB wiring.
   const services: Services = {
-    accounts: makeAccountService(db),
+    accounts: makeAccountService(db, clock),
     envelopes: makeEnvelopeService(db),
     transactions: makeTransactionService(db),
     transfers: makeTransferService(db),
     envelopeTransfers: makeEnvelopeTransferService(db),
-    recurring: makeRecurringService(db),
+    recurring: makeRecurringService(db, clock),
     reconcile: makeReconcileService(db),
     templates: makeTemplateService(db),
-    analysis: makeAnalysisService(db),
+    analysis: makeAnalysisService(db, clock),
     targets: makeTargetService(db),
     creditLimits: makeCreditLimitService(db),
     loanPrincipals: makeLoanPrincipalService(db),
@@ -96,15 +108,15 @@ export function buildServer(
   // Per-domain route plugins. Paths are full literals (no Fastify `prefix`), because several
   // domains share URL roots that cross boundaries (e.g. credit-limit/target setters live under
   // /accounts and /envelopes but belong to the analysis area).
-  void app.register(accountRoutes, { services });
-  void app.register(envelopeRoutes, { services });
-  void app.register(transactionRoutes, { services });
-  void app.register(reconcileRoutes, { services });
-  void app.register(transferRoutes, { services });
-  void app.register(recurringRoutes, { services });
-  void app.register(analysisRoutes, { services });
-  void app.register(templateRoutes, { services });
-  void app.register(backupRoutes, { services });
+  void app.register(accountRoutes, { services, clock });
+  void app.register(envelopeRoutes, { services, clock });
+  void app.register(transactionRoutes, { services, clock });
+  void app.register(reconcileRoutes, { services, clock });
+  void app.register(transferRoutes, { services, clock });
+  void app.register(recurringRoutes, { services, clock });
+  void app.register(analysisRoutes, { services, clock });
+  void app.register(templateRoutes, { services, clock });
+  void app.register(backupRoutes, { services, clock });
 
   return app;
 }

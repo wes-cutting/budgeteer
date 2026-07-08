@@ -32,7 +32,7 @@ export const reconcileRoutes: RoutePlugin = async (app, opts) => {
     } catch {
       return fail(reply, 400, "Enter an amount like 1234.56.");
     }
-    const reconciledOn = parsed.data.reconciledOn ?? todayStr();
+    const reconciledOn = parsed.data.reconciledOn ?? todayStr(opts.clock);
     if (!DATE_RE.test(reconciledOn)) return fail(reply, 400, "Date must be YYYY-MM-DD.");
     const { accountId } = req.params;
     try {

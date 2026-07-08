@@ -2,7 +2,7 @@ import type { Kysely } from "kysely";
 import { type AccountKind, nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
-import { todayStr, toISO } from "../util/dates";
+import { type Clock, systemClock, todayStr, toISO } from "../util/dates";
 import { asDuplicateName } from "./dbErrors";
 import { DuplicateNameError, NotFoundError } from "./errors";
 
@@ -14,7 +14,7 @@ export interface AccountView {
   archivedAt: string | null;
 }
 
-export function makeAccountService(db: Kysely<DB>) {
+export function makeAccountService(db: Kysely<DB>, clock: Clock = systemClock) {
   const selectView = (qb: Kysely<DB>) =>
     qb
       .selectFrom("accounts as a")
@@ -82,7 +82,7 @@ export function makeAccountService(db: Kysely<DB>) {
               account_id: account.id,
               amount_cents: input.startingBalanceCents,
               kind: "opening",
-              occurred_on: todayStr(),
+              occurred_on: todayStr(clock),
               payee: null,
               memo: "Opening balance",
             })

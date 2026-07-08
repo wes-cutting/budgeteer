@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import { parseMoney } from "@budgeteer/domain";
+import type { Clock } from "../../util/dates";
 import type { makeAccountService } from "../../services/accountService";
 import type { makeEnvelopeService } from "../../services/envelopeService";
 import type { makeTransactionService } from "../../services/transactionService";
@@ -38,6 +39,8 @@ export interface Services {
 /** Options every route plugin receives from `buildServer`. */
 export interface RouteOptions {
   services: Services;
+  /** The injected clock (EH7) — the only source of "today" for route-level defaults. */
+  clock: Clock;
 }
 
 /** Every route module is an encapsulated Fastify plugin over the shared service container. */
