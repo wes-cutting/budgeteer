@@ -92,10 +92,7 @@ export function TemplatesView({ api }: Props) {
 
   return (
     <main>
-      <header>
-        <h1>Templates</h1>
-      </header>
-
+      {/* FEAT-UXR1 — the page title is the shell's single <h1> (top bar); this view drops its own. */}
       {error ? <p role="alert">{error}</p> : null}
 
       <form aria-label="New template" onSubmit={create}>

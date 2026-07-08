@@ -31,7 +31,7 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 | `GET /analysis/envelope-spend` (monthly grid) | < 200 ms p95 | 10 envelopes × 120 txns¹ | **3.4 ms** | `apps/api/test/perf.test.ts` · same |
 | `GET /export` (backup snapshot) | < 500 ms p95 | 5 accounts + 5 envelopes + 200 txns | **11.5 ms** | `apps/api/test/perf.test.ts` · same |
 | Web initial load (LCP) | < 2.5 s | Cold load, production build | < 1 s² | Manual Lighthouse on `vite build` output |
-| Web initial JS bundle (gz) | < 140 KB gz (re-baselined 2026-07-06; was 120)³ | Production `vite build`, single chunk | **118.67 KB gz** (+ 3.85 KB gz CSS, re-measured 2026-07-06)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
+| Web initial JS bundle (gz) | < 140 KB gz (re-baselined 2026-07-06; was 120)³ | Production `vite build`, single chunk | **122.51 KB gz** (+ 4.55 KB gz CSS, re-measured 2026-07-07)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
 
 > ¹ Half-scale of the original budget (2 yrs × 20 env × 100/mo = 48 000 txns); PGlite performance
 >   at full scale is expected to remain well under budget given the measured p95 at half-scale.
@@ -81,6 +81,12 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >   and per-slice costs stay logged here. The rule carries: **revisit if a slice pushes past
 >   140 KB** — route-level code-splitting is the recorded lever for that conversation. No
 >   code-splitting yet; a single chunk is fine at this size.
+>
+>   **`UXR1`'s sidebar shell (2026-07-07)** — the grouped sidebar + top bar + Radix-Dialog drawer,
+>   plus **15 repo-owned lucide (ISC) SVG icons copied into `ui/icons.tsx` (no icon dependency)**
+>   and the page-title context — added **+3.84 KB gz → 122.51 KB gz** (CSS +0.70 → 4.55 KB gz),
+>   within the predicted ≈ +2–4 KB. No new dependency (the drawer reuses the UX7 `@radix-ui/react-dialog`).
+>   ~17.5 KB of headroom remains under the 140 KB budget for the per-page redesign slices (`UXR2`+).
 
 ---
 

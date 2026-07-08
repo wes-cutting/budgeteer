@@ -14,8 +14,8 @@ import { Skeleton } from "./ui";
  * of the cockpit's five disconnected per-panel empty states; the moment anything exists the cockpit
  * takes over. On a read error we fall through to the cockpit (it surfaces its own per-panel states).
  *
- * Keeps the single `<main>` + `<h1>Budgeteer</h1>` the axe suite (light AND dark) and the e2e nav
- * helpers depend on; the child supplies its own region below the heading.
+ * FEAT-UXR1 — the page title is the shell's single `<h1>` (the top bar, "Home" for `/`); this view
+ * drops its own. Keeps the single `<main>`; the child supplies its own region below it.
  */
 export function Home({ api }: { api: Api }) {
   // null = still deciding; true = empty app → onboarding; false = has data → cockpit.
@@ -38,7 +38,6 @@ export function Home({ api }: { api: Api }) {
 
   return (
     <main>
-      <h1>Budgeteer</h1>
       {firstRun === null ? (
         <Skeleton rows={3} />
       ) : firstRun ? (

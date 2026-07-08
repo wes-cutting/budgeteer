@@ -117,7 +117,7 @@ export function CreditView({ api }: { api: Api }) {
   return (
     <main>
       <header>
-        <h1>Insights — credit utilization</h1>
+        <h2>Insights — credit utilization</h2>
       </header>
 
       {error ? <p role="alert">{error}</p> : null}

@@ -61,7 +61,7 @@ export function PayPeriodsView({ api }: { api: Api }) {
   return (
     <main>
       <header>
-        <h1>Insights — pay periods</h1>
+        <h2>Insights — pay periods</h2>
       </header>
 
       {accounts !== null && accounts.length === 0 ? (

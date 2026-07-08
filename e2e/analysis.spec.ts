@@ -38,7 +38,7 @@ test("spend by envelope: allocated deposit appears in the monthly grid", async (
 
   await openAnalysis(page, "Spend");
   await expect(
-    page.getByRole("heading", { name: "Insights — spend by envelope", level: 1 }),
+    page.getByRole("heading", { name: "Insights — spend by envelope", level: 2 }),
   ).toBeVisible();
 
   // The envelope row shows $500.00 (positive = funded, matching the deposit allocation).
@@ -75,7 +75,7 @@ test("spending breakdown: outflow is ranked by share of the month total", async 
 
   await openAnalysis(page, "Breakdown");
   await expect(
-    page.getByRole("heading", { name: "Insights — spending breakdown", level: 1 }),
+    page.getByRole("heading", { name: "Insights — spending breakdown", level: 2 }),
   ).toBeVisible();
 
   // The shared e2e store accretes outflow from parallel specs, so the household-wide total (and thus
@@ -127,7 +127,7 @@ test("spending trends: an envelope's outflow appears across months in ascending 
 
   await openAnalysis(page, "Trends");
   await expect(
-    page.getByRole("heading", { name: "Insights — spending trends", level: 1 }),
+    page.getByRole("heading", { name: "Insights — spending trends", level: 2 }),
   ).toBeVisible();
 
   const table = page.getByRole("table", { name: /Monthly outflow/ });
@@ -156,7 +156,7 @@ test("budget vs. actual: set a monthly target and see it against spend", async (
 
   await openAnalysis(page, "Budget");
   await expect(
-    page.getByRole("heading", { name: "Insights — budget vs. actual", level: 1 }),
+    page.getByRole("heading", { name: "Insights — budget vs. actual", level: 2 }),
   ).toBeVisible();
 
   // Set a $200 monthly target via the inline editor (a real cross-origin PUT).
@@ -200,7 +200,7 @@ test("budget burn-down: pace shows spent vs. target for a budgeted envelope", as
 
   await openAnalysis(page, "Burn-down");
   await expect(
-    page.getByRole("heading", { name: "Insights — budget burn-down", level: 1 }),
+    page.getByRole("heading", { name: "Insights — budget burn-down", level: 2 }),
   ).toBeVisible();
 
   // The data-table fallback lists every budgeted envelope (the shared store accretes others across
@@ -240,7 +240,7 @@ test("cash-flow forecast: forward projection renders with expected spend", async
   // sub-nav tabs are now deep-linkable NavLinks (UX3).
   await page.getByRole("link", { name: "Forecast", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Insights — cash-flow forecast", level: 1 }),
+    page.getByRole("heading", { name: "Insights — cash-flow forecast", level: 2 }),
   ).toBeVisible();
   // exact: true — the Forecast chart's role="img" aria-label ("Projected cash balance for
   // {account} …") can contain the substring "Account", which a non-exact getByLabel also
@@ -293,7 +293,7 @@ test("pay periods: an expected paycheck covers its bill with commitment-time hea
 
   await openAnalysis(page, "Pay periods");
   await expect(
-    page.getByRole("heading", { name: "Insights — pay periods", level: 1 }),
+    page.getByRole("heading", { name: "Insights — pay periods", level: 2 }),
   ).toBeVisible();
   await page.getByLabel("Account", { exact: true }).selectOption({ label: ACCOUNT });
 
@@ -319,7 +319,7 @@ test("credit utilization: set a limit and see the utilization percentage", async
 
   await openAnalysis(page, "Credit");
   await expect(
-    page.getByRole("heading", { name: "Insights — credit utilization", level: 1 }),
+    page.getByRole("heading", { name: "Insights — credit utilization", level: 2 }),
   ).toBeVisible();
 
   // Set the limit to $1,000 via the inline editor (a real cross-origin PUT).
@@ -341,7 +341,7 @@ test("debt payoff: set an original principal and see the payoff percentage", asy
 
   await openAnalysis(page, "Payoff");
   await expect(
-    page.getByRole("heading", { name: "Insights — debt payoff", level: 1 }),
+    page.getByRole("heading", { name: "Insights — debt payoff", level: 2 }),
   ).toBeVisible();
 
   // Set the original principal to $10,000 (a real cross-origin PUT).
@@ -368,7 +368,7 @@ test("net worth: current totals satisfy net = assets + liabilities, and the mont
 
   await openAnalysis(page, "Net worth");
   await expect(
-    page.getByRole("heading", { name: "Insights — net worth over time", level: 1 }),
+    page.getByRole("heading", { name: "Insights — net worth over time", level: 2 }),
   ).toBeVisible();
 
   const totals = page.getByRole("table", { name: "Current totals" });

@@ -74,7 +74,7 @@ export function NetWorthView({ api }: { api: Api }) {
   return (
     <main>
       <header>
-        <h1>Insights — net worth over time</h1>
+        <h2>Insights — net worth over time</h2>
       </header>
 
       <div className={styles.controls}>

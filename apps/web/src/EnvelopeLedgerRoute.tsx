@@ -30,10 +30,11 @@ export function EnvelopeLedgerRoute({ api, envelopeId }: { api: Api; envelopeId:
     };
   }, [api, envelopeId]);
 
+  // FEAT-UXR1 — the shell owns the page <h1>; these pre-resolve states show the route handle's
+  // "Envelope" kind-label in the top bar (the resolved ledger publishes the real name via context).
   if (error) {
     return (
       <main>
-        <h1>Envelope</h1>
         <p role="alert">{error}</p>
       </main>
     );
@@ -41,7 +42,6 @@ export function EnvelopeLedgerRoute({ api, envelopeId }: { api: Api; envelopeId:
   if (envelope === undefined) {
     return (
       <main>
-        <h1>Envelope</h1>
         <Skeleton />
       </main>
     );
@@ -49,7 +49,6 @@ export function EnvelopeLedgerRoute({ api, envelopeId }: { api: Api; envelopeId:
   if (envelope === null) {
     return (
       <main>
-        <h1>Envelope not found</h1>
         <p>That envelope doesn&rsquo;t exist.</p>
       </main>
     );

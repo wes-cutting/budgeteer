@@ -175,7 +175,7 @@ export function SpendingTrendsView({ api }: { api: Api }) {
   return (
     <main>
       <header>
-        <h1>Insights — spending trends</h1>
+        <h2>Insights — spending trends</h2>
       </header>
 
       <div className={styles.controls}>

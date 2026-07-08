@@ -17,7 +17,7 @@ function renderHome(api: Api = makeFakeApi()) {
 describe("Home (UX6 cockpit-only + UX14 first-run onboarding)", () => {
   test("a completely empty app shows first-run onboarding, not the cockpit", async () => {
     renderHome(); // default fake API starts with no accounts and no envelopes
-    expect(screen.getByRole("heading", { name: "Budgeteer", level: 1 })).toBeTruthy();
+    // FEAT-UXR1 — the page <h1> ("Home") now lives in the shell top bar, not this view.
     // Derived first-run state → the guided onboarding region, and NOT the cockpit Overview.
     expect(await screen.findByRole("region", { name: "Get started" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Add an account" })).toBeTruthy();

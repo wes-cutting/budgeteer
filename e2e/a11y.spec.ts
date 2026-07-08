@@ -182,7 +182,7 @@ async function scanOverBudget(page: Page) {
   await spend(page, account, envelope, "250.00", `A11y-${stamp}-pay`); // 250 of a 200 target ⇒ over
   await openAnalysis(page, "Budget");
   await expect(
-    page.getByRole("heading", { name: "Insights — budget vs. actual", level: 1 }),
+    page.getByRole("heading", { name: "Insights — budget vs. actual", level: 2 }),
   ).toBeVisible();
   await expect(page.getByText("-$50.00").first()).toBeVisible(); // over-budget remaining is rendered
   await assertNoViolations(page);
@@ -202,6 +202,27 @@ async function assertNoViolations(page: Page) {
   ).toEqual([]);
 }
 
+// FEAT-UXR1 — the sidebar shell's two new chrome states are new a11y surfaces: the collapsed RAIL
+// (icon-only nav, accessible names carried on aria-label, count as a decorative dot) and the
+// off-canvas DRAWER (a modal side-sheet on the Radix Dialog machinery). Shared scan fns so the
+// dark-mode block re-runs the exact same states under the dark token set.
+
+/** Collapse the desktop sidebar to the rail, then axe-scan (icon-only nav + persisted toggle). */
+async function scanRail(page: Page) {
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(page.getByRole("button", { name: "Expand sidebar" })).toBeVisible();
+  await assertNoViolations(page);
+}
+
+/** At phone width, open the off-canvas nav drawer, then axe-scan it OPEN (focus-trapped modal). */
+async function scanDrawer(page: Page) {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await expect(page.getByRole("dialog", { name: "Navigation" })).toBeVisible();
+  await assertNoViolations(page);
+  await page.keyboard.press("Escape"); // close so the shared afterEach can navigate home
+}
+
 // UX14 — first-run onboarding. Placed FIRST so it runs before any test seeds the run-scoped (never
 // reset) e2e store — i.e. against a GENUINELY empty app, where the home derives first-run and shows
 // the guided onboarding. Scanned in DARK here and in LIGHT by the "a11y — home (cockpit)" block
@@ -219,7 +240,7 @@ test.describe("a11y — first-run onboarding (UX14, dark)", () => {
 test.describe("a11y — home (cockpit)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Budgeteer", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
   });
 
   test("first-run onboarding (empty app) is accessible", async ({ page }) => {
@@ -368,7 +389,7 @@ async function scanNetWorth(page: Page) {
   await seedBudgeted(page, "nw");
   await openAnalysis(page, "Net worth");
   await expect(
-    page.getByRole("heading", { name: "Insights — net worth over time", level: 1 }),
+    page.getByRole("heading", { name: "Insights — net worth over time", level: 2 }),
   ).toBeVisible();
   await expectChart(page);
   await assertNoViolations(page);
@@ -378,7 +399,7 @@ async function scanSpend(page: Page) {
   await seedBudgeted(page, "spend");
   await openAnalysis(page, "Spend");
   await expect(
-    page.getByRole("heading", { name: "Insights — spend by envelope", level: 1 }),
+    page.getByRole("heading", { name: "Insights — spend by envelope", level: 2 }),
   ).toBeVisible();
   await expectChart(page);
   await assertNoViolations(page);
@@ -388,7 +409,7 @@ async function scanBreakdown(page: Page) {
   await seedSpending(page, "brk"); // real outflow across two envelopes
   await openAnalysis(page, "Breakdown");
   await expect(
-    page.getByRole("heading", { name: "Insights — spending breakdown", level: 1 }),
+    page.getByRole("heading", { name: "Insights — spending breakdown", level: 2 }),
   ).toBeVisible();
   await expectChart(page);
   await assertNoViolations(page);
@@ -398,7 +419,7 @@ async function scanTrends(page: Page) {
   await seedTrend(page, "trend"); // real outflow across two months, one envelope
   await openAnalysis(page, "Trends");
   await expect(
-    page.getByRole("heading", { name: "Insights — spending trends", level: 1 }),
+    page.getByRole("heading", { name: "Insights — spending trends", level: 2 }),
   ).toBeVisible();
   await expectChart(page);
   await assertNoViolations(page);
@@ -407,7 +428,7 @@ async function scanTrends(page: Page) {
 async function scanBudget(page: Page) {
   await seedBudgeted(page, "budget"); // leaves us on the Budget view with a target set
   await expect(
-    page.getByRole("heading", { name: "Insights — budget vs. actual", level: 1 }),
+    page.getByRole("heading", { name: "Insights — budget vs. actual", level: 2 }),
   ).toBeVisible();
   await expectChart(page);
   await assertNoViolations(page);
@@ -417,7 +438,7 @@ async function scanBurndown(page: Page) {
   await seedBurndown(page, "burn"); // budgeted envelope + mid-month outflow
   await openAnalysis(page, "Burn-down");
   await expect(
-    page.getByRole("heading", { name: "Insights — budget burn-down", level: 1 }),
+    page.getByRole("heading", { name: "Insights — budget burn-down", level: 2 }),
   ).toBeVisible();
   await expectChart(page);
   await assertNoViolations(page);
@@ -427,7 +448,7 @@ async function scanForecast(page: Page) {
   await seedBudgeted(page, "fc"); // a target gives the projection expected-spend events to chart
   await openAnalysis(page, "Forecast");
   await expect(
-    page.getByRole("heading", { name: "Insights — cash-flow forecast", level: 1 }),
+    page.getByRole("heading", { name: "Insights — cash-flow forecast", level: 2 }),
   ).toBeVisible();
   await expectChart(page);
   await assertNoViolations(page);
@@ -468,7 +489,7 @@ async function seedPayPeriods(page: Page): Promise<string> {
 async function openPayPeriodsFor(page: Page, account: string) {
   await openAnalysis(page, "Pay periods");
   await expect(
-    page.getByRole("heading", { name: "Insights — pay periods", level: 1 }),
+    page.getByRole("heading", { name: "Insights — pay periods", level: 2 }),
   ).toBeVisible();
   await page.getByLabel("Account", { exact: true }).selectOption({ label: account });
   await expect(page.getByText("Bucket total").first()).toBeVisible();
@@ -485,7 +506,7 @@ async function scanPayPeriods(page: Page) {
 async function scanCredit(page: Page) {
   await seedCredit(page, "util"); // leaves us on the Credit view with a limit set
   await expect(
-    page.getByRole("heading", { name: "Insights — credit utilization", level: 1 }),
+    page.getByRole("heading", { name: "Insights — credit utilization", level: 2 }),
   ).toBeVisible();
   await expectChart(page);
   await assertNoViolations(page);
@@ -494,7 +515,7 @@ async function scanCredit(page: Page) {
 async function scanPayoff(page: Page) {
   await seedLoan(page, "pay"); // leaves us on the Payoff view with a principal set
   await expect(
-    page.getByRole("heading", { name: "Insights — debt payoff", level: 1 }),
+    page.getByRole("heading", { name: "Insights — debt payoff", level: 2 }),
   ).toBeVisible();
   await expectChart(page);
   await assertNoViolations(page);
@@ -584,7 +605,7 @@ test.describe("a11y — dark mode", () => {
 
   test("home cockpit (empty) is accessible in dark mode", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Budgeteer", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
     await assertNoViolations(page);
   });
 
@@ -715,6 +736,29 @@ test.describe("a11y — dark mode", () => {
     await page.goto("/");
     await scanOverBudget(page);
   });
+
+  test("the collapsed rail is accessible in dark mode (UXR1)", async ({ page }) => {
+    await page.goto("/");
+    await scanRail(page);
+  });
+
+  test("the off-canvas nav drawer is accessible in dark mode (UXR1)", async ({ page }) => {
+    await page.goto("/");
+    await scanDrawer(page);
+  });
+});
+
+// FEAT-UXR1 — the shell's new chrome states, scanned in LIGHT (the dark block above covers DARK).
+test.describe("a11y — sidebar shell (UXR1)", () => {
+  test("the collapsed rail is accessible", async ({ page }) => {
+    await page.goto("/");
+    await scanRail(page);
+  });
+
+  test("the off-canvas nav drawer is accessible", async ({ page }) => {
+    await page.goto("/");
+    await scanDrawer(page);
+  });
 });
 
 // UX15 — responsive pass. Proof of the slice's whole point: at phone width (320px) the wide Insights
@@ -735,11 +779,13 @@ async function assertNoHorizontalPageScroll(page: Page) {
 }
 
 async function scanReflow(page: Page) {
-  await seedBudgeted(page, "reflow"); // seed at desktop width, then go narrow
-  await page.setViewportSize(PHONE);
+  await seedBudgeted(page, "reflow"); // seed at desktop width
+  // Navigate via the sidebar at desktop, THEN shrink — at ≤ 640px the sidebar nav is off-canvas
+  // (FEAT-UXR1), so openAnalysis' sidebar links wouldn't be reachable after the resize.
   await openAnalysis(page, "Spend"); // the widest table — one column per month
+  await page.setViewportSize(PHONE);
   await expect(
-    page.getByRole("heading", { name: "Insights — spend by envelope", level: 1 }),
+    page.getByRole("heading", { name: "Insights — spend by envelope", level: 2 }),
   ).toBeVisible();
   await expectChart(page);
   // The wide table lives inside a focusable scroll region, so only it scrolls — not the page.
@@ -752,8 +798,9 @@ async function scanReflow(page: Page) {
  *  regions (UX15), never scrolling the page. Seeds at desktop width, then shrinks and scans. */
 async function scanPayPeriodsReflow(page: Page) {
   const account = await seedPayPeriods(page);
-  await page.setViewportSize(PHONE);
+  // Open at desktop (the sidebar nav is off-canvas ≤ 640px, FEAT-UXR1), then shrink to phone.
   await openPayPeriodsFor(page, account);
+  await page.setViewportSize(PHONE);
   await expect(page.getByRole("group", { name: /Bills — / }).first()).toBeVisible();
   await assertNoHorizontalPageScroll(page);
   await assertNoViolations(page);
@@ -789,7 +836,10 @@ test.describe("a11y — responsive reflow at phone width (UX15)", () => {
   });
 });
 
-// Cleanup: return to the home so subsequent tests (if any) start clean.
+// Cleanup: return to the home so subsequent tests (if any) start clean. Some specs shrink to phone
+// width (reflow) or leave the desktop rail collapsed; reset to a desktop viewport first — at ≤ 640px
+// the shell's sidebar nav is off-canvas (FEAT-UXR1), so goToDashboard's sidebar link would be hidden.
 test.afterEach(async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await goToDashboard(page);
 });

@@ -119,7 +119,7 @@ export function ForecastView({ api }: { api: Api }) {
   return (
     <main>
       <header>
-        <h1>Insights — cash-flow forecast</h1>
+        <h2>Insights — cash-flow forecast</h2>
       </header>
 
       {accounts !== null && accounts.length === 0 ? (

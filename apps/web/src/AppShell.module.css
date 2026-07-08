@@ -1,46 +1,194 @@
 /*
- * UX3 — persistent app-shell chrome (ADR-0006), on the UX4 token sheet. Layout only; element
- * styling (links, focus ring) comes from the base layer.
+ * FEAT-UXR1 — the sidebar app-shell chrome (supersedes the UX3 top-banner), on the UX4 token
+ * sheet so light/dark fall out of the tokens. Layout + chrome only; element styling (links, focus
+ * ring, headings) comes from the base layer. Three modes: expanded · rail (`.railMode` on the
+ * shell root) · drawer (≤ 640px, Radix Dialog side-sheet). Motion is gated by prefers-reduced-motion
+ * (and the base layer's global reduce rule).
  */
-.banner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-3) var(--space-5);
-  max-width: 960px;
-  margin: 0 auto;
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
+.shell {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  min-height: 100vh;
 }
 
+/* ---- Sidebar (persistent, ≥ 640px) ------------------------------------------------------- */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.railMode .sidebar {
+  width: 64px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sidebar {
+    transition: width 160ms ease;
+  }
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 56px;
+  padding: var(--space-3) var(--space-3);
+}
 .brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--text-lg);
   font-weight: 700;
   color: var(--color-text);
+  overflow: hidden;
 }
 .brand:hover {
   text-decoration: none;
 }
+.brandIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: var(--text-xl);
+  color: var(--color-accent);
+}
+.brandName {
+  white-space: nowrap;
+}
+.railMode .brandName {
+  display: none;
+}
+.railMode .brandRow {
+  justify-content: center;
+  padding-inline: var(--space-2);
+}
 
+/* ---- Nav (shared by sidebar + drawer) ---------------------------------------------------- */
 .nav {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-3) var(--space-4);
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.groups {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+.group + .group {
+  margin-top: var(--space-3);
+}
+.groupHeading {
+  margin: 0 0 var(--space-1);
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.railMode .groupHeading {
+  display: none;
+}
+.groupList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-/* The active route is marked by weight + underline (never colour alone — WCAG 1.4.1). NavLink
-   sets aria-current="page" on the active link. */
-.nav a[aria-current="page"] {
+.navLink {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+}
+.navLink:hover {
+  text-decoration: none;
+  background: var(--color-surface-2);
+}
+/* Active item: accent edge-bar + weight + surface (never colour alone — WCAG 1.4.1). NavLink sets
+   aria-current="page" on the active link (path-prefix, so /accounts/:id lights Accounts). */
+.navLink[aria-current="page"] {
   font-weight: 600;
-  text-decoration: underline;
+  background: var(--color-surface-2);
+}
+.navLink[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-accent);
+}
+.railMode .navLink {
+  justify-content: center;
+  padding-inline: var(--space-2);
 }
 
-/* UX7 — the global quick-add, styled as the nav's primary action (accent fill, on-accent text;
-   both token pairs clear WCAG 2.2 AA in light AND dark). A link, not a route indicator, so it
-   never takes the aria-current underline. */
+.navIcon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: var(--text-lg);
+}
+.navLabel {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.railMode .navLabel {
+  display: none;
+}
+
+/* Needs-allocation count pill — white on dark red (~8.3:1; passes WCAG 2.2 AA light AND dark, the
+   proven R2 value). The accessible count lives in the link's aria-label; this is decorative. */
+.badge {
+  margin-left: auto;
+  padding: 0 0.5em;
+  border-radius: 999px;
+  background-color: #991b1b;
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+/* In the rail the pill can't fit, so the count collapses to a decorative dot on the icon (the
+   count stays in the link's aria-label). */
+.dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #991b1b;
+}
+
+/* ---- Footer primary action (Add transaction) --------------------------------------------- */
+.footer {
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
 .addTxn {
-  padding: var(--space-1) var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -50,33 +198,85 @@
   background: var(--color-accent-hover);
   text-decoration: none;
 }
+.railMode .addTxn {
+  padding-inline: var(--space-2);
+}
 
-/* Needs-allocation count pill — white on dark red (~8.3:1; passes WCAG 2.2 AA in light AND dark,
-   the proven R2 value). The accessible count lives in the link's aria-label; this is decorative. */
-.badge {
-  margin-left: 0.4em;
-  padding: 0 0.5em;
-  border-radius: 999px;
-  background-color: #991b1b;
-  color: #fff;
-  font-size: 0.85em;
+/* ---- Main column ------------------------------------------------------------------------- */
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+}
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+.toggle,
+.hamburger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+.toggle:hover,
+.hamburger:hover {
+  background: var(--color-surface);
+}
+.hamburger {
+  display: none; /* ≤ 640px only */
+}
+.pageTitle {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.compactAdd {
+  display: none; /* ≤ 640px only */
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   font-weight: 600;
+}
+.compactAdd:hover {
+  background: var(--color-accent-hover);
+  text-decoration: none;
+}
+.compactAddLabel {
+  font-size: var(--text-sm);
 }
 
 .content {
-  /* `main` provides its own max-width/padding; this wrapper just carries the route transition. */
+  flex: 1;
 }
-
-/* A subtle slide-in on route change. Deliberately a TRANSFORM, not an opacity fade: a mid-flight
-   opacity < 1 blends descendant text toward the background and trips the axe contrast gate on
-   muted text. Transform never changes computed colour, so it is axe-safe. Honoured only when the
-   user has no reduced-motion preference (and the base layer's global reduce rule disables it too). */
 @media (prefers-reduced-motion: no-preference) {
   .content {
     animation: shell-slide-in 140ms ease-out;
   }
 }
-
 @keyframes shell-slide-in {
   from {
     transform: translateY(6px);
@@ -86,24 +286,77 @@
   }
 }
 
-/* UX15 — the shell degrades gracefully to phone width (desktop-first, not a mobile hamburger). The
-   header stacks the brand above the nav, the nav already wraps, and each link gains a comfortable tap
-   target (>= 24px, WCAG 2.5.8) so the wrapped rows stay usable by touch. No JS, no new interactive
-   surface — the same links, laid out for a narrow column. */
+/* ---- Drawer (≤ 640px off-canvas nav, Radix Dialog) --------------------------------------- */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(10, 14, 20, 0.55);
+}
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  width: min(280px, 82vw);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  box-shadow: var(--shadow-2);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .drawer {
+    animation: drawer-in 160ms ease-out;
+  }
+}
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.drawerClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+.drawerClose:hover {
+  background: var(--color-surface-2);
+}
+
+/* ---- Responsive: ≤ 640px, the sidebar goes off-canvas (drawer takes over) ----------------- */
 @media (max-width: 640px) {
-  .banner {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-3);
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    display: none;
+  }
+  .toggle {
+    display: none;
+  }
+  .hamburger {
+    display: inline-flex;
+  }
+  .compactAdd {
+    display: inline-flex;
+  }
+  .topbar {
     padding: var(--space-3);
   }
-  .nav {
-    gap: var(--space-2) var(--space-3);
-  }
-  /* Comfortable tap targets for the wrapped links (the base layer only sizes form controls). */
-  .nav a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 24px;
+  .pageTitle {
+    font-size: var(--text-lg);
   }
 }

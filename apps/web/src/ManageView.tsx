@@ -47,7 +47,7 @@ export function ManageView({ api }: { api: Api }) {
 
   return (
     <main>
-      <h1>Manage</h1>
+      {/* FEAT-UXR1 — the page title is the shell's single <h1> (top bar); this view drops its own. */}
       {loadError ? <p role="alert">{loadError}</p> : null}
 
       <p>

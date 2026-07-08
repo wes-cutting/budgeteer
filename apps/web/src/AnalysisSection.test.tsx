@@ -35,7 +35,7 @@ describe("AnalysisSection (UX3 — routed Insights nav)", () => {
     renderAt("spend");
 
     expect(
-      await screen.findByRole("heading", { name: "Insights — spend by envelope", level: 1 }),
+      await screen.findByRole("heading", { name: "Insights — spend by envelope", level: 2 }),
     ).toBeTruthy();
 
     const nav = screen.getByRole("navigation", { name: "Insights views" });
@@ -53,16 +53,16 @@ describe("AnalysisSection (UX3 — routed Insights nav)", () => {
 
   test("clicking a tab navigates to that view and swaps the active page in place", async () => {
     renderAt("spend");
-    await screen.findByRole("heading", { name: "Insights — spend by envelope", level: 1 });
+    await screen.findByRole("heading", { name: "Insights — spend by envelope", level: 2 });
 
     await userEvent.click(screen.getByRole("link", { name: "Net worth" }));
     expect(
-      await screen.findByRole("heading", { name: "Insights — net worth over time", level: 1 }),
+      await screen.findByRole("heading", { name: "Insights — net worth over time", level: 2 }),
     ).toBeTruthy();
 
     // Only the active view is mounted — the spend view is gone (its fetch only runs while shown).
     expect(
-      screen.queryByRole("heading", { name: "Insights — spend by envelope", level: 1 }),
+      screen.queryByRole("heading", { name: "Insights — spend by envelope", level: 2 }),
     ).toBeNull();
 
     const nav = screen.getByRole("navigation", { name: "Insights views" });
@@ -74,7 +74,7 @@ describe("AnalysisSection (UX3 — routed Insights nav)", () => {
   test("an unknown view falls back to the default (spend) view", async () => {
     renderAt("bogus");
     expect(
-      await screen.findByRole("heading", { name: "Insights — spend by envelope", level: 1 }),
+      await screen.findByRole("heading", { name: "Insights — spend by envelope", level: 2 }),
     ).toBeTruthy();
   });
 });

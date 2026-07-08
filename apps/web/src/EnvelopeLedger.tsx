@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { type Api, type EnvelopeLedgerRow, type EnvelopeView } from "./api";
 import { formatCents } from "./format";
+import { useSetPageTitle } from "./AppShell";
 import { Skeleton } from "./ui";
 
 interface Props {
@@ -29,14 +30,18 @@ export function EnvelopeLedger({ api, envelope }: Props) {
   const kindLabel = envelope.kind === "sinking_fund" ? "(sinking fund)" : "(standard)";
   const archivedLabel = envelope.archivedAt !== null ? " (archived)" : "";
 
+  // FEAT-UXR1 — the shell owns the page <h1>; publish the envelope's resolved name to the top bar
+  // (the route handle's "Envelope" kind-label shows until the ledger resolves). Kind/archived state
+  // stays in the body line below.
+  useSetPageTitle(envelope.name);
+
   return (
     <main>
       <header>
-        <h1>
-          {envelope.name} {kindLabel}
-          {archivedLabel}
-        </h1>
-        <p>Balance: {formatCents(envelope.balanceCents)}</p>
+        <p>
+          {kindLabel}
+          {archivedLabel} · Balance: {formatCents(envelope.balanceCents)}
+        </p>
       </header>
 
       {error ? (

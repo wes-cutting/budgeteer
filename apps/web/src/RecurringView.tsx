@@ -113,8 +113,8 @@ export function RecurringView({ api }: { api: Api }) {
 
   return (
     <main>
+      {/* FEAT-UXR1 — the page title is the shell's single <h1> (top bar); this view drops its own. */}
       <header>
-        <h1>Recurring</h1>
         <button type="button" onClick={() => void postDue()}>
           Post due
         </button>

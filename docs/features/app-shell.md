@@ -9,10 +9,10 @@ machine. Status ladder: docs/00_WAYS_OF_WORKING.md §4.
 | Field        | Value                                                                 |
 | ------------ | --------------------------------------------------------------------- |
 | Feature ID   | FEAT-UX3                                                               |
-| Status       | Implemented ([status report](../status-reports/2026-06-27-ux3.md))    |
+| Status       | Implemented ([status report](../status-reports/2026-06-27-ux3.md)) — **the chrome is superseded by [FEAT-UXR1](app-shell-sidebar.md)** (the sidebar shell, 2026-07-07); the **route map + routing mechanism (ADR-0006) below stand unchanged** |
 | Owner        | Wesley Cutting                                                         |
-| Last updated | 2026-06-27                                                            |
-| Related      | [UX Uplift brief](../reviews/2026-06-25-ux-uplift-initiative.md) (`UX3`) · [`ADR-0006`](../adr/ADR-0006-client-routing.md) · [`SPIKE-06`](../spikes/06-design-system-routing.md) · builds on [FEAT-UX4](design-system.md) |
+| Last updated | 2026-07-07                                                            |
+| Related      | [UX Uplift brief](../reviews/2026-06-25-ux-uplift-initiative.md) (`UX3`) · [`ADR-0006`](../adr/ADR-0006-client-routing.md) · [`SPIKE-06`](../spikes/06-design-system-routing.md) · builds on [FEAT-UX4](design-system.md) · **chrome superseded by [FEAT-UXR1](app-shell-sidebar.md)** |
 
 ## 1. Summary
 
@@ -58,6 +58,10 @@ overlay) + an always-available **Add transaction** entry in the shell nav — se
 [FEAT-UX7](quick-add-transaction.md).
 
 ## 3. Shell composition
+
+> **Superseded by [FEAT-UXR1](app-shell-sidebar.md) (2026-07-07).** The top-banner chrome below was
+> replaced by the grouped sidebar shell (sidebar + top bar + drawer; the shell now owns the page
+> `<h1>`). The `api-context.tsx` provider and the `routes.tsx` adapter pattern are unchanged.
 
 - `AppShell.tsx` / `AppShell.module.css` — a banner (`<header>`) with a brand link + a
   `<nav aria-label="Primary">` of an **Add transaction** action `<Link>` (the `UX7` global quick-add,

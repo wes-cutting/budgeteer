@@ -10,7 +10,7 @@ Supersedes the chrome of FEAT-UX3 (docs/features/app-shell.md); routing (ADR-000
 | Field        | Value                                                                  |
 | ------------ | ---------------------------------------------------------------------- |
 | Feature ID   | FEAT-UXR1                                                               |
-| Status       | Proposed — awaiting owner nod → `Ready`                                 |
+| Status       | Implemented ([status report](../status-reports/2026-07-07-uxr1-sidebar-shell.md)) |
 | Owner        | Wesley Cutting                                                          |
 | Last updated | 2026-07-07                                                              |
 | Related      | [UX spec](../ux/app-shell-sidebar.md) (`Proposed`) · [initiative brief](../reviews/2026-07-06-ux-redesign-initiative.md) · supersedes the chrome of [FEAT-UX3](app-shell.md) · [`ADR-0006`](../adr/ADR-0006-client-routing.md) (unchanged) |
@@ -104,3 +104,23 @@ menu (deferred `#19`; the top bar leaves room) · theme/palette changes · any d
 The UX spec §9 criteria, plus: bundle delta recorded in `07_NFR` §1³ against the **140 KB gz**
 budget (expected ≈ +2–4 KB); docs updated in the same change (this spec → `Implemented`,
 FEAT-UX3 marked superseded-by-UXR1 for the chrome, status report with test-count delta).
+
+## 7. As built (2026-07-07)
+
+`Implemented` — gate green. Delivered exactly as specced above:
+
+- `ui/icons.tsx` — 15 lucide (ISC) glyphs copied into repo-owned components (license + attribution
+  in the file header); zero new dependency.
+- `AppShell.tsx` / `.module.css` rewritten: grouped sidebar (one `<nav aria-label="Primary">`,
+  four `aria-labelledby` group lists), top bar (toggle · single `<h1>` · compact `+ Add` ≤ 640px),
+  footer Add-transaction. Expanded↔rail persisted under `budgeteer.sidebar`; the ≤ 640px drawer
+  rides `@radix-ui/react-dialog` (focus trap / Esc / scrim / restore). `PageTitleContext` +
+  `useSetPageTitle` for the dynamic-route titles; `routes.tsx` gained title `handle`s.
+- Blast radius realised: every routed view dropped its `<h1>` (Insights views demoted to `<h2>`;
+  account register / envelope ledger publish their resolved name), `ErrorBoundary` keeps its `<h1>`
+  (top-level, replaces the shell). Unit + e2e heading assertions re-pointed; `e2e/setup.ts` nav
+  helpers re-pointed; new `e2e/app-shell.spec.ts` (rail persistence · drawer open/Esc/scrim/navigate
+  · compact Add · single-`<h1>`); `a11y.spec.ts` gained rail + drawer scans (light AND dark) and its
+  `afterEach` resets the viewport (the sidebar is off-canvas ≤ 640px).
+- **Bundle:** initial JS **118.67 → 122.51 KB gz (+3.84)**, CSS 3.85 → 4.55 KB gz (+0.70) — within
+  the predicted ≈ +2–4 KB, ~17.5 KB of headroom under the 140 KB budget (`07_NFR` §1³).

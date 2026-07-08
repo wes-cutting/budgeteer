@@ -72,24 +72,35 @@ function InsightsRoute() {
   return <AnalysisSection api={useApi()} />;
 }
 
+/**
+ * FEAT-UXR1 (Q3) — each static route carries a `handle: { title }` that the shell reads via
+ * `useMatches()` and renders as the page's single `<h1>` in the top bar (and syncs `document.title`).
+ * Dynamic routes (account register · envelope ledger) carry the kind-label fallback and publish
+ * their resolved name at runtime through the shell's title context (`useSetPageTitle`). The
+ * quick-add modal route has NO title handle — it never retitles the page (its `Dialog` names itself).
+ */
 export function createAppRouter() {
   return createBrowserRouter([
     {
       path: "/",
       element: <AppShell />,
       children: [
-        { index: true, element: <HomeRoute /> },
+        { index: true, element: <HomeRoute />, handle: { title: "Home" } },
         { path: "transactions/new", element: <QuickAddRoute /> },
-        { path: "accounts", element: <AccountsListRoute /> },
-        { path: "accounts/:id", element: <AccountRoute /> },
-        { path: "envelopes", element: <EnvelopesListRoute /> },
-        { path: "envelopes/:id", element: <EnvelopeRoute /> },
-        { path: "manage", element: <ManageRoute /> },
-        { path: "needs-allocation", element: <NeedsRoute /> },
-        { path: "templates", element: <TemplatesRoute /> },
-        { path: "recurring", element: <RecurringRoute /> },
+        { path: "accounts", element: <AccountsListRoute />, handle: { title: "Accounts" } },
+        { path: "accounts/:id", element: <AccountRoute />, handle: { title: "Account" } },
+        { path: "envelopes", element: <EnvelopesListRoute />, handle: { title: "Envelopes" } },
+        { path: "envelopes/:id", element: <EnvelopeRoute />, handle: { title: "Envelope" } },
+        { path: "manage", element: <ManageRoute />, handle: { title: "Manage" } },
+        {
+          path: "needs-allocation",
+          element: <NeedsRoute />,
+          handle: { title: "Needs allocation" },
+        },
+        { path: "templates", element: <TemplatesRoute />, handle: { title: "Templates" } },
+        { path: "recurring", element: <RecurringRoute />, handle: { title: "Recurring" } },
         { path: "insights", element: <Navigate to="/insights/spend" replace /> },
-        { path: "insights/:view", element: <InsightsRoute /> },
+        { path: "insights/:view", element: <InsightsRoute />, handle: { title: "Insights" } },
         { path: "*", element: <Navigate to="/" replace /> },
       ],
     },

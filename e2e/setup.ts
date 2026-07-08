@@ -13,7 +13,7 @@ function primaryNav(page: Page) {
 
 export async function goToDashboard(page: Page) {
   await primaryNav(page).getByRole("link", { name: "Home", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Budgeteer", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
 }
 
 export async function goToAccounts(page: Page) {
@@ -136,7 +136,12 @@ export async function openRecurring(page: Page) {
 }
 
 // The Insights area is URL-addressable at /insights/:view; open it via the shell, then the sub-nav.
+// The tab click is scoped to the "Insights views" sub-nav — since UXR1 the sidebar also carries a
+// "Pay periods" item (deep-linking into Insights), so an unscoped link name would be ambiguous.
 export async function openAnalysis(page: Page, tab: string) {
   await primaryNav(page).getByRole("link", { name: "Insights" }).click();
-  await page.getByRole("link", { name: tab, exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Insights views" })
+    .getByRole("link", { name: tab, exact: true })
+    .click();
 }

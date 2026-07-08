@@ -117,7 +117,7 @@ export function PayoffView({ api }: { api: Api }) {
   return (
     <main>
       <header>
-        <h1>Insights — debt payoff</h1>
+        <h2>Insights — debt payoff</h2>
       </header>
 
       {error ? <p role="alert">{error}</p> : null}

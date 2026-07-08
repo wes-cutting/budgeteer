@@ -60,13 +60,13 @@ test("cockpit panels deep-link to their detail routes (UX5)", async ({ page }) =
   // Forecast + net-worth links are present whenever a cash account exists.
   await page.getByRole("link", { name: "View forecast" }).click();
   await expect(
-    page.getByRole("heading", { name: "Insights — cash-flow forecast", level: 1 }),
+    page.getByRole("heading", { name: "Insights — cash-flow forecast", level: 2 }),
   ).toBeVisible();
   await goToDashboard(page);
 
   await page.getByRole("link", { name: "Net worth over time" }).click();
   await expect(
-    page.getByRole("heading", { name: "Insights — net worth over time", level: 1 }),
+    page.getByRole("heading", { name: "Insights — net worth over time", level: 2 }),
   ).toBeVisible();
   await goToDashboard(page);
 
@@ -79,7 +79,7 @@ test("cockpit panels deep-link to their detail routes (UX5)", async ({ page }) =
   await goToDashboard(page);
   await page.getByRole("link", { name: "Review budget" }).click();
   await expect(
-    page.getByRole("heading", { name: "Insights — budget vs. actual", level: 1 }),
+    page.getByRole("heading", { name: "Insights — budget vs. actual", level: 2 }),
   ).toBeVisible();
   await goToDashboard(page);
 

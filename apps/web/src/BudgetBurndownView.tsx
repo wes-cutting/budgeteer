@@ -164,7 +164,7 @@ export function BudgetBurndownView({ api }: { api: Api }) {
   return (
     <main>
       <header>
-        <h1>Insights — budget burn-down</h1>
+        <h2>Insights — budget burn-down</h2>
       </header>
 
       <div className={styles.controls}>

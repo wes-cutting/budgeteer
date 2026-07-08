@@ -152,6 +152,7 @@ describe("PayPeriodsView (FEAT-S7)", () => {
     await api.createAccount({ name: "Checking", kind: "checking", startingBalance: "0" });
     view(api);
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.getByRole("heading", { level: 1, name: "Insights — pay periods" })).toBeTruthy();
+    // FEAT-UXR1 — the shell owns the page <h1> ("Insights"); this view's heading is now an <h2>.
+    expect(screen.getByRole("heading", { level: 2, name: "Insights — pay periods" })).toBeTruthy();
   });
 });

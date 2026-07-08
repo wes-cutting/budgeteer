@@ -13,6 +13,7 @@ import { TransferForm } from "./TransferForm";
 import { ReconcilePanel } from "./ReconcilePanel";
 import { localMonthRange } from "./dates";
 import { InlineAllocationEditor } from "./InlineAllocationEditor";
+import { useSetPageTitle } from "./AppShell";
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Skeleton, useToast } from "./ui";
 import styles from "./AccountRegister.module.css";
 
@@ -117,16 +118,19 @@ export function AccountRegister({ api, accountId, accountName }: Props) {
           );
 
   const account = accounts.find((a) => a.id === accountId);
-  const title = accountName ?? account?.name ?? "Account";
+  const resolvedName = accountName ?? account?.name;
+  // FEAT-UXR1 — the shell owns the page <h1>; this dynamic route publishes its resolved name to the
+  // top bar (the route handle's "Account" kind-label shows until the account list resolves).
+  useSetPageTitle(resolvedName);
+  const title = resolvedName ?? "Account"; // fallback display name for the Transfer form below
 
   return (
     <main>
-      <header className={styles.header}>
-        <h1>{title}</h1>
-        {balanceCents !== null ? (
+      {balanceCents !== null ? (
+        <header className={styles.header}>
           <p className={styles.balance}>Balance: {formatCents(balanceCents)}</p>
-        ) : null}
-      </header>
+        </header>
+      ) : null}
 
       {error ? <Alert>{error}</Alert> : null}
 

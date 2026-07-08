@@ -170,7 +170,7 @@ export function BudgetVsActualView({ api }: { api: Api }) {
   return (
     <main>
       <header>
-        <h1>Insights — budget vs. actual</h1>
+        <h2>Insights — budget vs. actual</h2>
       </header>
 
       <div className={styles.controls}>

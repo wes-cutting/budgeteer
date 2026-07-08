@@ -83,7 +83,7 @@ export function AnalysisView({ api }: { api: Api }) {
   return (
     <main>
       <header>
-        <h1>Insights — spend by envelope</h1>
+        <h2>Insights — spend by envelope</h2>
       </header>
 
       <div className={styles.controls}>
