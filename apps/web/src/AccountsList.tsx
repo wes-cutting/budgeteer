@@ -2,7 +2,6 @@ import { type FormEvent, useEffect, useId, useState } from "react";
 import { Link } from "react-router";
 import { type AccountKind, type AccountView, type Api, ApiError } from "./api";
 import { formatCents } from "./format";
-import btn from "./ui/Button.module.css";
 import { Button, ConfirmDialog, FieldError, Skeleton, useToast } from "./ui";
 import { amountFieldError } from "./validation";
 import styles from "./Ledgers.module.css";
@@ -75,14 +74,9 @@ export function AccountsList({ api }: { api: Api }) {
     <main>
       {/* FEAT-UXR1 — the page title is the shell's single <h1> (top bar); this view drops its own. */}
       {loadError ? <p role="alert">{loadError}</p> : null}
-      {/* UXR3 (UXR1 §11 Q2, additive half) — the page-local "Add transaction" affordance opens the
-          UX7 quick-add MODAL route over this page and returns you here. A <Link>, matching how the
-          rest of the app enters `/transactions/new`. */}
-      <div className={styles.actions}>
-        <Link to="/transactions/new" className={btn.btn}>
-          Add transaction
-        </Link>
-      </div>
+      {/* UXR11 — the page-local "Add transaction" affordance was removed: the shell's persistent
+          footer action (AppShell) is the single, always-available entry to the /transactions/new
+          quick-add modal, so a second per-page control was redundant. */}
       <AddAccountSection
         api={api}
         onCreated={(a) => {

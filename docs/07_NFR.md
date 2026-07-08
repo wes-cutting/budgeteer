@@ -31,7 +31,7 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 | `GET /analysis/envelope-spend` (monthly grid) | < 200 ms p95 | 10 envelopes × 120 txns¹ | **3.4 ms** | `apps/api/test/perf.test.ts` · same |
 | `GET /export` (backup snapshot) | < 500 ms p95 | 5 accounts + 5 envelopes + 200 txns | **11.5 ms** | `apps/api/test/perf.test.ts` · same |
 | Web initial load (LCP) | < 2.5 s | Cold load, production build | < 1 s² | Manual Lighthouse on `vite build` output |
-| Web initial JS bundle (gz) | < 140 KB gz (re-baselined 2026-07-06; was 120)³ | Production `vite build`, single chunk | **125.32 KB gz** (+ 5.23 KB gz CSS, re-measured 2026-07-07 · UXR10)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
+| Web initial JS bundle (gz) | < 140 KB gz (re-baselined 2026-07-06; was 120)³ | Production `vite build`, single chunk | **125.33 KB gz** (+ 5.23 KB gz CSS, re-measured 2026-07-08 · UXR11)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
 
 > ¹ Half-scale of the original budget (2 yrs × 20 env × 100/mo = 48 000 txns); PGlite performance
 >   at full scale is expected to remain well under budget given the measured p95 at half-scale.
@@ -152,6 +152,14 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >   measure) — added **+0.05 KB gz → 125.32 KB gz** (CSS unchanged at 5.23 KB gz — all geometry lives in the
 >   SVG). Presentation-only: **no new dependency, no data/API/domain change**. ~14.7 KB of headroom remains
 >   under the 140 KB budget.
+>
+>   **`UXR11`'s add-transaction cleanup (2026-07-08)** — removed the redundant page-local Add-transaction
+>   link on `/accounts` (the `AppShell` footer action is the single entry) and re-laid `AddTransactionForm`
+>   (the quick-add modal **and** the register embed) on the shared `FormLayout.module.css` pattern by
+>   importing it (`Field`/`Input`/`Select` primitives + `.fieldRow`; the embedded `AllocationEditor` is
+>   untouched, restyled next in UXR11's sibling UXR13) — added **+0.01 KB gz → 125.33 KB gz** (CSS unchanged
+>   at 5.23 KB gz — import only, no new CSS). Presentation-only: **no new dependency, no data/API/domain
+>   change**. ~14.7 KB of headroom remains under the 140 KB budget.
 
 ---
 

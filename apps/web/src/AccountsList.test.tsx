@@ -40,11 +40,11 @@ describe("AccountsList (UX6 — /accounts)", () => {
     expect(await screen.findByText(/No accounts yet/i)).toBeTruthy();
   });
 
-  test("the page header offers Add transaction → the UX7 quick-add modal route (UXR3/UXR1 §11 Q2)", async () => {
+  test("no page-local Add transaction control — the shell footer action is the single entry (UXR11)", async () => {
     renderAccounts();
     await screen.findByText(/No accounts yet/i);
-    const addTxn = screen.getByRole("link", { name: "Add transaction" });
-    expect(addTxn.getAttribute("href")).toBe("/transactions/new");
+    // UXR11 removed the redundant per-page affordance; the AppShell footer owns /transactions/new.
+    expect(screen.queryByRole("link", { name: "Add transaction" })).toBeNull();
   });
 
   test("shows an accessible skeleton while the list loads (UX12b)", async () => {

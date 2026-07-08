@@ -10,8 +10,9 @@ import {
 import { tryParseMoney } from "@budgeteer/domain";
 import { localToday } from "./dates";
 import { AllocationEditor } from "./AllocationEditor";
-import { FieldError } from "./ui";
+import { Field, FieldError, Input, Select } from "./ui";
 import { amountFieldError } from "./validation";
+import form from "./FormLayout.module.css";
 
 interface Props {
   api: Api;
@@ -46,6 +47,7 @@ export function AddTransactionForm({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const fid = useId();
   const amountErrorId = useId();
   // Inline (UX12d): an un-parseable amount surfaces field-level on blur (live thereafter). The
   // AllocationEditor already disables Save when the amount can't parse (magnitudeCents falls to 0);
@@ -82,67 +84,78 @@ export function AddTransactionForm({
   }
 
   return (
-    <form aria-label="Add transaction" onSubmit={(e) => e.preventDefault()}>
-      {showAccountPicker ? (
-        <label>
-          Account{" "}
-          <select
-            aria-label="Account"
-            value={selectedAccountId}
-            onChange={(e) => setSelectedAccountId(e.target.value)}
-          >
-            <option value="">Choose an account…</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-      <div role="radiogroup" aria-label="Transaction type">
-        <label>
-          <input
-            type="radio"
-            name="txn-kind"
-            checked={kind === "deposit"}
-            onChange={() => setKind("deposit")}
-          />{" "}
-          Deposit
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="txn-kind"
-            checked={kind === "withdrawal"}
-            onChange={() => setKind("withdrawal")}
-          />{" "}
-          Withdrawal
-        </label>
-      </div>
-      <label>
-        Amount{" "}
-        <input
-          aria-label="Transaction amount"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          onBlur={() => setAmountTouched(true)}
-          aria-invalid={amountError ? true : undefined}
-          aria-describedby={amountError ? amountErrorId : undefined}
-        />
-      </label>
-      {amountError ? <FieldError id={amountErrorId}>{amountError}</FieldError> : null}
-      <label>
-        Date{" "}
-        <input
-          aria-label="Date"
-          value={occurredOn}
-          onChange={(e) => setOccurredOn(e.target.value)}
-        />
-      </label>
-      <label>
-        Payee <input aria-label="Payee" value={payee} onChange={(e) => setPayee(e.target.value)} />
-      </label>
+    // FEAT-UXR11 — the quick-add / register transaction form on the UXR4 form-layout pattern (import of
+    // FormLayout.module.css, the same reuse UXR5/UXR7 proved): a grouped fieldset with a visible legend,
+    // every control via the UX4 `Field`/`Input`/`Select` primitives, natural pairs gridded (Amount+Date)
+    // and stacking ≤ 640px. The carried Deposit/Withdrawal radiogroup and the shared AllocationEditor
+    // (the split — restyled separately in UXR13) are unchanged. Behavior is byte-for-byte the same — the
+    // account-picker gate, UX12d inline amount validation, reset-on-success, and createTransaction call
+    // are untouched; the amount field keeps its `aria-label="Transaction amount"` (distinct from its
+    // visible "Amount" label) so every test/e2e selector still resolves. Only the framing adopts the pattern.
+    <form className={form.form} aria-label="Add transaction" onSubmit={(e) => e.preventDefault()}>
+      <fieldset className={form.fieldset}>
+        <legend className={form.legend}>New transaction</legend>
+        {showAccountPicker ? (
+          <Field label="Account" htmlFor={`${fid}-account`}>
+            <Select
+              id={`${fid}-account`}
+              value={selectedAccountId}
+              onChange={(e) => setSelectedAccountId(e.target.value)}
+            >
+              <option value="">Choose an account…</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : null}
+        <div role="radiogroup" aria-label="Transaction type">
+          <label>
+            <input
+              type="radio"
+              name="txn-kind"
+              checked={kind === "deposit"}
+              onChange={() => setKind("deposit")}
+            />{" "}
+            Deposit
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="txn-kind"
+              checked={kind === "withdrawal"}
+              onChange={() => setKind("withdrawal")}
+            />{" "}
+            Withdrawal
+          </label>
+        </div>
+        <div className={form.fieldRow}>
+          <Field label="Amount" htmlFor={`${fid}-amount`}>
+            <Input
+              id={`${fid}-amount`}
+              aria-label="Transaction amount"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              onBlur={() => setAmountTouched(true)}
+              aria-invalid={amountError ? true : undefined}
+              aria-describedby={amountError ? amountErrorId : undefined}
+            />
+            {amountError ? <FieldError id={amountErrorId}>{amountError}</FieldError> : null}
+          </Field>
+          <Field label="Date" htmlFor={`${fid}-date`}>
+            <Input
+              id={`${fid}-date`}
+              value={occurredOn}
+              onChange={(e) => setOccurredOn(e.target.value)}
+            />
+          </Field>
+        </div>
+        <Field label="Payee" htmlFor={`${fid}-payee`}>
+          <Input id={`${fid}-payee`} value={payee} onChange={(e) => setPayee(e.target.value)} />
+        </Field>
+      </fieldset>
       <AllocationEditor
         magnitudeCents={magnitudeCents}
         envelopes={envelopes
