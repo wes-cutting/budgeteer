@@ -8,7 +8,7 @@ import {
   type EnvelopeView,
 } from "./api";
 import { formatCents } from "./format";
-import { Button } from "./ui";
+import { Button, ConfirmDialog } from "./ui";
 
 const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
 // R5 — current calendar month ("YYYY-MM") for the inline envelope-target join (the budget endpoint
@@ -154,6 +154,9 @@ function EnvelopeList({
   onArchive: (id: string) => void;
   onUnarchive: (id: string) => void;
 }) {
+  // UX12 — Archive is confirmed before it runs (it moves the envelope out of the active list and
+  // out of this month's budget). The pending row is captured so the dialog can name it.
+  const [pendingArchive, setPendingArchive] = useState<{ id: string; name: string } | null>(null);
   if (envelopes === null) return <p>Loading…</p>;
   const active = envelopes.filter((e) => e.archivedAt === null);
   const archived = envelopes.filter((e) => e.archivedAt !== null);
@@ -169,7 +172,11 @@ function EnvelopeList({
             <Link to={`/envelopes/${e.id}`}>{e.name}</Link> <span>{e.kind}</span>{" "}
             <span>{formatCents(e.balanceCents)}</span>
             <EnvelopeBudgetInline row={budgetByEnvelope?.get(e.id) ?? null} />
-            <button type="button" aria-label={`Archive ${e.name}`} onClick={() => onArchive(e.id)}>
+            <button
+              type="button"
+              aria-label={`Archive ${e.name}`}
+              onClick={() => setPendingArchive({ id: e.id, name: e.name })}
+            >
               Archive
             </button>
           </li>
@@ -195,6 +202,21 @@ function EnvelopeList({
           </ul>
         </section>
       ) : null}
+      <ConfirmDialog
+        open={pendingArchive !== null}
+        title="Archive envelope?"
+        description={
+          pendingArchive
+            ? `“${pendingArchive.name}” moves to Archived and leaves this month’s budget. You can unarchive it later.`
+            : undefined
+        }
+        confirmLabel="Archive"
+        onConfirm={() => {
+          if (pendingArchive) onArchive(pendingArchive.id);
+          setPendingArchive(null);
+        }}
+        onCancel={() => setPendingArchive(null)}
+      />
     </>
   );
 }

@@ -25,8 +25,9 @@ envelopes only.
 
 ## 3. Primary flow
 
-1. Dashboard → Envelopes → click **Archive** on an envelope → it moves to **Archived**
-   (balance preserved) and leaves the pickers.
+1. Dashboard → Envelopes → click **Archive** on an envelope → **a confirm dialog opens**
+   ([FEAT-UX12](../features/destructive-confirms.md)); on **confirm** it moves to **Archived**
+   (balance preserved) and leaves the pickers. Cancel/ESC dismisses with no change.
 2. Later, click **Unarchive** → it returns to **Active** and the pickers.
 
 ## 4. Screens & states

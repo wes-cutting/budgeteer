@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { type AccountKind, type AccountView, type Api, ApiError } from "./api";
 import { formatCents } from "./format";
-import { Button } from "./ui";
+import { Button, ConfirmDialog } from "./ui";
 
 const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "loan", "cash", "other"];
 
@@ -126,6 +126,9 @@ function AccountList({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  // UX12 — Archive is confirmed first (it hides the account from the active list). Capture the row
+  // so the dialog can name it.
+  const [pendingArchive, setPendingArchive] = useState<{ id: string; name: string } | null>(null);
 
   if (accounts === null) return <p>Loading…</p>;
   const active = accounts.filter((a) => a.archivedAt === null);
@@ -175,7 +178,7 @@ function AccountList({
               <button
                 type="button"
                 aria-label={`Archive ${a.name}`}
-                onClick={() => onArchive(a.id)}
+                onClick={() => setPendingArchive({ id: a.id, name: a.name })}
               >
                 Archive
               </button>
@@ -210,6 +213,21 @@ function AccountList({
           ) : null}
         </>
       ) : null}
+      <ConfirmDialog
+        open={pendingArchive !== null}
+        title="Archive account?"
+        description={
+          pendingArchive
+            ? `“${pendingArchive.name}” moves to Archived and drops out of the active list. You can unarchive it later.`
+            : undefined
+        }
+        confirmLabel="Archive"
+        onConfirm={() => {
+          if (pendingArchive) onArchive(pendingArchive.id);
+          setPendingArchive(null);
+        }}
+        onCancel={() => setPendingArchive(null)}
+      />
     </>
   );
 }

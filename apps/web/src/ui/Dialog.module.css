@@ -36,6 +36,15 @@
   color: var(--color-text-muted);
 }
 
+/* Confirm/cancel action row (ConfirmDialog, FEAT-UX12) — Cancel first in DOM (the safe default
+   focus on a destructive prompt), the destructive confirm trailing on the right. */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
 /* The corner close affordance — its accessible name lives in aria-label="Close"; the glyph is
    decorative. --color-text keeps it well above the contrast floor in light and dark. */
 .close {

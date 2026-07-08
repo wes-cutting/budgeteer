@@ -81,4 +81,16 @@ test("create a template directly in the Templates view, then rename it", async (
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(templateList.getByText(TEMPLATE_NEW)).toBeVisible();
   await expect(templateList.getByText(TEMPLATE)).toHaveCount(0);
+
+  // Delete it — UX12 confirms first (delete is irreversible for templates).
+  await templateList
+    .getByRole("listitem")
+    .filter({ hasText: TEMPLATE_NEW })
+    .getByRole("button", { name: "Delete" })
+    .click();
+  const deleteDialog = page.getByRole("dialog", { name: "Delete template?" });
+  await expect(deleteDialog).toBeVisible();
+  await deleteDialog.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(deleteDialog).toBeHidden();
+  await expect(templateList.getByText(TEMPLATE_NEW)).toHaveCount(0);
 });

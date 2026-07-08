@@ -1,7 +1,18 @@
 import { describe, expect, test, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Alert, Badge, Button, Dialog, EmptyState, Field, Input, Select, Skeleton } from "./index";
+import {
+  Alert,
+  Badge,
+  Button,
+  ConfirmDialog,
+  Dialog,
+  EmptyState,
+  Field,
+  Input,
+  Select,
+  Skeleton,
+} from "./index";
 
 describe("ui primitives (FEAT-UX4)", () => {
   test("Button forwards aria-label + onClick and defaults to type=button", async () => {
@@ -90,5 +101,59 @@ describe("ui primitives (FEAT-UX4)", () => {
 
     await user.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  test("ConfirmDialog (UX12): labelled destructive prompt; confirm and cancel are distinct actions", async () => {
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ConfirmDialog
+        open
+        title="Delete template?"
+        description="This can’t be undone."
+        confirmLabel="Delete"
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    );
+    // role=dialog named by its title (Radix wires aria-labelledby); state is carried by the button
+    // TEXT ("Delete"), not colour alone.
+    const dialog = screen.getByRole("dialog", { name: "Delete template?" });
+    expect(dialog.getAttribute("aria-labelledby")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onCancel).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  test("ConfirmDialog (UX12): ESC dismissal is a cancel, and nothing renders when closed", async () => {
+    const onCancel = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ConfirmDialog
+        open
+        title="Archive account?"
+        confirmLabel="Archive"
+        onConfirm={vi.fn()}
+        onCancel={onCancel}
+      />,
+    );
+    await user.keyboard("{Escape}");
+    expect(onCancel).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ConfirmDialog
+        open={false}
+        title="Archive account?"
+        confirmLabel="Archive"
+        onConfirm={vi.fn()}
+        onCancel={onCancel}
+      />,
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

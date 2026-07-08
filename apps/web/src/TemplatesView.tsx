@@ -8,6 +8,7 @@ import {
 } from "./api";
 import { formatMoney, tryParseMoney } from "@budgeteer/domain";
 import { formatCents } from "./format";
+import { ConfirmDialog } from "./ui";
 
 interface Props {
   api: Api;
@@ -25,6 +26,8 @@ export function TemplatesView({ api }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  // UX12 — Delete is irreversible (no unarchive for templates), so confirm before removing.
+  const [pendingDelete, setPendingDelete] = useState<TemplateView | null>(null);
 
   async function load() {
     try {
@@ -185,7 +188,7 @@ export function TemplatesView({ api }: Props) {
                 >
                   Rename
                 </button>
-                <button type="button" onClick={() => void remove(t.id)}>
+                <button type="button" onClick={() => setPendingDelete(t)}>
                   Delete
                 </button>
               </li>
@@ -193,6 +196,22 @@ export function TemplatesView({ api }: Props) {
           </ul>
         )}
       </section>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete template?"
+        description={
+          pendingDelete
+            ? `“${pendingDelete.name}” will be permanently deleted. This can’t be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (pendingDelete) void remove(pendingDelete.id);
+          setPendingDelete(null);
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </main>
   );
 }

@@ -80,7 +80,24 @@ describe("EnvelopesList (UX6 — /envelopes)", () => {
     expect(within(list).getAllByText(/Target:/)).toHaveLength(1);
   });
 
-  test("archiving an envelope moves it to the Archived section (FEAT-006)", async () => {
+  test("archiving an envelope confirms first, then moves it to the Archived section (FEAT-006, UX12)", async () => {
+    const api = makeFakeApi();
+    await api.createEnvelope({ name: "Vacation", kind: "sinking_fund" });
+
+    const user = userEvent.setup();
+    renderEnvelopes(api);
+    await screen.findByRole("link", { name: "Vacation" });
+
+    // UX12 — the row control opens a confirm dialog; the archive runs only on confirm.
+    await user.click(screen.getByRole("button", { name: "Archive Vacation" }));
+    const dialog = await screen.findByRole("dialog", { name: "Archive envelope?" });
+    await user.click(within(dialog).getByRole("button", { name: "Archive" }));
+
+    expect(await screen.findByRole("button", { name: "Unarchive Vacation" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Archive Vacation" })).toBeNull();
+  });
+
+  test("cancelling the archive confirm leaves the envelope active (UX12)", async () => {
     const api = makeFakeApi();
     await api.createEnvelope({ name: "Vacation", kind: "sinking_fund" });
 
@@ -89,7 +106,11 @@ describe("EnvelopesList (UX6 — /envelopes)", () => {
     await screen.findByRole("link", { name: "Vacation" });
 
     await user.click(screen.getByRole("button", { name: "Archive Vacation" }));
-    expect(await screen.findByRole("button", { name: "Unarchive Vacation" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Archive Vacation" })).toBeNull();
+    const dialog = await screen.findByRole("dialog", { name: "Archive envelope?" });
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("button", { name: "Archive Vacation" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Unarchive Vacation" })).toBeNull();
   });
 });

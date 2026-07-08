@@ -73,12 +73,16 @@ test("create, archive, and unarchive an envelope", async ({ page }) => {
   const envelopeList = page.getByRole("list", { name: "Envelopes list" });
   const archivedList = page.getByRole("list", { name: "Archived envelopes" });
 
-  // Archive
+  // Archive — UX12 confirms first in a dialog.
   await envelopeList
     .getByRole("listitem")
     .filter({ hasText: ENVELOPE })
     .getByRole("button", { name: `Archive ${ENVELOPE}`, exact: true })
     .click();
+  const archiveDialog = page.getByRole("dialog", { name: "Archive envelope?" });
+  await expect(archiveDialog).toBeVisible();
+  await archiveDialog.getByRole("button", { name: "Archive", exact: true }).click();
+  await expect(archiveDialog).toBeHidden();
   await expect(envelopeList.getByText(ENVELOPE)).toHaveCount(0);
   await expect(archivedList.getByText(ENVELOPE)).toBeVisible();
 

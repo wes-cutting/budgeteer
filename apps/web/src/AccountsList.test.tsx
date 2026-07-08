@@ -69,7 +69,29 @@ describe("AccountsList (UX6 — /accounts)", () => {
     expect(alert.textContent).toMatch(/already exists/i);
   });
 
-  test("archiving an account moves it behind the Show archived toggle (R7)", async () => {
+  test("archiving an account confirms first, then moves it behind the Show archived toggle (R7, UX12)", async () => {
+    const api = makeFakeApi();
+    await api.createAccount({ name: "Old Card", kind: "credit", startingBalance: "0.00" });
+
+    const user = userEvent.setup();
+    renderAccounts(api);
+    await screen.findByRole("link", { name: "Old Card" });
+
+    // UX12 — confirm before archiving.
+    await user.click(screen.getByRole("button", { name: "Archive Old Card" }));
+    const dialog = await screen.findByRole("dialog", { name: "Archive account?" });
+    await user.click(within(dialog).getByRole("button", { name: "Archive" }));
+
+    // The active list no longer carries the account…
+    expect(await screen.findByRole("button", { name: "Show archived" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Old Card" })).toBeNull();
+
+    // …revealing the archived section exposes the unarchive control.
+    await user.click(screen.getByRole("button", { name: "Show archived" }));
+    expect(await screen.findByRole("button", { name: "Unarchive Old Card" })).toBeTruthy();
+  });
+
+  test("cancelling the archive confirm leaves the account active (UX12)", async () => {
     const api = makeFakeApi();
     await api.createAccount({ name: "Old Card", kind: "credit", startingBalance: "0.00" });
 
@@ -78,12 +100,11 @@ describe("AccountsList (UX6 — /accounts)", () => {
     await screen.findByRole("link", { name: "Old Card" });
 
     await user.click(screen.getByRole("button", { name: "Archive Old Card" }));
-    // The active list no longer carries the account…
-    expect(await screen.findByRole("button", { name: "Show archived" })).toBeTruthy();
-    expect(screen.queryByRole("link", { name: "Old Card" })).toBeNull();
+    const dialog = await screen.findByRole("dialog", { name: "Archive account?" });
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
 
-    // …revealing the archived section exposes the unarchive control.
-    await user.click(screen.getByRole("button", { name: "Show archived" }));
-    expect(await screen.findByRole("button", { name: "Unarchive Old Card" })).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("link", { name: "Old Card" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Show archived" })).toBeNull();
   });
 });

@@ -238,6 +238,20 @@ test.describe("a11y — Quick-add transaction (UX7)", () => {
   });
 });
 
+// UX12 — the destructive-action confirm dialog (Radix ConfirmDialog). Same modal-a11y risk as
+// quick-add (focus trap, ESC/overlay close, return-focus, role="dialog" + aria) — scan it OPEN.
+test.describe("a11y — destructive-action confirm (UX12)", () => {
+  test("the archive confirm dialog is accessible", async ({ page }) => {
+    const name = `${ENVELOPE}-confirm`;
+    await page.goto("/");
+    await createEnvelope(page, name); // leaves us on /envelopes
+    await page.getByRole("button", { name: `Archive ${name}`, exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Archive envelope?" })).toBeVisible();
+    await assertNoViolations(page);
+    await page.keyboard.press("Escape");
+  });
+});
+
 test.describe("a11y — Account register", () => {
   test("account register view is accessible", async ({ page }) => {
     await page.goto("/");
@@ -487,6 +501,16 @@ test.describe("a11y — dark mode", () => {
     await goToDashboard(page);
     await openQuickAdd(page);
     await expect(page.getByRole("dialog", { name: "Add a transaction" })).toBeVisible();
+    await assertNoViolations(page);
+    await page.keyboard.press("Escape");
+  });
+
+  test("archive confirm dialog is accessible in dark mode (UX12)", async ({ page }) => {
+    const name = `Dark-Confirm-${Date.now()}`;
+    await page.goto("/");
+    await createEnvelope(page, name); // leaves us on /envelopes
+    await page.getByRole("button", { name: `Archive ${name}`, exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Archive envelope?" })).toBeVisible();
     await assertNoViolations(page);
     await page.keyboard.press("Escape");
   });

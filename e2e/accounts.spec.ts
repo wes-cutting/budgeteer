@@ -34,7 +34,12 @@ test("archive and unarchive an account (R7)", async ({ page }) => {
   await createAccount(page, ACCOUNT);
   const list = page.getByRole("list", { name: "Accounts list" });
 
+  // UX12 — archiving confirms first in a dialog.
   await page.getByRole("button", { name: `Archive ${ACCOUNT}` }).click();
+  const archiveDialog = page.getByRole("dialog", { name: "Archive account?" });
+  await expect(archiveDialog).toBeVisible();
+  await archiveDialog.getByRole("button", { name: "Archive", exact: true }).click();
+  await expect(archiveDialog).toBeHidden();
   await expect(list.getByRole("link", { name: ACCOUNT, exact: true })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Show archived" }).click();
