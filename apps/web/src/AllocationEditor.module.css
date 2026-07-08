@@ -1,0 +1,73 @@
+/*
+ * UXR13 — allocation-specific layout that completes the FormLayout §3.3 line-editor pattern for the
+ * AllocationEditor's richer split row. The shared shell (`.fieldset`/`.legend`/`.fieldRow`/`.amount`/
+ * `.removeLine`/`.actionRow`) comes from FormLayout.module.css; only the pieces specific to this
+ * editor — the mode radiogroup, the single/split rows with their extra refund + use-remaining
+ * controls, and the live summary — live here. No behaviour, only presentation.
+ */
+
+/* Allocation mode — inline radio options. */
+.modeRow {
+  display: flex;
+  gap: var(--space-4);
+}
+.modeRow label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Save-as-template accelerator: name input beside its button. */
+.saveAsTemplate {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+
+/* Single mode — envelope select beside its amount readout. */
+.singleRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+/* A split row: envelope grows, amount fixed-width, refund + use-remaining compact, remove trailing.
+ * min-0 envelope column so the select shrinks instead of forcing horizontal overflow. */
+.splitRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8rem auto auto 2.5rem;
+  gap: var(--space-2);
+  align-items: center;
+}
+.refund {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+/* "Add row" / "distribute remaining" — left-aligned row helpers beneath the split rows. */
+.rowActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* Live allocated / remaining summary. */
+.summary {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* Reflow the multi-column rows to a single column on narrow viewports (matches §3.1/§3.3). */
+@media (max-width: 640px) {
+  .singleRow,
+  .splitRow {
+    grid-template-columns: 1fr;
+  }
+  .saveAsTemplate {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

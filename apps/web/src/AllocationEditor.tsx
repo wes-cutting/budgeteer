@@ -1,7 +1,10 @@
-import { type KeyboardEvent, useState } from "react";
+import { type KeyboardEvent, useId, useState } from "react";
 import { type AllocationDraft } from "./api";
 import { formatMoney, splitEvenly, tryParseMoney } from "@budgeteer/domain";
 import { formatCents } from "./format";
+import { Button, Field, Input, Select } from "./ui";
+import form from "./FormLayout.module.css";
+import styles from "./AllocationEditor.module.css";
 
 interface EnvelopeOption {
   id: string;
@@ -68,6 +71,10 @@ export function AllocationEditor({
   );
   const [autoFocusIndex, setAutoFocusIndex] = useState<number | null>(null);
   const [templateName, setTemplateName] = useState("");
+
+  const applyId = useId();
+  const tplNameId = useId();
+  const singleId = useId();
 
   function allocationsToSave(): AllocationDraft[] {
     if (mode === "single") {
@@ -165,15 +172,22 @@ export function AllocationEditor({
   );
 
   return (
-    <fieldset>
-      <legend>Allocate</legend>
+    // FEAT-UXR13 — the shared split-allocation editor on the UXR4 form-layout pattern: the grouped
+    // fieldset shell + `Field`/`Input`/`Select`/`Button` primitives from FormLayout.module.css, with
+    // the allocation-specific rows (mode radiogroup, single/split lines, summary) in the sibling
+    // AllocationEditor.module.css. Behaviour is byte-for-byte — every accessible name, handler, and
+    // the save guard are unchanged; only the framing adopts the pattern so the Allocate section stops
+    // clashing with the patterned fields around it (the four embeds: quick-add modal, register,
+    // needs-allocation, Recurring rule form).
+    <fieldset className={form.fieldset}>
+      <legend className={form.legend}>Allocate</legend>
 
       {(templates && templates.length > 0) || onSaveAsTemplate ? (
-        <div>
+        <div className={form.fieldRow}>
           {templates && templates.length > 0 ? (
-            <label>
-              Apply template{" "}
-              <select
+            <Field label="Apply template" htmlFor={applyId}>
+              <Select
+                id={applyId}
                 aria-label="Apply template"
                 value=""
                 onChange={(e) => {
@@ -186,19 +200,22 @@ export function AllocationEditor({
                     {t.name}
                   </option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </Field>
           ) : null}
           {onSaveAsTemplate ? (
-            <span>
-              <input
-                aria-label="New template name"
-                placeholder="Template name"
-                value={templateName}
-                onChange={(e) => setTemplateName(e.target.value)}
-              />
-              <button
-                type="button"
+            <div className={styles.saveAsTemplate}>
+              <Field label="Save as new template" htmlFor={tplNameId}>
+                <Input
+                  id={tplNameId}
+                  aria-label="New template name"
+                  placeholder="Template name"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                />
+              </Field>
+              <Button
+                variant="ghost"
                 disabled={templateName.trim() === "" || allocationsToSave().length === 0}
                 onClick={() => {
                   onSaveAsTemplate(templateName.trim(), allocationsToSave());
@@ -206,13 +223,13 @@ export function AllocationEditor({
                 }}
               >
                 Save as template
-              </button>
-            </span>
+              </Button>
+            </div>
           ) : null}
         </div>
       ) : null}
 
-      <div role="radiogroup" aria-label="Allocation mode">
+      <div className={styles.modeRow} role="radiogroup" aria-label="Allocation mode">
         <label>
           <input
             type="radio"
@@ -234,38 +251,39 @@ export function AllocationEditor({
       </div>
 
       {mode === "single" ? (
-        <div>
-          <label>
-            Envelope{" "}
-            <select
+        <div className={styles.singleRow}>
+          <Field label="Envelope" htmlFor={singleId}>
+            <Select
+              id={singleId}
               aria-label="Envelope"
               value={singleEnvelopeId}
               onChange={(e) => setSingleEnvelopeId(e.target.value)}
             >
               {envelopeOptions}
-            </select>
-          </label>
-          <span> Amount {formatCents(magnitudeCents)}</span>
+            </Select>
+          </Field>
+          <span className={styles.summary}>Amount {formatCents(magnitudeCents)}</span>
         </div>
       ) : (
-        <div>
+        <div className={form.lineGrid}>
           {rows.map((row, i) => (
-            <div key={i}>
-              <select
+            <div key={i} className={styles.splitRow}>
+              <Select
                 aria-label={`Envelope for row ${i + 1}`}
                 autoFocus={autoFocusIndex === i}
                 value={row.envelopeId}
                 onChange={(e) => setRow(i, { envelopeId: e.target.value })}
               >
                 {envelopeOptions}
-              </select>
-              <input
+              </Select>
+              <Input
                 aria-label={`Amount for row ${i + 1}`}
+                className={form.amount}
                 value={row.amount}
                 onChange={(e) => setRow(i, { amount: e.target.value })}
                 onKeyDown={onAmountKeyDown}
               />
-              <label>
+              <label className={styles.refund}>
                 <input
                   type="checkbox"
                   aria-label={`Refund for row ${i + 1}`}
@@ -274,28 +292,31 @@ export function AllocationEditor({
                 />{" "}
                 Refund
               </label>
-              <button type="button" onClick={() => fillRemaining(i)}>
+              <Button variant="ghost" onClick={() => fillRemaining(i)}>
                 use remaining
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="ghost"
+                className={form.removeLine}
                 aria-label={`Remove row ${i + 1}`}
                 onClick={() => setRows((cur) => cur.filter((_, idx) => idx !== i))}
               >
                 ✕
-              </button>
+              </Button>
             </div>
           ))}
-          <button type="button" onClick={() => addRow(false)}>
-            Add row
-          </button>
-          <button type="button" onClick={distributeRemaining}>
-            distribute remaining
-          </button>
+          <div className={styles.rowActions}>
+            <Button variant="ghost" onClick={() => addRow(false)}>
+              Add row
+            </Button>
+            <Button variant="ghost" onClick={distributeRemaining}>
+              distribute remaining
+            </Button>
+          </div>
         </div>
       )}
 
-      <p>
+      <p className={styles.summary}>
         Allocated {formatCents(netCents)} ·{" "}
         {over
           ? `Over-allocated by ${formatCents(-remainingCents)}`
@@ -303,9 +324,11 @@ export function AllocationEditor({
             ? `Refunds exceed the amount by ${formatCents(-netCents)}`
             : `Remaining ${formatCents(remainingCents)}`}
       </p>
-      <button type="button" disabled={!canSave} onClick={() => onSave(allocationsToSave())}>
-        {saveLabel}
-      </button>
+      <div className={form.actionRow}>
+        <Button variant="accent" disabled={!canSave} onClick={() => onSave(allocationsToSave())}>
+          {saveLabel}
+        </Button>
+      </div>
     </fieldset>
   );
 }

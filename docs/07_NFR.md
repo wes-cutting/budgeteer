@@ -160,6 +160,14 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >   untouched, restyled next in UXR11's sibling UXR13) — added **+0.01 KB gz → 125.33 KB gz** (CSS unchanged
 >   at 5.23 KB gz — import only, no new CSS). Presentation-only: **no new dependency, no data/API/domain
 >   change**. ~14.7 KB of headroom remains under the 140 KB budget.
+>
+>   **`UXR13`'s Allocate-form restyle (2026-07-08)** — re-laid the shared `AllocationEditor` on the
+>   `FormLayout.module.css` pattern (the `Field`/`Input`/`Select`/`Button` primitives + `.fieldRow`), with
+>   its richer split rows (mode radiogroup, refund + use-remaining controls, live summary) in a new sibling
+>   `AllocationEditor.module.css` — the split row is a 5-column grid, richer than TemplatesView's shared
+>   3-col `.lineRow`, so it lives in the component module rather than the shared pattern — added **+0.15 KB
+>   gz → 125.48 KB gz** (CSS **+0.14 → 5.37 KB gz** — the new component module). Presentation-only: **no new
+>   dependency, no data/API/domain change**. ~14.5 KB of headroom remains under the 140 KB budget.
 
 ---
 
