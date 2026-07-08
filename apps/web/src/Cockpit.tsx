@@ -6,6 +6,7 @@ import {
   type Api,
   type BudgetVsActualReport,
   type CashFlowForecast,
+  type PayPeriodPlanView,
   type RecurringView,
   type TransactionView,
 } from "./api";
@@ -85,6 +86,7 @@ export function Cockpit({ api }: { api: Api }) {
   const [recurring, setRecurring] = useState<Loadable<RecurringView[]>>(LOADING);
   const [netWorth, setNetWorth] = useState<Loadable<NetWorthSnapshot | null>>(LOADING);
   const [forecast, setForecast] = useState<Loadable<CashFlowForecast | null>>(LOADING);
+  const [nextPay, setNextPay] = useState<Loadable<PayPeriodPlanView | null>>(LOADING);
 
   useEffect(() => {
     let active = true;
@@ -121,8 +123,11 @@ export function Cockpit({ api }: { api: Api }) {
         const acct = pickForecastAccount(accounts);
         if (!acct) {
           setForecast(ready(null));
+          setNextPay(ready(null));
           return;
         }
+        // One account pick feeds both the forecast and the Next-paycheck line (FEAT-UXR2, Q4). Each
+        // read degrades on its own — a failed plan leaves the recurring content intact.
         api
           .getCashFlowForecast(acct.id)
           .then((f) => {
@@ -131,11 +136,20 @@ export function Cockpit({ api }: { api: Api }) {
           .catch(() => {
             if (active) setForecast(FAILED);
           });
+        api
+          .getPayPeriodPlan(acct.id)
+          .then((p) => {
+            if (active) setNextPay(ready(p));
+          })
+          .catch(() => {
+            if (active) setNextPay(FAILED);
+          });
       })
       .catch(() => {
         if (!active) return;
         setNetWorth(FAILED);
         setForecast(FAILED);
+        setNextPay(FAILED);
       });
     return () => {
       active = false;
@@ -148,7 +162,7 @@ export function Cockpit({ api }: { api: Api }) {
       <div className={styles.grid}>
         <BudgetPanel month={month} state={budget} />
         <NeedsPanel state={needs} />
-        <UpcomingPanel state={recurring} />
+        <UpcomingPanel state={recurring} nextPay={nextPay} />
         <ForecastPanel state={forecast} />
         <NetWorthPanel state={netWorth} />
       </div>
@@ -284,7 +298,13 @@ function NeedsPanel({ state }: { state: Loadable<TransactionView[]> }) {
   );
 }
 
-function UpcomingPanel({ state }: { state: Loadable<RecurringView[]> }) {
+function UpcomingPanel({
+  state,
+  nextPay,
+}: {
+  state: Loadable<RecurringView[]>;
+  nextPay: Loadable<PayPeriodPlanView | null>;
+}) {
   const link =
     state.status === "ready" && state.data.length > 0
       ? { to: "/recurring", label: "Manage recurring" }
@@ -310,6 +330,7 @@ function UpcomingPanel({ state }: { state: Loadable<RecurringView[]> }) {
           <>
             {dueNow > 0 ? <Badge tone="warning">{dueNow} due to post</Badge> : null}
             <Figures items={[{ term: "Still owed this month", value: formatCents(owedCents) }]} />
+            <NextPaycheckLine state={nextPay} />
             <ul className={styles.list} aria-label="Upcoming recurring">
               {soon.map((r) => (
                 <li key={r.id}>
@@ -326,6 +347,27 @@ function UpcomingPanel({ state }: { state: Loadable<RecurringView[]> }) {
         );
       })}
     </Panel>
+  );
+}
+
+/** FEAT-UXR2 (Q4) — the Upcoming panel's deep-link into the pay-period planner: the next payday,
+ *  what it must cover, and its headroom badge. Degrades to nothing when the plan can't load or has
+ *  no expected paycheck — the recurring list carries the panel on its own. */
+function NextPaycheckLine({ state }: { state: Loadable<PayPeriodPlanView | null> }) {
+  if (state.status !== "ready" || state.data === null) return null;
+  const next = state.data.buckets.find((b) => b.kind === "paycheck");
+  if (next === undefined) return null;
+  const headroomCents = next.incomeCents - next.totalCents;
+  return (
+    <p className={styles.nextPay}>
+      <Link to="/pay-periods">Next paycheck {next.committedOn}</Link>{" "}
+      <span className={styles.muted}>· {formatCents(next.totalCents)} committed</span>{" "}
+      {headroomCents >= 0 ? (
+        <Badge tone="success">+{formatCents(headroomCents)} headroom</Badge>
+      ) : (
+        <Badge tone="danger">{formatCents(headroomCents)} over</Badge>
+      )}
+    </p>
   );
 }
 

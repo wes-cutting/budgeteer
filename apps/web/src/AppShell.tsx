@@ -73,7 +73,7 @@ interface NavItem {
   to: string;
   label: string;
   icon: ComponentType<IconProps>;
-  /** NavLink `end` — exact-match only (Home, Pay periods). Omitted items match by path prefix so
+  /** NavLink `end` — exact-match only (Home). Omitted items match by path prefix so
    *  a detail route (/accounts/:id) lights its parent (Accounts). */
   end?: boolean;
   /** The needs-allocation count surfaces on this item. */
@@ -106,8 +106,8 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/templates", label: "Templates", icon: TemplatesIcon },
       { to: "/recurring", label: "Recurring", icon: RecurringIcon },
-      // UXR2 will give Pay periods its own route; until then the item deep-links into Insights.
-      { to: "/insights/pay-periods", label: "Pay periods", icon: PayPeriodsIcon, end: true },
+      // FEAT-UXR2 — Pay periods is now a first-class route (was a deep-link into Insights).
+      { to: "/pay-periods", label: "Pay periods", icon: PayPeriodsIcon },
     ],
   },
   {

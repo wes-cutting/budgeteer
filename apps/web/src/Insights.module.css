@@ -126,6 +126,86 @@
   font-weight: 700;
 }
 
+/* FEAT-UXR2 — the pay-period planner's two side-by-side ledgers. Bills LEFT, Paychecks RIGHT on
+ * desktop; at phone width they STACK with Paychecks FIRST (the viability read) via `order`. Each
+ * table stays in its own `.table-scroll` region (UX15), so the page never scrolls horizontally at
+ * 320px. `align-items: start` keeps the two panes top-aligned when their heights differ. */
+.ledgers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+.billsPane,
+.paychecksPane {
+  min-width: 0; /* let the inner .table-scroll own the overflow, not the grid track */
+}
+@media (max-width: 640px) {
+  .ledgers {
+    grid-template-columns: 1fr;
+  }
+  .paychecksPane {
+    order: 1;
+  }
+  .billsPane {
+    order: 2;
+  }
+}
+
+/* Pane-level running figure ("Left to pay, next 90 days: $X"). */
+.paneFigure {
+  color: var(--color-text-muted);
+  margin: var(--space-2) 0 var(--space-3);
+}
+
+/* Month-boundary subtotal row (the sheet's per-month Total). Emphasis is weight + a top rule, so it
+ * reads as a subtotal without leaning on colour. */
+.subtotalRow th,
+.subtotalRow td {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border-strong);
+}
+
+/* Additive selection highlight (WCAG 1.4.1): a background tint on the covered bills, PAIRED with the
+ * permanent "Covered by" text column + the payday toggle's `aria-pressed` — never the only join. A
+ * left edge-bar gives the tint a non-colour shape cue too. */
+.selectedRow > * {
+  background: var(--color-surface-2);
+}
+.selectedRow > th:first-child {
+  box-shadow: inset 3px 0 0 0 var(--color-accent);
+}
+
+/* The payday cell's selection toggle — a real button that reads as the payday, not a link. */
+.paydayButton {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2));
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.paydayButton:hover {
+  border-color: var(--color-border);
+}
+.paydayButton[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+.plannedSub {
+  display: block;
+  margin-top: var(--space-1);
+  font-weight: 400;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
 /* Inline cell editor (target / limit / principal) — keep the controls compact on one row. */
 .editor {
   display: inline-flex;

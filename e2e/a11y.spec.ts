@@ -17,6 +17,7 @@ import {
   openAnalysis,
   openEnvelope,
   openNeeds,
+  openPayPeriods,
   openQuickAdd,
   openRecurring,
   openTemplates,
@@ -487,16 +488,15 @@ async function seedPayPeriods(page: Page): Promise<string> {
 }
 
 async function openPayPeriodsFor(page: Page, account: string) {
-  await openAnalysis(page, "Pay periods");
-  await expect(
-    page.getByRole("heading", { name: "Insights — pay periods", level: 2 }),
-  ).toBeVisible();
+  await openPayPeriods(page);
+  await expect(page).toHaveURL(/\/pay-periods$/);
   await page.getByLabel("Account", { exact: true }).selectOption({ label: account });
-  await expect(page.getByText("Bucket total").first()).toBeVisible();
+  await expect(page.getByRole("region", { name: "Paychecks" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Bills" })).toBeVisible();
 }
 
-/** Scan the populated pay-periods view (S7): bucket sections, bill tables in their scroll
- *  regions, `<dl>` figures, and the Covered/breaks text badges. */
+/** Scan the populated pay-periods planner (FEAT-UXR2): the two side-by-side ledgers, each table in
+ *  its focusable scroll region, the payday selection toggles, and the Covered/breaks text badges. */
 async function scanPayPeriods(page: Page) {
   const account = await seedPayPeriods(page);
   await openPayPeriodsFor(page, account);
@@ -550,7 +550,7 @@ test.describe("a11y — Insights views (UX8 charts)", () => {
     await page.goto("/");
     await scanForecast(page);
   });
-  test("pay periods (bucket sections) is accessible (S7)", async ({ page }) => {
+  test("pay periods (two ledgers) is accessible (UXR2)", async ({ page }) => {
     await page.goto("/");
     await scanPayPeriods(page);
   });
@@ -719,7 +719,7 @@ test.describe("a11y — dark mode", () => {
     await page.goto("/");
     await scanForecast(page);
   });
-  test("pay periods is accessible in dark mode (S7)", async ({ page }) => {
+  test("pay periods (two ledgers) is accessible in dark mode (UXR2)", async ({ page }) => {
     await page.goto("/");
     await scanPayPeriods(page);
   });
@@ -794,14 +794,16 @@ async function scanReflow(page: Page) {
   await assertNoViolations(page);
 }
 
-/** S7/AC7 — the pay-periods bucket tables must reflow at 320px inside their own focusable scroll
- *  regions (UX15), never scrolling the page. Seeds at desktop width, then shrinks and scans. */
+/** FEAT-UXR2 — the two planner ledgers must reflow at 320px inside their own focusable scroll
+ *  regions (UX15), stacking (Paychecks first) without scrolling the page. Seeds at desktop width,
+ *  then shrinks and scans. */
 async function scanPayPeriodsReflow(page: Page) {
   const account = await seedPayPeriods(page);
   // Open at desktop (the sidebar nav is off-canvas ≤ 640px, FEAT-UXR1), then shrink to phone.
   await openPayPeriodsFor(page, account);
   await page.setViewportSize(PHONE);
-  await expect(page.getByRole("group", { name: /Bills — / }).first()).toBeVisible();
+  await expect(page.getByRole("group", { name: "Paychecks" }).first()).toBeVisible();
+  await expect(page.getByRole("group", { name: "Bills" }).first()).toBeVisible();
   await assertNoHorizontalPageScroll(page);
   await assertNoViolations(page);
 }
@@ -814,7 +816,7 @@ test.describe("a11y — responsive reflow at phone width (UX15)", () => {
     await scanReflow(page);
   });
 
-  test("the pay-periods buckets reflow without page scroll and stay accessible (S7)", async ({
+  test("the pay-periods ledgers reflow without page scroll and stay accessible (UXR2)", async ({
     page,
   }) => {
     await page.goto("/");
@@ -827,7 +829,7 @@ test.describe("a11y — responsive reflow at phone width (UX15)", () => {
       await page.goto("/");
       await scanReflow(page);
     });
-    test("the pay-periods buckets reflow and stay accessible in dark mode (S7)", async ({
+    test("the pay-periods ledgers reflow and stay accessible in dark mode (UXR2)", async ({
       page,
     }) => {
       await page.goto("/");

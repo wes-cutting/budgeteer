@@ -136,12 +136,17 @@ export async function openRecurring(page: Page) {
 }
 
 // The Insights area is URL-addressable at /insights/:view; open it via the shell, then the sub-nav.
-// The tab click is scoped to the "Insights views" sub-nav — since UXR1 the sidebar also carries a
-// "Pay periods" item (deep-linking into Insights), so an unscoped link name would be ambiguous.
+// The tab click is scoped to the "Insights views" sub-nav (defensive — the sidebar's own items live
+// in the "Primary" nav landmark).
 export async function openAnalysis(page: Page, tab: string) {
   await primaryNav(page).getByRole("link", { name: "Insights" }).click();
   await page
     .getByRole("navigation", { name: "Insights views" })
     .getByRole("link", { name: tab, exact: true })
     .click();
+}
+
+// FEAT-UXR2 — Pay periods is a first-class route (`/pay-periods`) in the sidebar Planning group.
+export async function openPayPeriods(page: Page) {
+  await primaryNav(page).getByRole("link", { name: "Pay periods" }).click();
 }

@@ -307,6 +307,9 @@ describe("Cockpit (UX5 — budget + future-planning home)", () => {
       expect(await within(p).findByText("Still owed this month")).toBeTruthy();
       // 1200 + 4×25 + 2×60 = $1,420.00
       expect(figureCents(p)).toEqual([142_000]);
+      // FEAT-UXR2 — the Upcoming panel deep-links the next payday into the pay-period planner.
+      const nextLink = await within(p).findByRole("link", { name: /Next paycheck/ });
+      expect(nextLink.getAttribute("href")).toBe("/pay-periods");
     } finally {
       vi.useRealTimers();
     }

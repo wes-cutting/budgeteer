@@ -45,6 +45,22 @@ export interface PayPeriodBucket {
   overCommitted: boolean;
   /** Running headroom AFTER this bucket commits: balance + Σ income − Σ committed so far. */
   headroomAfterCents: number;
+  /**
+   * Projected ACCOUNT balance on this bucket's commitment date (FEAT-UXR2) — the forecast's
+   * cash-flow math (scheduled events + `evenDaily` expected discretionary spend) read off as of
+   * `committedOn`, so the planner's Balance column reconciles with the Forecast view for the same
+   * account/date. The balance bucket reads the current balance (no forecast event falls on or
+   * before `today`). This is a CASH-FLOW figure — distinct from the commitment-time headroom.
+   */
+  projectedBalanceCents: number;
+  /**
+   * The sheet's "Funds" (FEAT-UXR2): the running Σ of per-check headroom (income − committed)
+   * through this bucket, seeded by bucket zero. Negative per-check headroom reduces the run (no
+   * clamp), so an over-committed check draws the reserve down. Equal to `headroomAfterCents` by
+   * construction — both fold (income − committed) onto the starting balance — but surfaced as its
+   * own field (the planner's Reserve column) per the owner-resolved UX spec §11 Q1.
+   */
+  reserveCents: number;
 }
 
 export interface PayPeriodPlan {
@@ -180,7 +196,24 @@ export function payPeriodPlan(
     a.dueOn < b.dueOn ? -1 : a.dueOn > b.dueOn ? 1 : a.label.localeCompare(b.label);
   balanceBucketBills.sort(byDue);
 
-  // Assemble buckets in commitment order with the running headroom line (S8).
+  // Projected account balance at each commitment date (FEAT-UXR2, resolved Q1/Q2): the forecast's
+  // own cash-flow walk — the same scheduled events plus `evenDaily` expected discretionary spend
+  // (the Forecast view's defaults) — summed as of each `committedOn`, so the planner's Balance
+  // column reconciles with the forecast for the same account/date. `evenDaily` here is independent
+  // of the plan's `monthStart` planned-spend placement; Balance is a cash-flow figure, not the
+  // commitment-time headroom.
+  const forecastEvents = [
+    ...events,
+    ...expectedSpendEvents(targets, rules, actualThisMonth, today, endDate, "evenDaily"),
+  ];
+  const balanceAsOf = (date: string): number =>
+    forecastEvents.reduce(
+      (bal, e) => (e.date <= date ? bal + e.deltaCents : bal),
+      startingBalanceCents,
+    );
+
+  // Assemble buckets in commitment order with the running headroom line (S8). `reserveCents` is
+  // that same running headroom re-surfaced as the sheet's Funds (UX spec §11 Q1).
   const buckets: PayPeriodBucket[] = [];
   let headroom = startingBalanceCents;
   let firstBreakOn: string | null = null;
@@ -199,6 +232,8 @@ export function payPeriodPlan(
       totalCents: balanceTotal,
       overCommitted: false,
       headroomAfterCents: headroom,
+      projectedBalanceCents: balanceAsOf(today),
+      reserveCents: headroom,
     });
   }
   for (const p of paychecks) {
@@ -216,6 +251,8 @@ export function payPeriodPlan(
       totalCents: total,
       overCommitted: total > p.incomeCents,
       headroomAfterCents: headroom,
+      projectedBalanceCents: balanceAsOf(p.paidOn),
+      reserveCents: headroom,
     });
   }
 

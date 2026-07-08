@@ -297,7 +297,8 @@ or view.** Money is **integer cents**. Household-scoped server-side.
 `PayPeriodPlan = { startDate, endDate, horizonDays, leadDays, startingBalanceCents,
 buckets: PayPeriodBucket[], firstBreakOn: string|null }`;
 `PayPeriodBucket = { kind: "balance"|"paycheck", label, committedOn, incomeCents,
-bills: PayPeriodBill[], plannedSpendCents, totalCents, overCommitted, headroomAfterCents }`;
+bills: PayPeriodBill[], plannedSpendCents, totalCents, overCommitted, headroomAfterCents,
+projectedBalanceCents, reserveCents }`;
 `PayPeriodBill = { label, dueOn, amountCents }`. The forecast's **commitment-time twin** (same
 gather: derived balance, recurring rules, targets, current-month actuals): every recurring
 **deposit** occurrence in the horizon is an expected paycheck bucket; each **withdrawal**
@@ -307,14 +308,24 @@ latest feasible, `overCommitted` surfaced; none feasible → the leading `"balan
 committed at `today`). Planned spending is the SPIKE-05-netted monthly residual split evenly
 across that month's checks (a check-less month charges the balance bucket).
 `headroomAfterCents` runs at **commitment time** (payday, not due date); `firstBreakOn` names
-the first bucket that goes negative. The plan math is a **pure domain function**
-(`payPeriodPlan`); the service feeds it I/O. **Read-only — no new table or view.** Money is
-**integer cents**. Household-scoped server-side.
+the first bucket that goes negative. **FEAT-UXR2 added two additive fields** (no removal/rename,
+no version bump — the EH12 stance): `projectedBalanceCents` — the account's projected balance
+**on that payday**, stepped from the **same forecast math** (scheduled + `evenDaily`
+`includeExpected` spend) as `GET /analysis/cash-flow-forecast`, so the planner's Balance column
+reconciles with the forecast for the same account/date (a **cash-flow** figure, distinct from the
+commitment-time headroom); `reserveCents` — the sheet's *Funds*: the running Σ of per-check
+headroom (`income − committed`) through this bucket, seeded by bucket zero, **not clamped** across
+over-committed buckets (equal to `headroomAfterCents` by construction). The two client-side
+countdowns (month-scoped + 90-day "left to pay") are **derived from the bills in the response**,
+not API fields. The plan math is a **pure domain function** (`payPeriodPlan`); the service feeds
+it I/O. **Read-only — no new table or view.** Money is **integer cents**. Household-scoped
+server-side.
 
 - **`GET /analysis/pay-periods?accountId=<uuid>&today=YYYY-MM-DD`** → `200 { plan }`. `today` is
   **required** — the caller-local day zero (EH8). The horizon is **fixed at 90 days** and
   `leadDays` at **7** in V1 (no parameters). Errors: `400` (`accountId` missing; `today`
-  missing/malformed); `404` (account missing / not in the household).
+  missing/malformed); `404` (account missing / not in the household). The web surface lives at
+  **`/pay-periods`** (FEAT-UXR2; the old `/insights/pay-periods` redirects).
 
 ### Analysis: credit utilization (FEAT-014a)
 

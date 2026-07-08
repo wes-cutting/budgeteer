@@ -12,6 +12,7 @@ import { NeedsAllocation } from "./NeedsAllocation";
 import { TemplatesView } from "./TemplatesView";
 import { RecurringView } from "./RecurringView";
 import { AnalysisSection } from "./AnalysisSection";
+import { PayPeriodsView } from "./PayPeriodsView";
 
 /**
  * UX3 — the route map (ADR-0006), replacing the hand-rolled `view` state machine. The route
@@ -72,6 +73,10 @@ function InsightsRoute() {
   return <AnalysisSection api={useApi()} />;
 }
 
+function PayPeriodsRoute() {
+  return <PayPeriodsView api={useApi()} />;
+}
+
 /**
  * FEAT-UXR1 (Q3) — each static route carries a `handle: { title }` that the shell reads via
  * `useMatches()` and renders as the page's single `<h1>` in the top bar (and syncs `document.title`).
@@ -99,7 +104,15 @@ export function createAppRouter() {
         },
         { path: "templates", element: <TemplatesRoute />, handle: { title: "Templates" } },
         { path: "recurring", element: <RecurringRoute />, handle: { title: "Recurring" } },
+        {
+          path: "pay-periods",
+          element: <PayPeriodsRoute />,
+          handle: { title: "Pay periods" },
+        },
         { path: "insights", element: <Navigate to="/insights/spend" replace /> },
+        // FEAT-UXR2 — the pay-period planner is promoted to a first-class `/pay-periods` route; the
+        // old Insights deep-link redirects (retiring the UXR1 transitional dual-highlight).
+        { path: "insights/pay-periods", element: <Navigate to="/pay-periods" replace /> },
         { path: "insights/:view", element: <InsightsRoute />, handle: { title: "Insights" } },
         { path: "*", element: <Navigate to="/" replace /> },
       ],

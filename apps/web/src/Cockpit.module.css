@@ -92,3 +92,12 @@
   display: grid;
   gap: var(--space-2);
 }
+
+/* FEAT-UXR2 — the Next-paycheck deep-link line into the pay-period planner. */
+.nextPay {
+  margin: var(--space-2) 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}

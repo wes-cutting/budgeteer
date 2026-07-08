@@ -93,6 +93,36 @@ describe("analysis — pay-period plan (FEAT-S7)", () => {
     // Buckets run in commitment order.
     const order = plan.buckets.map((b) => b.committedOn);
     expect([...order].sort()).toEqual(order);
+
+    // FEAT-UXR2 additive fields: reserve = the running per-check-headroom fold (= headroomAfter),
+    // and projected balance is populated on every bucket (a cash-flow figure, ≥ 0 here).
+    for (const b of plan.buckets) {
+      expect(b.reserveCents).toBe(b.headroomAfterCents);
+      expect(typeof b.projectedBalanceCents).toBe("number");
+    }
+    // reserveₙ = reserveₙ₋₁ + (incomeₙ − totalₙ) — the acceptance reconciliation.
+    let prevReserve = plan.startingBalanceCents;
+    for (const b of plan.buckets) {
+      expect(b.reserveCents).toBe(prevReserve + (b.incomeCents - b.totalCents));
+      prevReserve = b.reserveCents;
+    }
+
+    // Projected balance reconciles with the cash-flow-forecast endpoint (same account/date/horizon,
+    // the forecast's evenDaily + includeExpected defaults) — read off as of each commitment date.
+    const forecast = (
+      await get(`/analysis/cash-flow-forecast?accountId=${acct}&today=${TODAY}`)
+    ).json().forecast as {
+      startingBalanceCents: number;
+      points: { date: string; balanceCents: number }[];
+    };
+    const forecastBalanceAsOf = (date: string): number =>
+      forecast.points.reduce(
+        (bal, pt) => (pt.date <= date ? pt.balanceCents : bal),
+        forecast.startingBalanceCents,
+      );
+    for (const b of plan.buckets) {
+      expect(b.projectedBalanceCents).toBe(forecastBalanceAsOf(b.committedOn));
+    }
   });
 
   test("bills due before any feasible paycheck come from the balance bucket, committed today", async () => {

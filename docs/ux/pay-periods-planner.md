@@ -11,8 +11,8 @@ reviews/2026-07-06-ux-redesign-initiative.md.
 
 | Field        | Value                                                                     |
 | ------------ | ------------------------------------------------------------------------- |
-| Status       | **Proposed** — every §11 design question owner-resolved 2026-07-06         |
-| Feature      | [FEAT-UXR2](../features/pay-periods-planner.md) (`Proposed`; updates [FEAT-S7](../features/pay-periods.md) presentation) |
+| Status       | **Implemented** (2026-07-07) — every §11 design question owner-resolved 2026-07-06 |
+| Feature      | [FEAT-UXR2](../features/pay-periods-planner.md) (`Implemented`; updates [FEAT-S7](../features/pay-periods.md) presentation) |
 | Owner        | Wesley Cutting                                                             |
 | Last updated | 2026-07-06                                                                 |
 | Related      | [initiative brief](../reviews/2026-07-06-ux-redesign-initiative.md) · supersedes the presentation of [S7 UX spec](pay-periods.md) §3 · [UXR1 sidebar shell](app-shell-sidebar.md) (nav placement) · sheet reference: `BudgetHome.xlsx` (SPIKE-08 §5; screenshot from the 2026-07-06 session) |

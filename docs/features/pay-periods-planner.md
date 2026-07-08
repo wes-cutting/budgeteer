@@ -10,7 +10,7 @@ endpoint's plan math, and the §5 ratify/veto + §8 assignment-store decisions a
 | Field        | Value                                                                  |
 | ------------ | ---------------------------------------------------------------------- |
 | Feature ID   | FEAT-UXR2                                                               |
-| Status       | Proposed — awaiting owner nod → `Ready`                                 |
+| Status       | **Implemented** (2026-07-07) — built gate-green; see §8 "as built"      |
 | Owner        | Wesley Cutting                                                          |
 | Last updated | 2026-07-07                                                              |
 | Related      | [UX spec](../ux/pay-periods-planner.md) (`Proposed`) · extends [FEAT-S7](pay-periods.md) presentation · [initiative brief](../reviews/2026-07-06-ux-redesign-initiative.md) · [`06_API_CONTRACT`](../06_API_CONTRACT.md) (additive change, documented at build) |
@@ -79,3 +79,32 @@ multi-account plans · a headroom chart (noted follow-on) · any schema change.
 The UX spec §9 criteria, plus: figures reconcile (reserveₙ = reserveₙ₋₁ + headroomₙ; balance
 matches the forecast view for the same account/date); `06_API_CONTRACT` updated in the same
 change; bundle delta recorded vs. the 140 KB budget; gate green.
+
+## 8. As built (2026-07-07)
+
+- **Domain (Q2):** `payPeriodPlan` (`packages/domain/src/payperiod.ts`) emits the two additive
+  fields. `projectedBalanceCents` is stepped from the forecast's own event walk (scheduled +
+  `evenDaily` `includeExpected` spend) read off as of each `committedOn` — so it reconciles with
+  `GET /analysis/cash-flow-forecast` for the same date (asserted in the API test). `reserveCents`
+  is the running Σ of per-check headroom seeded by bucket zero; **it equals `headroomAfterCents`
+  by construction** — the owner chose to surface it as its own field anyway (self-documenting API,
+  UX §11 Q1). The over-committed run-down (no clamp) is pinned in the domain tests.
+- **Countdowns** derive **client-side** in `PayPeriodsView` from the bills in the response: the
+  month-scoped "left to pay" (suffix sum, resetting per month, with a `<Month> remaining` subtotal
+  row) and the pane-level "Left to pay, next 90 days" figure.
+- **Routing/nav:** `/pay-periods` is a first-class route (title handle "Pay periods"); the sidebar
+  Planning item retargets and lights `aria-current`; `/insights/pay-periods` → `<Navigate replace>`
+  and the Insights sub-nav drops the tab (retiring the UXR1 dual-highlight).
+- **View:** two `.table-scroll` ledgers in a CSS grid (stacked ≤ 640px, Paychecks first); payday
+  rows are `aria-pressed` toggle buttons whose selection highlight is **additive** over the
+  permanent "Covered by" text column, announced via a polite `role="status"` line. The status badge
+  carries S7 semantics exactly (running-headroom break → *Plan breaks here*/*Short*;
+  over-committed-but-covered → *Over-committed*; else *Covered*). Shell owns the `<h1>`; the panes
+  are the view's `<h2>`s.
+- **Cockpit (Q4):** the Upcoming panel gains a **Next paycheck** deep-link line (date · committed ·
+  headroom badge → `/pay-periods`), fed by one added `getPayPeriodPlan` call on the forecast
+  account; degrades independently.
+- **Gate:** typecheck · lint · format · unit · e2e · build · SCA green — **426 Vitest + 110 e2e**
+  (+5 / +1); **web bundle 123.80 KB gz** (+1.29 vs 122.51; ~16 KB under the 140 KB budget). e2e
+  re-pointed (`/pay-periods`, redirect, sidebar-active, axe light+dark, 320px reflow, cockpit
+  deep-link).

@@ -4,6 +4,7 @@ import {
   type ForecastTarget,
   PAY_PERIOD_LEAD_DAYS,
   type PayPeriodPlan,
+  cashFlowForecast,
   payPeriodPlan,
 } from "../src/index";
 
@@ -229,5 +230,77 @@ describe("payPeriodPlan — headroom at commitment time (AC5 / S8)", () => {
     );
     // 10000 + 50000 − 70000 = −10000 at the 07-10 check.
     expect(p.firstBreakOn).toBe("2026-07-10");
+  });
+});
+
+describe("payPeriodPlan — reserve (Funds) and projected balance (FEAT-UXR2)", () => {
+  test("reserve is the running Σ of per-check headroom, seeded by bucket zero (= headroomAfterCents)", () => {
+    const p = plan(
+      [
+        paycheck(),
+        bill("Soon", 15000, "2026-07-05"), // balance bucket
+        bill("Water", 5000, "2026-07-22"), // 07-10 check
+      ],
+      { balance: 200000 },
+    );
+    // Every bucket's reserve equals its S8 headroom line by construction …
+    for (const b of p.buckets) expect(b.reserveCents).toBe(b.headroomAfterCents);
+    // … and the run steps by exactly this bucket's per-check headroom (income − total).
+    let prev = p.startingBalanceCents;
+    for (const b of p.buckets) {
+      expect(b.reserveCents).toBe(prev + (b.incomeCents - b.totalCents));
+      prev = b.reserveCents;
+    }
+  });
+
+  test("reserve runs DOWN through an over-committed bucket — negative headroom, no clamp", () => {
+    // One feasible check (income $500) carries $700 of bills → per-check headroom −$200.
+    const p = plan(
+      [
+        paycheck({ amountCents: 50000, frequency: "monthly", anchorOn: "2026-07-10" }),
+        bill("Big-A", 40000, "2026-08-01"),
+        bill("Big-B", 30000, "2026-08-01"),
+      ],
+      { horizonDays: 32, balance: 100000 },
+    );
+    const check = p.buckets.find((b) => b.kind === "paycheck");
+    expect(check?.overCommitted).toBe(true);
+    // 100000 + 50000 − 70000 = 80000; the −20000 per-check headroom reduced the run (not floored).
+    expect(check?.reserveCents).toBe(80000);
+  });
+
+  test("balance-bucket projected balance is the current balance (its commitment date is today)", () => {
+    const p = plan([paycheck(), bill("Soon", 15000, "2026-07-05")], { balance: 200000 });
+    const zero = p.buckets.find((b) => b.kind === "balance");
+    // Every forecast event is dated strictly after today, so nothing has moved the balance yet.
+    expect(zero?.projectedBalanceCents).toBe(200000);
+  });
+
+  test("projected balance reconciles with the cash-flow forecast for the same date", () => {
+    const rules = [
+      paycheck(),
+      bill("Rent", 40000, "2026-07-22"),
+      bill("Internet", 8000, "2026-08-05"),
+    ];
+    const targets: ForecastTarget[] = [{ envelopeId: "e1", monthlyTargetCents: 30000 }];
+    const p = payPeriodPlan(500000, "2026-07-01", rules, targets, NO_ACTUAL, { horizonDays: 60 });
+    // Same gather → the forecast's defaults (evenDaily expected spend, includeExpected).
+    const f = cashFlowForecast(500000, "2026-07-01", rules, targets, NO_ACTUAL, {
+      horizonDays: 60,
+      includeExpected: true,
+    });
+    const balanceAsOf = (date: string): number =>
+      f.points.reduce(
+        (bal, pt) => (pt.date <= date ? pt.balanceCents : bal),
+        f.startingBalanceCents,
+      );
+    for (const b of p.buckets) {
+      expect(b.projectedBalanceCents).toBe(balanceAsOf(b.committedOn));
+    }
+    // And the last paycheck's projected balance never disagrees with the horizon-end figure when
+    // that check is the final event-bearing date. (Sanity: figures are in the same money space.)
+    expect(p.buckets.at(-1)?.projectedBalanceCents).toBe(
+      balanceAsOf(p.buckets.at(-1)!.committedOn),
+    );
   });
 });

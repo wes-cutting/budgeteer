@@ -6,6 +6,7 @@ import {
   goToDashboard,
   openAccount,
   openAnalysis,
+  openPayPeriods,
 } from "./setup";
 
 async function fundEnvelope(
@@ -291,22 +292,46 @@ test("pay periods: an expected paycheck covers its bill with commitment-time hea
     envelope: RENT,
   });
 
-  await openAnalysis(page, "Pay periods");
-  await expect(
-    page.getByRole("heading", { name: "Insights — pay periods", level: 2 }),
-  ).toBeVisible();
+  // FEAT-UXR2 — Pay periods is a first-class route (sidebar Planning group), re-laid as two ledgers.
+  await openPayPeriods(page);
+  await expect(page).toHaveURL(/\/pay-periods$/);
+  // The sidebar's Planning item marks itself active (retiring the UXR1 transitional dual-highlight).
+  await expect(page.getByRole("link", { name: "Pay periods" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await page.getByLabel("Account", { exact: true }).selectOption({ label: ACCOUNT });
 
-  // The bucket join is structural: the bill sits INSIDE its paycheck's section (never colour).
-  const section = page.getByRole("region", { name: `${PAYEE} · ${plus(10)} · +$2,000.00` });
-  await expect(section).toBeVisible();
-  await expect(section.getByRole("rowheader", { name: BILL })).toBeVisible();
-  await expect(section.getByText("Bucket total")).toBeVisible();
-  // The commitment-time headroom figure carries its text badge. Targets are household-wide, so
-  // the shared e2e store's other fixtures legitimately swing the sign — the exact badge states
-  // are unit-tested (PayPeriodsView.test.tsx); here we assert the figure + badge render.
-  await expect(section.getByText("Headroom after this check")).toBeVisible();
-  await expect(section.getByText(/Covered|Plan breaks here|Short/)).toBeVisible();
+  const bills = page.getByRole("region", { name: "Bills" });
+  const paychecks = page.getByRole("region", { name: "Paychecks" });
+  await expect(bills).toBeVisible();
+  await expect(paychecks).toBeVisible();
+
+  // Bills ledger: the rent bill is listed and its "Covered by" text names a paycheck — the permanent
+  // structural join (never colour). Rent recurs monthly, so take the first matching row.
+  await expect(bills.getByRole("rowheader", { name: BILL }).first()).toBeVisible();
+  await expect(bills.getByText(/ check$/).first()).toBeVisible();
+
+  // Paycheck ledger: the +10 payday carries income and a status badge, and is a selection toggle.
+  await expect(paychecks.getByText("+$2,000.00").first()).toBeVisible();
+  await expect(
+    paychecks.getByText(/Covered|Plan breaks here|Short|Over-committed/).first(),
+  ).toBeVisible();
+  const payToggle = paychecks.getByRole("button", { name: /Highlight bills covered by/ }).first();
+  await expect(payToggle).toHaveAttribute("aria-pressed", "false");
+  await payToggle.click();
+  await expect(payToggle).toHaveAttribute("aria-pressed", "true");
+});
+
+// FEAT-UXR2 — the old Insights deep-link redirects to the promoted first-class route. (Store state
+// is shared, so assert the redirect itself + that the planner chrome mounted, not populated data.)
+test("pay periods: /insights/pay-periods redirects to /pay-periods", async ({ page }) => {
+  await page.goto("/insights/pay-periods");
+  await expect(page).toHaveURL(/\/pay-periods$/);
+  await expect(page.getByRole("link", { name: "Pay periods" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
 });
 
 // FEAT-014a — credit utilization: guards the cross-origin PUT /accounts/:id/credit-limit
