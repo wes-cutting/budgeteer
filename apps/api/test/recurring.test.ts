@@ -175,6 +175,46 @@ describe("recurring transactions API (FEAT-009)", () => {
     ).toBe(400);
   });
 
+  test("a stale cursor cannot double-post: the EH14 index rejects the re-insert and post-due reports it as already-posted", async () => {
+    const accountId = await makeAccount();
+    const pay = await makeEnvelope("Paycheck");
+    const rule = (
+      await post("/recurring", {
+        accountId,
+        kind: "deposit",
+        amount: "10.00",
+        frequency: "weekly",
+        anchorOn: "2026-03-07", // 4 occurrences due through TODAY
+        today: TODAY,
+        lines: [{ envelopeId: pay, amount: "10.00" }],
+      })
+    ).json().recurring;
+    expect((await post("/recurring/post-due", { today: TODAY })).json().result.posted).toBe(4);
+
+    // Simulate the losing side of a concurrent post-due race: its cursor read predates the
+    // winner's commit. Rewinding the cursor recreates exactly that state.
+    await ctx.db
+      .updateTable("recurring_transactions")
+      .set({ next_occurrence_on: "2026-03-07" })
+      .where("id", "=", rule.id)
+      .execute();
+
+    const res = await post("/recurring/post-due", { today: TODAY });
+    expect(res.statusCode).toBe(200);
+    // Already-posted is success-shaped: 0 posted, no error surfaced for the rule.
+    expect(res.json().result.posted).toBe(0);
+    expect(res.json().result.rules).toEqual([{ recurringId: rule.id, posted: 0 }]);
+    // The ledger did not double: still 4 generated rows, balance unchanged.
+    expect(await balanceOf("accounts", accountId)).toBe(4000);
+  });
+
+  test("the idempotency index is partial: manual transactions on the same account and date are unconstrained (EH14)", async () => {
+    const accountId = await makeAccount();
+    const twice = { kind: "deposit", amount: "5.00", occurredOn: TODAY, allocations: [] };
+    expect((await post(`/accounts/${accountId}/transactions`, twice)).statusCode).toBe(201);
+    expect((await post(`/accounts/${accountId}/transactions`, twice)).statusCode).toBe(201);
+  });
+
   test("deleting a rule removes it but keeps already-generated transactions (history)", async () => {
     const accountId = await makeAccount();
     const pay = await makeEnvelope("Paycheck");

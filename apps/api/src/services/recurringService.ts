@@ -11,6 +11,7 @@ import { DEFAULT_HOUSEHOLD_ID } from "../constants";
 import { toDateStr } from "../util/dates";
 import { groupBy } from "../util/groupBy";
 import { NotFoundError, ValidationError } from "./errors";
+import { isUniqueViolation } from "./dbErrors";
 import { assertEnvelopesUsable } from "./envelopeGuards";
 
 export interface RecurringLineView {
@@ -332,6 +333,14 @@ export function makeRecurringService(db: Kysely<DB>) {
           result.posted += due.dates.length;
           result.rules.push({ recurringId: r.id, posted: due.dates.length });
         } catch (e) {
+          // Unique violation on transactions (recurring_id, occurred_on) = a concurrent postDue
+          // won the race for this rule (both read the cursor pre-commit; the loser's insert hits
+          // the EH14 index and its whole per-rule transaction rolls back, cursor untouched — the
+          // winner already advanced it). Already-posted is success-shaped, not an error.
+          if (isUniqueViolation(e)) {
+            result.rules.push({ recurringId: r.id, posted: 0 });
+            continue;
+          }
           result.rules.push({
             recurringId: r.id,
             posted: 0,
