@@ -31,7 +31,7 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 | `GET /analysis/envelope-spend` (monthly grid) | < 200 ms p95 | 10 envelopes × 120 txns¹ | **3.4 ms** | `apps/api/test/perf.test.ts` · same |
 | `GET /export` (backup snapshot) | < 500 ms p95 | 5 accounts + 5 envelopes + 200 txns | **11.5 ms** | `apps/api/test/perf.test.ts` · same |
 | Web initial load (LCP) | < 2.5 s | Cold load, production build | < 1 s² | Manual Lighthouse on `vite build` output |
-| Web initial JS bundle (gz) | < 120 KB gz | Production `vite build`, single chunk | **109.90 KB gz** (+ 3.19 KB gz CSS)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
+| Web initial JS bundle (gz) | < 120 KB gz | Production `vite build`, single chunk | **111.06 KB gz** (+ 3.21 KB gz CSS)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
 
 > ¹ Half-scale of the original budget (2 yrs × 20 env × 100/mo = 48 000 txns); PGlite performance
 >   at full scale is expected to remain well under budget given the measured p95 at half-scale.
@@ -45,7 +45,9 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >   **`UX8`'s six hand-rolled charts + the shared `ui/Chart` primitive added ~2.9 KB gz → 108.33 KB
 >   gz**; **`UX9`'s new `BreakdownBars` shape + the `/insights/breakdown` view added ~0.6 KB gz →
 >   108.93 KB gz**; **`UX10`'s `/insights/trends` view (reuses the existing `LineChart` shape — no
->   new shape) added ~0.97 KB gz → 109.90 KB gz** now (~10.1 KB headroom). The **< 120 KB gz** budget left room for the hand-rolled SVG charts
+>   new shape) added ~0.97 KB gz → 109.90 KB gz**; **`UX11`'s `/insights/burndown` view (reuses the
+>   existing `Gauge` shape — no new shape — + one small pure domain fn) added ~1.16 KB gz → 111.06 KB
+>   gz** now (~8.9 KB headroom). The **< 120 KB gz** budget left room for the hand-rolled SVG charts
 >   (`UX2`/`UX8`–`UX11`, **no chart-lib dependency**), as the spike predicted: **[SPIKE-07](spikes/07-accessible-charting.md) /
 >   [ADR-0007](adr/ADR-0007-accessible-charting.md) measured ~1.94 KB gz for the primitive** vs **Recharts
 >   129 KB gz** — a charting library *alone* exceeds this whole budget, which is *why* charts are

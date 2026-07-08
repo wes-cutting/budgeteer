@@ -5,6 +5,7 @@ import { AnalysisView } from "./AnalysisView";
 import { SpendingBreakdownView } from "./SpendingBreakdownView";
 import { SpendingTrendsView } from "./SpendingTrendsView";
 import { BudgetVsActualView } from "./BudgetVsActualView";
+import { BudgetBurndownView } from "./BudgetBurndownView";
 import { ForecastView } from "./ForecastView";
 import { CreditView } from "./CreditView";
 import { PayoffView } from "./PayoffView";
@@ -21,13 +22,15 @@ import { ErrorBoundary } from "./ErrorBoundary";
  * Each view keeps its own <h1>. UX8 completed the Analysis → Insights migration: the headings now read
  * "Insights — …" and each view renders a hand-rolled accessible chart (ADR-0007) above its data table.
  * UX9 adds the "breakdown" view — a new share-of-outflow composition next to Spend. UX10 adds
- * "trends" — a new month-over-month outflow trend (total + top envelopes) next to Breakdown.
+ * "trends" — a new month-over-month outflow trend (total + top envelopes) next to Breakdown. UX11
+ * adds "burndown" — within-month pace vs. target — next to Budget (its before-month-end companion).
  */
 const TABS = [
   { id: "spend", label: "Spend" },
   { id: "breakdown", label: "Breakdown" },
   { id: "trends", label: "Trends" },
   { id: "budget", label: "Budget" },
+  { id: "burndown", label: "Burn-down" },
   { id: "forecast", label: "Forecast" },
   { id: "credit", label: "Credit" },
   { id: "payoff", label: "Payoff" },
@@ -46,6 +49,8 @@ function renderView(view: AnalysisTab, api: Api): ReactElement {
       return <SpendingTrendsView api={api} />;
     case "budget":
       return <BudgetVsActualView api={api} />;
+    case "burndown":
+      return <BudgetBurndownView api={api} />;
     case "forecast":
       return <ForecastView api={api} />;
     case "credit":

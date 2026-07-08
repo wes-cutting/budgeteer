@@ -10,6 +10,7 @@ const TAB_LABELS = [
   "Breakdown",
   "Trends",
   "Budget",
+  "Burn-down",
   "Forecast",
   "Credit",
   "Payoff",

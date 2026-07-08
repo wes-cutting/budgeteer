@@ -116,6 +116,25 @@ async function seedTrend(page: Page, tag: string) {
   await spendOn(page, account, envelope, "220.00", thisMonthDay, `A11y-${stamp}-payB`);
 }
 
+/** Seed a budgeted envelope with real mid-month outflow so the burn-down gauge + pace marker render
+ *  (UX11). Spends more than half the target so the current (partly-elapsed) month has a live pace. */
+async function seedBurndown(page: Page, tag: string) {
+  const stamp = `${tag}-${Date.now()}`;
+  const account = `A11y-${stamp}-acct`;
+  const envelope = `A11y-${stamp}-env`;
+  await createAccount(page, account, { balance: "1000.00" });
+  await createEnvelope(page, envelope);
+  await openAnalysis(page, "Budget");
+  const budgetRow = page.getByRole("row").filter({ hasText: envelope });
+  await budgetRow.getByLabel(`Monthly target for ${envelope}`).fill("200.00");
+  await budgetRow.getByRole("button", { name: "Save" }).click();
+  await expect(budgetRow.getByRole("button", { name: "Clear" })).toBeVisible();
+  // Spend $150 of the $200 target THIS month so the gauge is populated with a real ratio.
+  const now = new Date();
+  const midMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-15`;
+  await spendOn(page, account, envelope, "150.00", midMonth, `A11y-${stamp}-pay`);
+}
+
 /** Seed a credit account with a limit so the utilization gauge renders. */
 async function seedCredit(page: Page, tag: string): Promise<{ card: string }> {
   const card = `A11y-${tag}-${Date.now()}-card`;
@@ -309,6 +328,16 @@ async function scanBudget(page: Page) {
   await assertNoViolations(page);
 }
 
+async function scanBurndown(page: Page) {
+  await seedBurndown(page, "burn"); // budgeted envelope + mid-month outflow
+  await openAnalysis(page, "Burn-down");
+  await expect(
+    page.getByRole("heading", { name: "Insights — budget burn-down", level: 1 }),
+  ).toBeVisible();
+  await expectChart(page);
+  await assertNoViolations(page);
+}
+
 async function scanForecast(page: Page) {
   await seedBudgeted(page, "fc"); // a target gives the projection expected-spend events to chart
   await openAnalysis(page, "Forecast");
@@ -357,6 +386,10 @@ test.describe("a11y — Insights views (UX8 charts)", () => {
   test("budget vs. actual (grouped bars) is accessible", async ({ page }) => {
     await page.goto("/");
     await scanBudget(page);
+  });
+  test("budget burn-down (gauge) is accessible", async ({ page }) => {
+    await page.goto("/");
+    await scanBurndown(page);
   });
   test("cash-flow forecast (line chart) is accessible", async ({ page }) => {
     await page.goto("/");
@@ -479,6 +512,10 @@ test.describe("a11y — dark mode", () => {
   test("budget chart is accessible in dark mode (UX8)", async ({ page }) => {
     await page.goto("/");
     await scanBudget(page);
+  });
+  test("budget burn-down gauge is accessible in dark mode (UX11)", async ({ page }) => {
+    await page.goto("/");
+    await scanBurndown(page);
   });
   test("forecast chart is accessible in dark mode (UX8)", async ({ page }) => {
     await page.goto("/");

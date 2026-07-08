@@ -7,6 +7,7 @@ export * from "./allocation";
 export * from "./transfer";
 export * from "./recurring";
 export * from "./forecast";
+export * from "./burndown";
 export * from "./credit";
 export * from "./loan";
 export * from "./networth";

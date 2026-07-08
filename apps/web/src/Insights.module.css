@@ -83,6 +83,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Burn-down verdict (FEAT-UX11) — the on-track/over-pace/over-budget state as TEXT, so the pace
+ * signal never rests on the gauge's colour alone. Emphasis is weight, not colour. */
+.verdict {
+  margin: var(--space-4) 0 var(--space-2);
+  font-weight: 700;
+}
+
 /* Inline cell editor (target / limit / principal) — keep the controls compact on one row. */
 .editor {
   display: inline-flex;

@@ -162,6 +162,54 @@ test("budget vs. actual: set a monthly target and see it against spend", async (
   await expect(budgetRow.getByRole("button", { name: "Clear" })).toBeVisible();
 });
 
+// FEAT-UX11 — budget burn-down: within-month pace (spent ÷ target) vs. elapsed-time pace.
+test("budget burn-down: pace shows spent vs. target for a budgeted envelope", async ({ page }) => {
+  const stamp = Date.now();
+  const ACCOUNT = `E2E Burn Acct ${stamp}`;
+  const ENVELOPE = `E2E Burn Env ${stamp}`;
+  await page.goto("/");
+  await createAccount(page, ACCOUNT, { balance: "5000.00" });
+  await createEnvelope(page, ENVELOPE);
+
+  // Set a $200 monthly target, then spend $150 of it THIS month (75% consumed — clock-independent).
+  await openAnalysis(page, "Budget");
+  const budgetRow = page.getByRole("row").filter({ hasText: ENVELOPE });
+  await budgetRow.getByLabel(`Monthly target for ${ENVELOPE}`).fill("200.00");
+  await budgetRow.getByRole("button", { name: "Save" }).click();
+  await expect(budgetRow.getByRole("button", { name: "Clear" })).toBeVisible();
+
+  const now = new Date();
+  const midMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-15`;
+  await openAccount(page, ACCOUNT);
+  const txnForm = page.getByRole("form", { name: "Add transaction" });
+  await txnForm.getByRole("radio", { name: "Withdrawal" }).check();
+  await txnForm.getByLabel("Transaction amount").fill("150.00");
+  await txnForm.getByLabel("Date").fill(midMonth);
+  await txnForm.getByLabel("Payee").fill(`E2E Burn Pay ${stamp}`);
+  await txnForm.getByLabel("Envelope", { exact: true }).selectOption({ label: ENVELOPE });
+  await txnForm.getByRole("button", { name: "Save transaction" }).click();
+  await goToDashboard(page);
+
+  await openAnalysis(page, "Burn-down");
+  await expect(
+    page.getByRole("heading", { name: "Insights — budget burn-down", level: 1 }),
+  ).toBeVisible();
+
+  // The data-table fallback lists every budgeted envelope (the shared store accretes others across
+  // parallel specs), so assert only THIS uniquely-named envelope's own exact cells + consumed %.
+  const table = page.getByRole("table", { name: /Budget burn-down/ });
+  const envRow = table.getByRole("row").filter({ hasText: ENVELOPE });
+  await expect(envRow).toContainText("$200.00"); // target
+  await expect(envRow).toContainText("$150.00"); // spent
+  await expect(envRow).toContainText("75.0%"); // consumed (150 / 200)
+
+  // Scope the gauge to this envelope — the role="img" summary names it and its exact ratio.
+  await page.getByLabel("Scope").selectOption({ label: ENVELOPE });
+  await expect(
+    page.getByRole("img", { name: new RegExp(`${ENVELOPE}: 75\\.0% of the \\$200\\.00 budget`) }),
+  ).toBeVisible();
+});
+
 // FEAT-013 — cash-flow forecast
 test("cash-flow forecast: forward projection renders with expected spend", async ({ page }) => {
   const stamp = Date.now();
