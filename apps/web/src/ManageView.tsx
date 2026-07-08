@@ -4,7 +4,7 @@ import { isLiabilityKind } from "@budgeteer/domain";
 import { type AccountView, type Api, type EnvelopeView } from "./api";
 import { formatCents } from "./format";
 import { MoveMoneyForm } from "./MoveMoneyForm";
-import { Skeleton } from "./ui";
+import { Skeleton, useToast } from "./ui";
 
 const NUM: React.CSSProperties = { textAlign: "right" };
 
@@ -19,6 +19,7 @@ export function ManageView({ api }: { api: Api }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [envelopes, setEnvelopes] = useState<EnvelopeView[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     let active = true;
@@ -76,7 +77,10 @@ export function ManageView({ api }: { api: Api }) {
         <MoveMoneyForm
           api={api}
           envelopes={envelopes ?? []}
-          onMoved={() => void refreshEnvelopes()}
+          onMoved={() => {
+            showToast("Money moved");
+            void refreshEnvelopes();
+          }}
         />
       </section>
     </main>

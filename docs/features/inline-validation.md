@@ -46,7 +46,7 @@ failure that is genuinely *silent* today: an **un-parseable money amount**.
 | Confirm on destructive actions | ✅ UX12a |
 | Skeleton loaders | ✅ UX12b |
 | **Inline validation (money-amount fields)** | **✅ this slice (UX12d)** |
-| Success toasts | Deferred — needs a new Radix Toast primitive (UX12c) |
+| Success toasts | ✅ shipped — [FEAT-UX12c](success-toasts.md) |
 
 **Deliberately out of scope (tracked follow-ons):** required-field inline messaging (blank `Name` /
 unpicked select) — these already surface *something* at submit, so they are a weaker case than the

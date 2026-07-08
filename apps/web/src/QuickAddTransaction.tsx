@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { type AccountView, type Api, type EnvelopeView, type TemplateView } from "./api";
 import { AddTransactionForm } from "./AddTransactionForm";
-import { Alert, Dialog, Skeleton } from "./ui";
+import { Alert, Dialog, Skeleton, useToast } from "./ui";
 
 /**
  * UX7 — the global quick-add transaction, mounted as a MODAL ROUTE at `/transactions/new` so PRD
@@ -19,6 +19,7 @@ import { Alert, Dialog, Skeleton } from "./ui";
 export function QuickAddTransaction({ api }: { api: Api }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
   // Return to where you were. A direct deep-link (no prior in-app entry) has key "default" → there is
   // nothing to pop, so fall back to the home rather than leaving the app.
   const close = useCallback(() => {
@@ -69,7 +70,10 @@ export function QuickAddTransaction({ api }: { api: Api }) {
           accounts={accounts}
           envelopes={envelopes}
           templates={templates}
-          onCreated={close}
+          onCreated={() => {
+            showToast("Transaction added");
+            close();
+          }}
         />
       )}
     </Dialog>

@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router";
 import { AccountsList } from "./AccountsList";
 import { type Api, ApiError } from "./api";
 import { makeFakeApi } from "./test/fakeApi";
+import { ToastProvider } from "./ui";
 
 // AccountsList renders account names as React Router <Link>s → it needs a router in tests.
 function renderAccounts(api: Api = makeFakeApi()) {
@@ -12,6 +13,18 @@ function renderAccounts(api: Api = makeFakeApi()) {
     <MemoryRouter>
       <AccountsList api={api} />
     </MemoryRouter>,
+  );
+}
+
+// UX12c — the success toast lives above the app in a ToastProvider; wrap the view so a wired call
+// site's toast is assertable (without a provider it silently no-ops — see Toast.test.tsx).
+function renderAccountsWithToast(api: Api = makeFakeApi()) {
+  return render(
+    <ToastProvider>
+      <MemoryRouter>
+        <AccountsList api={api} />
+      </MemoryRouter>
+    </ToastProvider>,
   );
 }
 
@@ -125,6 +138,33 @@ describe("AccountsList (UX6 — /accounts)", () => {
     // …revealing the archived section exposes the unarchive control.
     await user.click(screen.getByRole("button", { name: "Show archived" }));
     expect(await screen.findByRole("button", { name: "Unarchive Old Card" })).toBeTruthy();
+  });
+
+  test("creating an account fires a success toast (UX12c)", async () => {
+    const user = userEvent.setup();
+    renderAccountsWithToast();
+    await screen.findByText(/No accounts yet/i);
+
+    const form = await openAddForm(user);
+    await user.type(within(form).getByLabelText(/Name/i), "Checking");
+    await user.click(within(form).getByRole("button", { name: /add account/i }));
+
+    expect((await screen.findAllByText("Account created")).length).toBeGreaterThanOrEqual(1);
+  });
+
+  test("archiving an account fires a success toast (UX12c)", async () => {
+    const api = makeFakeApi();
+    await api.createAccount({ name: "Old Card", kind: "credit", startingBalance: "0.00" });
+
+    const user = userEvent.setup();
+    renderAccountsWithToast(api);
+    await screen.findByRole("link", { name: "Old Card" });
+
+    await user.click(screen.getByRole("button", { name: "Archive Old Card" }));
+    const dialog = await screen.findByRole("dialog", { name: "Archive account?" });
+    await user.click(within(dialog).getByRole("button", { name: "Archive" }));
+
+    expect((await screen.findAllByText("Account archived")).length).toBeGreaterThanOrEqual(1);
   });
 
   test("cancelling the archive confirm leaves the account active (UX12)", async () => {

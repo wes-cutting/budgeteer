@@ -8,7 +8,7 @@ import {
 } from "./api";
 import { formatMoney, tryParseMoney } from "@budgeteer/domain";
 import { formatCents } from "./format";
-import { ConfirmDialog, Skeleton } from "./ui";
+import { ConfirmDialog, Skeleton, useToast } from "./ui";
 
 interface Props {
   api: Api;
@@ -28,6 +28,7 @@ export function TemplatesView({ api }: Props) {
   const [renameValue, setRenameValue] = useState("");
   // UX12 — Delete is irreversible (no unarchive for templates), so confirm before removing.
   const [pendingDelete, setPendingDelete] = useState<TemplateView | null>(null);
+  const { showToast } = useToast();
 
   async function load() {
     try {
@@ -66,6 +67,7 @@ export function TemplatesView({ api }: Props) {
     try {
       await api.deleteTemplate(id);
       await load();
+      showToast("Template deleted");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Couldn't delete.");
     }

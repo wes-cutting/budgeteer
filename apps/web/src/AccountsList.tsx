@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useId, useState } from "react";
 import { Link } from "react-router";
 import { type AccountKind, type AccountView, type Api, ApiError } from "./api";
 import { formatCents } from "./format";
-import { Button, ConfirmDialog, FieldError, Skeleton } from "./ui";
+import { Button, ConfirmDialog, FieldError, Skeleton, useToast } from "./ui";
 import { amountFieldError } from "./validation";
 
 const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "loan", "cash", "other"];
@@ -18,6 +18,7 @@ const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "loan", "
 export function AccountsList({ api }: { api: Api }) {
   const [accounts, setAccounts] = useState<AccountView[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     let active = true;
@@ -54,6 +55,7 @@ export function AccountsList({ api }: { api: Api }) {
     try {
       await api.archiveAccount(id);
       await refresh();
+      showToast("Account archived");
     } catch (err: unknown) {
       setLoadError(err instanceof Error ? err.message : "Couldn't archive the account.");
     }
@@ -71,7 +73,13 @@ export function AccountsList({ api }: { api: Api }) {
     <main>
       <h1>Accounts</h1>
       {loadError ? <p role="alert">{loadError}</p> : null}
-      <AddAccountSection api={api} onCreated={(a) => setAccounts((cur) => [...(cur ?? []), a])} />
+      <AddAccountSection
+        api={api}
+        onCreated={(a) => {
+          setAccounts((cur) => [...(cur ?? []), a]);
+          showToast("Account created");
+        }}
+      />
       <AccountList
         accounts={accounts}
         onRename={(id, name) => void renameAccount(id, name)}

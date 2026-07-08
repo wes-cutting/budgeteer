@@ -12,7 +12,7 @@ import { AddTransactionForm } from "./AddTransactionForm";
 import { TransferForm } from "./TransferForm";
 import { ReconcilePanel } from "./ReconcilePanel";
 import { InlineAllocationEditor } from "./InlineAllocationEditor";
-import { Alert, Badge, Button, Card, EmptyState, Field, Input, Skeleton } from "./ui";
+import { Alert, Badge, Button, Card, EmptyState, Field, Input, Skeleton, useToast } from "./ui";
 import styles from "./AccountRegister.module.css";
 
 interface Props {
@@ -43,6 +43,7 @@ export function AccountRegister({ api, accountId, accountName }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [range, setRange] = useState(currentMonthRange);
   const [search, setSearch] = useState("");
 
@@ -142,7 +143,10 @@ export function AccountRegister({ api, accountId, accountName }: Props) {
         accountId={accountId}
         envelopes={envelopes}
         templates={templates}
-        onCreated={() => void load()}
+        onCreated={() => {
+          showToast("Transaction added");
+          void load();
+        }}
         onSaveAsTemplate={(name, lines) => void saveAsTemplate(name, lines)}
       />
 
@@ -158,7 +162,10 @@ export function AccountRegister({ api, accountId, accountName }: Props) {
           }
         }
         accounts={accounts}
-        onTransferred={() => void load()}
+        onTransferred={() => {
+          showToast("Transfer complete");
+          void load();
+        }}
       />
 
       <ReconcilePanel api={api} accountId={accountId} derivedBalanceCents={balanceCents ?? 0} />

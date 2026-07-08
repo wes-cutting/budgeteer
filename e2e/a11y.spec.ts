@@ -268,6 +268,20 @@ test.describe("a11y — inline validation (UX12d)", () => {
   });
 });
 
+// UX12c — the success toast (Radix Toast). It is an auto-dismissing, animated, polite live region —
+// the slice's headline a11y risk — so scan a real mutation's toast while it is VISIBLE: the
+// transform-only entrance (no text-opacity fade) and the --color-surface panel contrast, gated in
+// light AND dark.
+test.describe("a11y — success toast (UX12c)", () => {
+  test("a success toast is accessible", async ({ page }) => {
+    await page.goto("/");
+    await createAccount(page, `${ACCOUNT}-toast`); // fires "Account created", leaves us on /accounts
+    const toast = page.getByRole("region", { name: "Notifications" }).getByText("Account created");
+    await expect(toast).toBeVisible();
+    await assertNoViolations(page);
+  });
+});
+
 test.describe("a11y — Account register", () => {
   test("account register view is accessible", async ({ page }) => {
     await page.goto("/");
@@ -539,6 +553,14 @@ test.describe("a11y — dark mode", () => {
     await balance.fill("12,00"); // not a valid amount
     await balance.blur();
     await expect(form.getByText("Enter an amount like 12.34.")).toBeVisible();
+    await assertNoViolations(page);
+  });
+
+  test("success toast is accessible in dark mode (UX12c)", async ({ page }) => {
+    await page.goto("/");
+    await createAccount(page, `Dark-Toast-${Date.now()}`); // fires "Account created" on /accounts
+    const toast = page.getByRole("region", { name: "Notifications" }).getByText("Account created");
+    await expect(toast).toBeVisible();
     await assertNoViolations(page);
   });
 

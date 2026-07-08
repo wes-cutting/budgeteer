@@ -30,7 +30,10 @@ test("create a monthly recurring rule and post due", async ({ page }) => {
 
   // Post due: generates at least one transaction.
   await page.getByRole("button", { name: "Post due" }).click();
-  await expect(page.getByRole("status")).toContainText(/Posted \d+ transaction/);
+  // UX12c — success toasts are also role="status", so scope to this view's post-due notice.
+  await expect(page.getByRole("status").filter({ hasText: /Posted/ })).toContainText(
+    /Posted \d+ transaction/,
+  );
 
   // Verify the generated transaction appears in the account register.
   await openAccount(page, ACCOUNT);

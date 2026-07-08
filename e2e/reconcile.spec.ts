@@ -31,7 +31,10 @@ test("reconcile to bank — balance matches", async ({ page }) => {
   const reconcileForm = page.getByRole("form", { name: "Reconcile" });
   await reconcileForm.getByLabel("Bank balance").fill("500.00");
   await reconcileForm.getByRole("button", { name: "Record reconciliation" }).click();
-  await expect(page.getByRole("status")).toContainText("Reconciled — matches your bank.");
+  // UX12c — success toasts are also role="status" live regions, so scope to this view's notice.
+  await expect(page.getByRole("status").filter({ hasText: "Reconciled" })).toContainText(
+    "Reconciled — matches your bank.",
+  );
 
   // Reconciliation history shows the recorded entry.
   await expect(page.getByText("Last reconciled")).toBeVisible();
@@ -52,7 +55,10 @@ test("reconcile to bank — mismatched balance shows the difference", async ({ p
   const reconcileForm = page.getByRole("form", { name: "Reconcile" });
   await reconcileForm.getByLabel("Bank balance").fill("510.00");
   await reconcileForm.getByRole("button", { name: "Record reconciliation" }).click();
-  await expect(page.getByRole("status")).toContainText("Recorded — off by $10.00.");
+  // UX12c — scope past the toast's role="status" announce region to this view's notice.
+  await expect(page.getByRole("status").filter({ hasText: "Recorded" })).toContainText(
+    "Recorded — off by $10.00.",
+  );
   // History paragraph also records the discrepancy.
   await expect(page.getByText("Last reconciled")).toBeVisible();
   await expect(page.getByText(/off by \$10\.00/).first()).toBeVisible();

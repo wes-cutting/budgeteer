@@ -44,7 +44,7 @@ primitive**, so it is a tight, low-risk vertical. The other three threads stay t
 | **Confirm on destructive actions** | ✅ this slice (UX12a) |
 | Skeleton loaders (replace bare `Loading…`) | ✅ shipped — [FEAT-UX12b](skeleton-loaders.md) |
 | Inline validation surfaces | ✅ shipped — [FEAT-UX12d](inline-validation.md) |
-| Success toasts | Deferred — needs a new Radix Toast primitive (UX12c) |
+| Success toasts | ✅ shipped — [FEAT-UX12c](success-toasts.md) |
 
 ## 3. Design — a `ConfirmDialog` primitive on the validated Radix `Dialog`
 

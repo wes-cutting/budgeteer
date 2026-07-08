@@ -8,7 +8,7 @@ import {
   type EnvelopeView,
 } from "./api";
 import { formatCents } from "./format";
-import { Button, ConfirmDialog, Skeleton } from "./ui";
+import { Button, ConfirmDialog, Skeleton, useToast } from "./ui";
 
 const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
 // R5 — current calendar month ("YYYY-MM") for the inline envelope-target join (the budget endpoint
@@ -28,6 +28,7 @@ export function EnvelopesList({ api }: { api: Api }) {
     null,
   );
   const [loadError, setLoadError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     let active = true;
@@ -66,6 +67,7 @@ export function EnvelopesList({ api }: { api: Api }) {
     try {
       await api.archiveEnvelope(id);
       await refresh();
+      showToast("Envelope archived");
     } catch (err: unknown) {
       setLoadError(err instanceof Error ? err.message : "Couldn't archive the envelope.");
     }
@@ -83,7 +85,13 @@ export function EnvelopesList({ api }: { api: Api }) {
     <main>
       <h1>Envelopes</h1>
       {loadError ? <p role="alert">{loadError}</p> : null}
-      <AddEnvelopeSection api={api} onCreated={(e) => setEnvelopes((cur) => [...(cur ?? []), e])} />
+      <AddEnvelopeSection
+        api={api}
+        onCreated={(e) => {
+          setEnvelopes((cur) => [...(cur ?? []), e]);
+          showToast("Envelope created");
+        }}
+      />
       <EnvelopeList
         envelopes={envelopes}
         budgetByEnvelope={budgetByEnvelope}
