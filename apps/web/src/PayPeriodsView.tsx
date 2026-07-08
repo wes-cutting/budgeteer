@@ -182,9 +182,11 @@ export function PayPeriodsView({ api }: { api: Api }) {
   }, [api, accountId]);
 
   return (
-    <main>
+    <main className={styles.widePlanner}>
       {/* FEAT-UXR1 — the page title is the shell's single <h1> (top bar); this view drops its own,
-          so the two ledger panes are its top-level headings (<h2>). */}
+          so the two ledger panes are its top-level headings (<h2>).
+          FEAT-UXR9 — as a Dashboard sub-tab the planner gets a wider `main` (the two ledgers earn
+          more room than the default reading measure). */}
       {accounts !== null && accounts.length === 0 ? (
         <p>Add an account first, then come back to plan its pay periods.</p>
       ) : (

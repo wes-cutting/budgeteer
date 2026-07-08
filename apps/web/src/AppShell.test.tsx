@@ -16,7 +16,7 @@ import { makeFakeApi } from "./test/fakeApi";
 function renderShell({
   api = makeFakeApi(),
   path = "/",
-  homeTitle = "Home",
+  homeTitle = "Dashboard",
   homeElement = <p>home content</p>,
   dynamicElement = <p>account content</p>,
 }: {
@@ -60,20 +60,21 @@ describe("AppShell (FEAT-UXR1 — sidebar shell)", () => {
     renderShell();
     const nav = screen.getByRole("navigation", { name: "Primary" });
     for (const name of [
-      "Home",
+      "Dashboard",
       "Insights",
       "Accounts",
       "Envelopes",
       "Needs allocation",
       "Templates",
       "Recurring",
-      "Pay periods",
       "Manage",
       "Download backup",
       "Add transaction",
     ]) {
       expect(within(nav).getByRole("link", { name })).toBeTruthy();
     }
+    // FEAT-UXR9 — Pay periods left the sidebar (it is now a Dashboard sub-tab).
+    expect(within(nav).queryByRole("link", { name: "Pay periods" })).toBeNull();
     // The four group headings label their lists.
     for (const group of ["Budget", "Ledgers", "Planning", "Administration"]) {
       expect(within(nav).getByText(group)).toBeTruthy();
@@ -91,10 +92,10 @@ describe("AppShell (FEAT-UXR1 — sidebar shell)", () => {
   });
 
   test("renders the route-handle title as the single page <h1>", () => {
-    renderShell({ homeTitle: "Home" });
+    renderShell({ homeTitle: "Dashboard" });
     // getByRole (singular) throws if there's more than one <h1> — so this asserts exactly one.
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Home");
-    expect(document.title).toBe("Home — Budgeteer");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Dashboard");
+    expect(document.title).toBe("Dashboard — Budgeteer");
   });
 
   test("a dynamic route publishes its resolved name to the shell <h1> (useSetPageTitle)", async () => {

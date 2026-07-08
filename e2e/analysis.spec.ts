@@ -296,14 +296,15 @@ test("pay periods: an expected paycheck covers its bill with commitment-time hea
     envelope: RENT,
   });
 
-  // FEAT-UXR2 — Pay periods is a first-class route (sidebar Planning group), re-laid as two ledgers.
+  // FEAT-UXR9 — Pay periods is a Dashboard sub-tab (URL `/pay-periods` preserved), two ledgers.
   await openPayPeriods(page);
   await expect(page).toHaveURL(/\/pay-periods$/);
-  // The sidebar's Planning item marks itself active (retiring the UXR1 transitional dual-highlight).
-  await expect(page.getByRole("link", { name: "Pay periods" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  // The Dashboard sub-tab nav marks Pay periods active.
+  await expect(
+    page
+      .getByRole("navigation", { name: "Dashboard views" })
+      .getByRole("link", { name: "Pay periods", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
   await page.getByLabel("Account", { exact: true }).selectOption({ label: ACCOUNT });
 
   const bills = page.getByRole("region", { name: "Bills" });
@@ -332,10 +333,12 @@ test("pay periods: an expected paycheck covers its bill with commitment-time hea
 test("pay periods: /insights/pay-periods redirects to /pay-periods", async ({ page }) => {
   await page.goto("/insights/pay-periods");
   await expect(page).toHaveURL(/\/pay-periods$/);
-  await expect(page.getByRole("link", { name: "Pay periods" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  // FEAT-UXR9 — the redirect lands on the Dashboard's Pay periods sub-tab, marked active in its nav.
+  await expect(
+    page
+      .getByRole("navigation", { name: "Dashboard views" })
+      .getByRole("link", { name: "Pay periods", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
 });
 
 // FEAT-014a — credit utilization: guards the cross-origin PUT /accounts/:id/credit-limit

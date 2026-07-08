@@ -21,10 +21,10 @@ test.describe("error boundary — top-level render crash", () => {
     await expect(alert.getByRole("button", { name: "Reload" })).toBeVisible();
 
     // The normal app shell never mounted (the crash replaced it).
-    await expect(page.getByRole("heading", { name: "Home", level: 1 })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toHaveCount(0);
 
     // Recovery: a clean load (no ?boom) renders the real app again.
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
   });
 });

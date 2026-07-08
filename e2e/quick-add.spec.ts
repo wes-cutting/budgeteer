@@ -42,7 +42,7 @@ test("records a transaction against the picked account and returns you where you
 
   // The modal closes and we are back on the home cockpit (where we opened it from).
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 
   // The transaction is recorded against the picked account — open its register to confirm.
   await openAccount(page, ACCOUNT);
@@ -88,5 +88,5 @@ test("Escape closes the modal without recording anything", async ({ page }) => {
   const dialog = page.getByRole("dialog", { name: "Add a transaction" });
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 });

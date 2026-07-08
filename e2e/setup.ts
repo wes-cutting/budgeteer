@@ -12,8 +12,9 @@ function primaryNav(page: Page) {
 }
 
 export async function goToDashboard(page: Page) {
-  await primaryNav(page).getByRole("link", { name: "Home", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
+  // FEAT-UXR9 — the sidebar "Home" item is now "Dashboard" (Overview + Pay periods sub-tabs).
+  await primaryNav(page).getByRole("link", { name: "Dashboard", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 }
 
 export async function goToAccounts(page: Page) {
@@ -176,7 +177,14 @@ export async function openAnalysis(page: Page, view: string) {
   }
 }
 
-// FEAT-UXR2 — Pay periods is a first-class route (`/pay-periods`) in the sidebar Planning group.
+// FEAT-UXR9 — Pay periods is a Dashboard sub-tab (its URL `/pay-periods` preserved). Reach it via the
+// Dashboard, then its sub-tab nav — no longer a sidebar destination.
 export async function openPayPeriods(page: Page) {
-  await primaryNav(page).getByRole("link", { name: "Pay periods" }).click();
+  await goToDashboard(page);
+  await dashboardViews(page).getByRole("link", { name: "Pay periods", exact: true }).click();
+}
+
+/** The Dashboard's Overview/Pay periods sub-tab nav (FEAT-UXR9). */
+export function dashboardViews(page: Page) {
+  return page.getByRole("navigation", { name: "Dashboard views" });
 }

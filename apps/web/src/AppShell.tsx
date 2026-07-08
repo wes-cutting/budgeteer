@@ -25,7 +25,6 @@ import {
   MenuIcon,
   NeedsIcon,
   PanelLeftIcon,
-  PayPeriodsIcon,
   PlusIcon,
   RecurringIcon,
   TemplatesIcon,
@@ -89,7 +88,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     heading: "Budget",
     items: [
-      { to: "/", label: "Home", icon: HomeIcon, end: true },
+      // FEAT-UXR9 — "Home" is now the Dashboard (Overview + Pay periods sub-tabs). `end` keeps it
+      // active only on `/`; the Pay periods sub-tab (`/pay-periods`) surfaces in the Dashboard's own
+      // sub-tab nav, not the sidebar.
+      { to: "/", label: "Dashboard", icon: HomeIcon, end: true },
       { to: "/insights", label: "Insights", icon: InsightsIcon },
     ],
   },
@@ -106,8 +108,8 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/templates", label: "Templates", icon: TemplatesIcon },
       { to: "/recurring", label: "Recurring", icon: RecurringIcon },
-      // FEAT-UXR2 — Pay periods is now a first-class route (was a deep-link into Insights).
-      { to: "/pay-periods", label: "Pay periods", icon: PayPeriodsIcon },
+      // FEAT-UXR9 — Pay periods left the sidebar; it is now a Dashboard sub-tab (absorbed from the
+      // FEAT-UXR2 standalone route). Its URL `/pay-periods` is preserved.
     ],
   },
   {

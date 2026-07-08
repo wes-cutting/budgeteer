@@ -62,7 +62,7 @@ test("the Insights hub redirects to the default view; an unknown path redirects 
 
   // An unknown deep link falls back to the dashboard (the catch-all route).
   await page.goto("/this-route-does-not-exist");
-  await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
 });
 

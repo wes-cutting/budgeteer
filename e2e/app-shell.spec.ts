@@ -96,7 +96,7 @@ test.describe("app shell — narrow-width drawer (≤ 640px)", () => {
 test.describe("app shell — heading integrity", () => {
   test("every route exposes exactly one <h1> (the shell top-bar title)", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
 
     await goToAccounts(page);

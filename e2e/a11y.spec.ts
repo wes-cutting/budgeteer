@@ -240,7 +240,7 @@ test.describe("a11y — first-run onboarding (UX14, dark)", () => {
 test.describe("a11y — home (cockpit)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
   });
 
   test("first-run onboarding (empty app) is accessible", async ({ page }) => {
@@ -653,7 +653,7 @@ test.describe("a11y — dark mode", () => {
 
   test("home cockpit (empty) is accessible in dark mode", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
     await assertNoViolations(page);
   });
 
