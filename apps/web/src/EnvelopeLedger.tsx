@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { type Api, type EnvelopeLedgerRow, type EnvelopeView } from "./api";
 import { formatCents } from "./format";
+import { Skeleton } from "./ui";
 
 interface Props {
   api: Api;
@@ -50,7 +51,7 @@ export function EnvelopeLedger({ api, envelope }: Props) {
       <section aria-labelledby="ledger-heading">
         <h2 id="ledger-heading">Transactions</h2>
         {rows === null && !error ? (
-          <p>Loading…</p>
+          <Skeleton />
         ) : rows !== null && rows.length === 0 ? (
           <p>No transactions in this envelope yet.</p>
         ) : rows !== null ? (

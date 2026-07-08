@@ -8,7 +8,7 @@ import {
   type EnvelopeView,
 } from "./api";
 import { formatCents } from "./format";
-import { Button, ConfirmDialog } from "./ui";
+import { Button, ConfirmDialog, Skeleton } from "./ui";
 
 const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
 // R5 — current calendar month ("YYYY-MM") for the inline envelope-target join (the budget endpoint
@@ -157,7 +157,7 @@ function EnvelopeList({
   // UX12 — Archive is confirmed before it runs (it moves the envelope out of the active list and
   // out of this month's budget). The pending row is captured so the dialog can name it.
   const [pendingArchive, setPendingArchive] = useState<{ id: string; name: string } | null>(null);
-  if (envelopes === null) return <p>Loading…</p>;
+  if (envelopes === null) return <Skeleton />;
   const active = envelopes.filter((e) => e.archivedAt === null);
   const archived = envelopes.filter((e) => e.archivedAt !== null);
   if (active.length === 0 && archived.length === 0) {

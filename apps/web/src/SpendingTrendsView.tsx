@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { type Api, type BudgetVsActualReport } from "./api";
 import { formatCents } from "./format";
-import { Button, Field, Input, LineChart, type LineSeries } from "./ui";
+import { Button, Field, Input, LineChart, Skeleton, type LineSeries } from "./ui";
 import styles from "./Insights.module.css";
 
 /**
@@ -206,7 +206,7 @@ export function SpendingTrendsView({ api }: { api: Api }) {
 
       {error ? <p role="alert">{error}</p> : null}
       {error && trend === null ? null : trend === null ? (
-        <p role="status">Loading…</p>
+        <Skeleton />
       ) : !hasData || chart === null ? (
         <p>
           No outflow in the {months} months ending {endMonth} yet — spend from an envelope, then

@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { type AccountKind, type AccountView, type Api, ApiError } from "./api";
 import { formatCents } from "./format";
-import { Button, ConfirmDialog } from "./ui";
+import { Button, ConfirmDialog, Skeleton } from "./ui";
 
 const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "loan", "cash", "other"];
 
@@ -130,7 +130,7 @@ function AccountList({
   // so the dialog can name it.
   const [pendingArchive, setPendingArchive] = useState<{ id: string; name: string } | null>(null);
 
-  if (accounts === null) return <p>Loading…</p>;
+  if (accounts === null) return <Skeleton />;
   const active = accounts.filter((a) => a.archivedAt === null);
   const archived = accounts.filter((a) => a.archivedAt !== null);
   if (active.length === 0 && archived.length === 0) {

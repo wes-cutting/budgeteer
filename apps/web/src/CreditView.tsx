@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { formatMoney } from "@budgeteer/domain";
 import { type Api, type CreditAccountUtilization, type CreditUtilizationReport } from "./api";
 import { formatBps, formatCents } from "./format";
-import { Button, Gauge, Input } from "./ui";
+import { Button, Gauge, Input, Skeleton } from "./ui";
 import styles from "./Insights.module.css";
 
 /** Owed as text: positive = debt, negative = a credit balance (overpayment), 0 = settled. */
@@ -122,7 +122,7 @@ export function CreditView({ api }: { api: Api }) {
 
       {error ? <p role="alert">{error}</p> : null}
       {error && report === null ? null : report === null ? (
-        <p role="status">Loading…</p>
+        <Skeleton />
       ) : report.accounts.length === 0 ? (
         <p>
           No credit accounts yet — add an account with the <em>credit</em> kind, then set its credit

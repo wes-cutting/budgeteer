@@ -8,6 +8,7 @@ import {
 } from "./api";
 import { formatCents } from "./format";
 import { InlineAllocationEditor } from "./InlineAllocationEditor";
+import { Skeleton } from "./ui";
 
 interface Props {
   api: Api;
@@ -64,7 +65,7 @@ export function NeedsAllocation({ api }: Props) {
       {error ? <p role="alert">{error}</p> : null}
 
       {items === null ? (
-        <p>Loading…</p>
+        <Skeleton />
       ) : items.length === 0 ? (
         <p>Nothing to allocate — you&rsquo;re all caught up.</p>
       ) : (

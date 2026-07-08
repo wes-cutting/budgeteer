@@ -27,6 +27,14 @@ describe("AccountsList (UX6 — /accounts)", () => {
     expect(await screen.findByText(/No accounts yet/i)).toBeTruthy();
   });
 
+  test("shows an accessible skeleton while the list loads (UX12b)", async () => {
+    renderAccounts();
+    // Before the async list resolves the loading state is the Skeleton primitive — a polite
+    // role="status" announces "Loading…" to AT (not a bare, unannounced <p>).
+    expect(screen.getByRole("status").textContent).toBe("Loading…");
+    await screen.findByText(/No accounts yet/i); // flush the pending resolution
+  });
+
   test("the add form is progressive — hidden until the Add affordance is used", async () => {
     renderAccounts();
     await screen.findByText(/No accounts yet/i);

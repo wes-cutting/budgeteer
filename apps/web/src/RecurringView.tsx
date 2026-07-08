@@ -11,6 +11,7 @@ import {
 import { tryParseMoney } from "@budgeteer/domain";
 import { formatCents } from "./format";
 import { AllocationEditor } from "./AllocationEditor";
+import { Skeleton } from "./ui";
 
 const FREQUENCIES: RecurringFrequency[] = ["weekly", "biweekly", "monthly"];
 
@@ -213,7 +214,7 @@ export function RecurringView({ api }: { api: Api }) {
       <section aria-labelledby="rules-heading">
         <h2 id="rules-heading">Your recurring rules</h2>
         {rules === null ? (
-          <p>Loading…</p>
+          <Skeleton />
         ) : rules.length === 0 ? (
           <p>No recurring rules yet — add one above.</p>
         ) : (

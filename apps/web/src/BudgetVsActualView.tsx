@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { formatMoney } from "@budgeteer/domain";
 import { type Api, type BudgetVsActualReport, type BudgetVsActualRow } from "./api";
 import { formatCents } from "./format";
-import { BarChart, Button, Field, Input } from "./ui";
+import { BarChart, Button, Field, Input, Skeleton } from "./ui";
 import styles from "./Insights.module.css";
 
 const thisMonth = (): string => new Date().toISOString().slice(0, 7);
@@ -129,7 +129,7 @@ export function BudgetVsActualView({ api }: { api: Api }) {
 
       {error ? <p role="alert">{error}</p> : null}
       {error && report === null ? null : report === null ? (
-        <p role="status">Loading…</p>
+        <Skeleton />
       ) : report.rows.length === 0 ? (
         <p>No envelopes to budget yet — add envelopes, then set a monthly target on each.</p>
       ) : budgeted.length === 0 ? (

@@ -58,6 +58,13 @@ async function seeded() {
 }
 
 describe("BudgetVsActualView (FEAT-012)", () => {
+  test("shows an accessible skeleton while the report loads (UX12b)", async () => {
+    render(<BudgetVsActualView api={makeFakeApi()} />);
+    // The initial loading state is the Skeleton primitive — role="status" announces "Loading…".
+    expect(screen.getByRole("status").textContent).toBe("Loading…");
+    await screen.findByText(/No envelopes to budget yet/i); // flush the pending resolution
+  });
+
   test("shows target vs. outflow spend and remaining for the chosen month", async () => {
     render(<BudgetVsActualView api={await seeded()} />);
     await screen.findByRole("table");

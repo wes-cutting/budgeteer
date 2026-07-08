@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { type Api, type EnvelopeView } from "./api";
 import { EnvelopeLedger } from "./EnvelopeLedger";
+import { Skeleton } from "./ui";
 
 /**
  * UX3 — route adapter for `/envelopes/:id`. The `EnvelopeLedger` needs the full envelope (name,
@@ -41,7 +42,7 @@ export function EnvelopeLedgerRoute({ api, envelopeId }: { api: Api; envelopeId:
     return (
       <main>
         <h1>Envelope</h1>
-        <p>Loading…</p>
+        <Skeleton />
       </main>
     );
   }

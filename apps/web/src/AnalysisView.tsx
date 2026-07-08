@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { type Api, type EnvelopeSpendRollup, type SpendGrain } from "./api";
 import { formatCents } from "./format";
-import { BarChart } from "./ui";
+import { BarChart, Skeleton } from "./ui";
 import styles from "./Insights.module.css";
 
 /**
@@ -111,7 +111,7 @@ export function AnalysisView({ api }: { api: Api }) {
 
       {error ? <p role="alert">{error}</p> : null}
       {error ? null : rollup === null ? (
-        <p role="status">Loading…</p>
+        <Skeleton />
       ) : rollup.rows.length === 0 ? (
         <p>No spending to analyze yet — enter and allocate some transactions first.</p>
       ) : (

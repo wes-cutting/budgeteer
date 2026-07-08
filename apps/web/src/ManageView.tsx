@@ -4,6 +4,7 @@ import { isLiabilityKind } from "@budgeteer/domain";
 import { type AccountView, type Api, type EnvelopeView } from "./api";
 import { formatCents } from "./format";
 import { MoveMoneyForm } from "./MoveMoneyForm";
+import { Skeleton } from "./ui";
 
 const NUM: React.CSSProperties = { textAlign: "right" };
 
@@ -90,7 +91,7 @@ export function ManageView({ api }: { api: Api }) {
  * `isLiabilityKind` so it agrees with the NetWorthView classification.
  */
 function NetWorthSummary({ accounts }: { accounts: AccountView[] | null }) {
-  if (accounts === null) return <p>Loading…</p>;
+  if (accounts === null) return <Skeleton />;
   if (accounts.length === 0) {
     return <p>Add an account to total your assets and liabilities.</p>;
   }

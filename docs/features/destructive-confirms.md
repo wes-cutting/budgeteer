@@ -42,7 +42,7 @@ primitive**, so it is a tight, low-risk vertical. The other three threads stay t
 | Thread | Status after this slice |
 | ------ | ----------------------- |
 | **Confirm on destructive actions** | ✅ this slice (UX12a) |
-| Skeleton loaders (replace bare `Loading…`) | Deferred — follow-on (UX12b) |
+| Skeleton loaders (replace bare `Loading…`) | ✅ shipped next — [FEAT-UX12b](skeleton-loaders.md) |
 | Success toasts | Deferred — needs a new Radix Toast primitive (UX12c) |
 | Inline validation surfaces | Deferred — follow-on (UX12d) |
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { type Api, type BudgetVsActualReport } from "./api";
 import { formatCents } from "./format";
-import { BreakdownBars, Field, Input, type BreakdownSlice } from "./ui";
+import { BreakdownBars, Field, Input, Skeleton, type BreakdownSlice } from "./ui";
 import styles from "./Insights.module.css";
 
 const thisMonth = (): string => new Date().toISOString().slice(0, 7);
@@ -126,7 +126,7 @@ export function SpendingBreakdownView({ api }: { api: Api }) {
 
       {error ? <p role="alert">{error}</p> : null}
       {error && report === null ? null : report === null ? (
-        <p role="status">Loading…</p>
+        <Skeleton />
       ) : spent.length === 0 ? (
         <p>
           No spending recorded for {month} yet — enter some withdrawals allocated to envelopes, then

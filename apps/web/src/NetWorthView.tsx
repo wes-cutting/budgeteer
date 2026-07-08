@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { type Api, type NetWorthReport, type SpendGrain } from "./api";
 import { formatCents } from "./format";
-import { LineChart, type LineSeries } from "./ui";
+import { LineChart, Skeleton, type LineSeries } from "./ui";
 import styles from "./Insights.module.css";
 
 /**
@@ -102,7 +102,7 @@ export function NetWorthView({ api }: { api: Api }) {
 
       {error ? <p role="alert">{error}</p> : null}
       {error ? null : report === null ? (
-        <p role="status">Loading…</p>
+        <Skeleton />
       ) : report.trend.length === 0 ? (
         <p>No account activity to analyze yet — open an account with a starting balance first.</p>
       ) : (

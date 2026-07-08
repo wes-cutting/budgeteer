@@ -8,7 +8,7 @@ import {
 } from "./api";
 import { formatMoney, tryParseMoney } from "@budgeteer/domain";
 import { formatCents } from "./format";
-import { ConfirmDialog } from "./ui";
+import { ConfirmDialog, Skeleton } from "./ui";
 
 interface Props {
   api: Api;
@@ -155,7 +155,7 @@ export function TemplatesView({ api }: Props) {
       <section aria-labelledby="templates-heading">
         <h2 id="templates-heading">Saved templates</h2>
         {templates === null ? (
-          <p>Loading…</p>
+          <Skeleton />
         ) : templates.length === 0 ? (
           <p>No templates yet — save a split to reuse it.</p>
         ) : (

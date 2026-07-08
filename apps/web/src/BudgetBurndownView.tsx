@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { type BurndownStatus, assessBurndown } from "@budgeteer/domain";
 import { type Api, type BudgetVsActualReport, type BudgetVsActualRow } from "./api";
 import { formatBps, formatCents } from "./format";
-import { Field, Gauge, Input, Select } from "./ui";
+import { Field, Gauge, Input, Select, Skeleton } from "./ui";
 import styles from "./Insights.module.css";
 
 /**
@@ -200,7 +200,7 @@ export function BudgetBurndownView({ api }: { api: Api }) {
 
       {error ? <p role="alert">{error}</p> : null}
       {error && report === null ? null : report === null ? (
-        <p role="status">Loading…</p>
+        <Skeleton />
       ) : assessment === null ? (
         <p>
           No budgets set for {month} — set a monthly target in{" "}
