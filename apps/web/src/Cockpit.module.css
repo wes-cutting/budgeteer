@@ -57,6 +57,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* UX13 — negative money (over-budget remaining, liabilities, negative net worth): weight + danger
+ * tone. The value keeps its minus sign, which stays the non-colour signal (never colour alone). */
+.negative {
+  color: var(--color-danger); /* ~6.3:1 on the card surface, light + dark */
+}
+
+/* UX13 — the budget panel's spent-of-target summary bar sits between the figures and the verdict
+ * badge; a little breathing room so it doesn't crowd them. */
+.progress {
+  margin: var(--space-1) 0;
+}
+
 .bigNumber {
   margin: 0;
   font-size: var(--text-xl);

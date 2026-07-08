@@ -2,10 +2,38 @@ import { type FormEvent, useEffect, useState } from "react";
 import { formatMoney } from "@budgeteer/domain";
 import { type Api, type BudgetVsActualReport, type BudgetVsActualRow } from "./api";
 import { formatCents } from "./format";
-import { BarChart, Button, Field, Input, Skeleton } from "./ui";
+import { BarChart, Button, Field, Input, ProgressBar, Skeleton, type ProgressTone } from "./ui";
 import styles from "./Insights.module.css";
 
 const thisMonth = (): string => new Date().toISOString().slice(0, 7);
+
+/** Budget-health tone for a spent-of-target ratio (UX13): over budget → over; nearing the target
+ *  (>=80%) → caution; otherwise on track. Colour is only ever a reinforcement — the row always shows
+ *  the figures as text. */
+function budgetTone(spentCents: number, targetCents: number, remainingCents: number): ProgressTone {
+  if (remainingCents < 0) return "over";
+  if (targetCents > 0 && spentCents / targetCents >= 0.8) return "caution";
+  return "accent";
+}
+
+/** The spent-of-target bar for a row/total, or an em dash when there's no target to measure against. */
+function BudgetProgress({
+  targetCents,
+  spentCents,
+  remainingCents,
+}: {
+  targetCents: number | null;
+  spentCents: number;
+  remainingCents: number | null;
+}) {
+  if (targetCents === null || targetCents <= 0 || remainingCents === null) return <>—</>;
+  return (
+    <ProgressBar
+      ratio={spentCents / targetCents}
+      tone={budgetTone(spentCents, targetCents, remainingCents)}
+    />
+  );
+}
 
 /**
  * Insights — budget vs. actual (FEAT-012, charted in UX8). For a chosen month, each envelope's
@@ -71,6 +99,9 @@ export function BudgetVsActualView({ api }: { api: Api }) {
             <th scope="col" className={styles.numeric}>
               Remaining
             </th>
+            <th scope="col" className={styles.progressCell}>
+              Spent of target
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -89,8 +120,21 @@ export function BudgetVsActualView({ api }: { api: Api }) {
                 />
               </td>
               <td className={styles.numeric}>{formatCents(row.spentCents)}</td>
-              <td className={styles.numeric}>
+              <td
+                className={
+                  row.remainingCents !== null && row.remainingCents < 0
+                    ? `${styles.numeric} ${styles.overText}`
+                    : styles.numeric
+                }
+              >
                 {row.remainingCents === null ? "—" : formatCents(row.remainingCents)}
+              </td>
+              <td className={styles.progressCell}>
+                <BudgetProgress
+                  targetCents={row.targetCents}
+                  spentCents={row.spentCents}
+                  remainingCents={row.remainingCents}
+                />
               </td>
             </tr>
           ))}
@@ -100,7 +144,22 @@ export function BudgetVsActualView({ api }: { api: Api }) {
             <th scope="row">Total</th>
             <td className={styles.numeric}>{formatCents(report.totalTargetCents)}</td>
             <td className={styles.numeric}>{formatCents(report.totalSpentCents)}</td>
-            <td className={styles.numeric}>{formatCents(report.totalRemainingCents)}</td>
+            <td
+              className={
+                report.totalRemainingCents < 0
+                  ? `${styles.numeric} ${styles.overText}`
+                  : styles.numeric
+              }
+            >
+              {formatCents(report.totalRemainingCents)}
+            </td>
+            <td className={styles.progressCell}>
+              <BudgetProgress
+                targetCents={report.totalTargetCents}
+                spentCents={report.totalSpentCents}
+                remainingCents={report.totalRemainingCents}
+              />
+            </td>
           </tr>
         </tfoot>
       </table>

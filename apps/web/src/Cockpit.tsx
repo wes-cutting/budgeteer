@@ -10,7 +10,7 @@ import {
   type TransactionView,
 } from "./api";
 import { formatCents } from "./format";
-import { Badge, Card, EmptyState, Skeleton } from "./ui";
+import { Badge, Card, EmptyState, ProgressBar, Skeleton, type ProgressTone } from "./ui";
 import styles from "./Cockpit.module.css";
 
 /**
@@ -186,14 +186,16 @@ function renderState<T>(state: Loadable<T>, render: (data: T) => ReactNode): Rea
   return render(state.data);
 }
 
-/** A term/value figure list (description list — no role override; keeps dt/dd containment). */
-function Figures({ items }: { items: { term: string; value: string }[] }) {
+/** A term/value figure list (description list — no role override; keeps dt/dd containment). A
+ *  `negative` figure gets weight + danger tone (UX13); the value's minus sign stays the non-colour
+ *  signal, so colour is never the sole encoding. */
+function Figures({ items }: { items: { term: string; value: string; negative?: boolean }[] }) {
   return (
     <dl className={styles.figures}>
       {items.map((it) => (
         <div key={it.term}>
           <dt>{it.term}</dt>
-          <dd>{it.value}</dd>
+          <dd className={it.negative ? styles.negative : undefined}>{it.value}</dd>
         </div>
       ))}
     </dl>
@@ -226,6 +228,9 @@ function BudgetPanel({ month, state }: { month: string; state: Loadable<BudgetVs
         const overBudget = budgeted.filter(
           (r) => r.remainingCents !== null && r.remainingCents < 0,
         ).length;
+        const ratio = budgetedCents > 0 ? spentCents / budgetedCents : 0;
+        const tone: ProgressTone =
+          remainingCents < 0 ? "over" : ratio >= 0.8 ? "caution" : "accent";
         return (
           <>
             <p className={styles.muted}>{monthLabel(month)}</p>
@@ -233,9 +238,14 @@ function BudgetPanel({ month, state }: { month: string; state: Loadable<BudgetVs
               items={[
                 { term: "Budgeted", value: formatCents(budgetedCents) },
                 { term: "Spent", value: formatCents(spentCents) },
-                { term: "Remaining", value: formatCents(remainingCents) },
+                {
+                  term: "Remaining",
+                  value: formatCents(remainingCents),
+                  negative: remainingCents < 0,
+                },
               ]}
             />
+            <ProgressBar ratio={ratio} tone={tone} className={styles.progress} />
             {overBudget > 0 ? (
               <Badge tone="warning">
                 {overBudget} {overBudget === 1 ? "envelope" : "envelopes"} over budget
@@ -373,8 +383,12 @@ function NetWorthPanel({ state }: { state: Loadable<NetWorthSnapshot | null> }) 
           <Figures
             items={[
               { term: "Assets", value: formatCents(nw.assetsCents) },
-              { term: "Liabilities", value: formatCents(nw.liabilitiesCents) },
-              { term: "Net worth", value: formatCents(nw.netCents) },
+              {
+                term: "Liabilities",
+                value: formatCents(nw.liabilitiesCents),
+                negative: nw.liabilitiesCents < 0,
+              },
+              { term: "Net worth", value: formatCents(nw.netCents), negative: nw.netCents < 0 },
             ]}
           />
         );

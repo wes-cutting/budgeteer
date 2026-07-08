@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { BudgetVsActualView } from "./BudgetVsActualView";
 import { ApiError } from "./api";
 import { makeFakeApi } from "./test/fakeApi";
+import styles from "./Insights.module.css";
 
 const row = (name: string): HTMLElement =>
   screen.getByRole("rowheader", { name }).closest("tr") as HTMLElement;
@@ -81,17 +82,37 @@ describe("BudgetVsActualView (FEAT-012)", () => {
     // Dining: over budget ⇒ negative remaining shown as text.
     expect(within(row("Dining")).getByText("-$50.00")).toBeTruthy();
 
-    // Fun: no target ⇒ empty input, remaining em-dash, but its spend is still shown.
+    // Fun: no target ⇒ empty input, but its spend is still shown; with no target both the Remaining
+    // and the UX13 Spent-of-target cells show an em-dash (nothing to measure against).
     const fun = within(row("Fun"));
     expect((fun.getByLabelText("Monthly target for Fun") as HTMLInputElement).value).toBe("");
     expect(fun.getByText("$45.00")).toBeTruthy();
-    expect(fun.getByText("—")).toBeTruthy();
+    expect(fun.getAllByText("—")).toHaveLength(2);
 
     // Totals footer: targets 500, spent 555, remaining (budgeted only) −10.
     const totals = within(row("Total"));
     expect(totals.getByText("$500.00")).toBeTruthy();
     expect(totals.getByText("$555.00")).toBeTruthy();
     expect(totals.getByText("-$10.00")).toBeTruthy();
+  });
+
+  test("encodes budget health: a per-row spent-of-target bar, over-budget remaining weighted (UX13)", async () => {
+    render(<BudgetVsActualView api={await seeded()} />);
+    await screen.findByRole("table");
+    await showMonth("2026-03");
+
+    // Groceries (budgeted) carries a decorative spent-of-target progress bar in its row.
+    expect(row("Groceries").querySelector('[aria-hidden="true"]')).toBeTruthy();
+    // Fun (no target) shows an em-dash instead of a bar.
+    expect(row("Fun").querySelector('[aria-hidden="true"]')).toBeNull();
+
+    // Over-budget remaining gets weight + danger tone; the minus sign stays the non-colour signal.
+    const diningOver = within(row("Dining")).getByText("-$50.00");
+    expect(diningOver.className).toContain(styles.overText);
+    // The totals footer is over too (−$10.00) and is likewise weighted.
+    expect(within(row("Total")).getByText("-$10.00").className).toContain(styles.overText);
+    // An under-budget remaining is NOT flagged.
+    expect(within(row("Groceries")).getByText("$40.00").className).not.toContain(styles.overText);
   });
 
   test("setting a target inline updates the remaining", async () => {

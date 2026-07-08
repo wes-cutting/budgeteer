@@ -8,6 +8,7 @@ export { Field, Input, Select } from "./Field";
 export { Dialog } from "./Dialog";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { ToastProvider, useToast } from "./Toast";
+export { ProgressBar, type ProgressTone } from "./ProgressBar";
 export {
   LineChart,
   BarChart,

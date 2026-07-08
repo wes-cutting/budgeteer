@@ -31,7 +31,7 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 | `GET /analysis/envelope-spend` (monthly grid) | < 200 ms p95 | 10 envelopes × 120 txns¹ | **3.4 ms** | `apps/api/test/perf.test.ts` · same |
 | `GET /export` (backup snapshot) | < 500 ms p95 | 5 accounts + 5 envelopes + 200 txns | **11.5 ms** | `apps/api/test/perf.test.ts` · same |
 | Web initial load (LCP) | < 2.5 s | Cold load, production build | < 1 s² | Manual Lighthouse on `vite build` output |
-| Web initial JS bundle (gz) | < 120 KB gz | Production `vite build`, single chunk | **116.31 KB gz** (+ 3.43 KB gz CSS)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
+| Web initial JS bundle (gz) | < 120 KB gz | Production `vite build`, single chunk | **116.87 KB gz** (+ 3.61 KB gz CSS)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
 
 > ¹ Half-scale of the original budget (2 yrs × 20 env × 100/mo = 48 000 txns); PGlite performance
 >   at full scale is expected to remain well under budget given the measured p95 at half-scale.
@@ -55,8 +55,10 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >   dependency**) added ~0.24 KB gz → 111.68 KB gz**; **`UX12c`'s success-toast slice — a new
 >   `ToastProvider`/`useToast()` on **`@radix-ui/react-toast`** (the last hard a11y widget ADR-0005
 >   reserved for Radix — the one UX12 thread needing a **new dependency**), wired to the
->   successful-mutation set — added **+4.63 KB gz → 116.31 KB gz** now (~3.7 KB headroom, down from
->   ~8.3 — `UX13`–`UX15` must watch the budget). The **< 120 KB
+>   successful-mutation set — added **+4.63 KB gz → 116.31 KB gz** (~3.7 KB headroom, down from
+>   ~8.3); **`UX13`'s money & budget-health encoding — a hand-rolled `ProgressBar` primitive on the
+>   tokens + CSS (**no charting dependency**), wired into the Budget table + cockpit — added **+0.56 KB
+>   gz → 116.87 KB gz** now (~3.1 KB headroom; `UX14`–`UX15` must watch the budget). The **< 120 KB
 >   gz** budget left room for the hand-rolled SVG charts
 >   (`UX2`/`UX8`–`UX11`, **no chart-lib dependency**), as the spike predicted: **[SPIKE-07](spikes/07-accessible-charting.md) /
 >   [ADR-0007](adr/ADR-0007-accessible-charting.md) measured ~1.94 KB gz for the primitive** vs **Recharts

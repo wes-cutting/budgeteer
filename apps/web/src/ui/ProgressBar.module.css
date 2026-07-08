@@ -1,0 +1,40 @@
+/*
+ * ProgressBar (FEAT-UX13 · ADR-0005). Track/fill geometry + the semantic fill tones, all on the
+ * token sheet so light/dark fall out of prefers-color-scheme. No animation (reduced-motion-safe).
+ */
+.track {
+  width: 100%;
+  min-width: 64px;
+  height: 8px;
+  /* border-strong outline so an EMPTY track is perceivable at >=3:1 (WCAG 1.4.11). */
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+/* Each fill token clears 3:1 vs the surface-2 track, light + dark. Colour is never the sole signal —
+   the call site always renders the figure as text (and `over` adds a hatch SHAPE). */
+.accent {
+  background: var(--color-accent);
+}
+.success {
+  background: var(--color-success);
+}
+.caution {
+  background: var(--color-warning);
+}
+.over {
+  /* danger fill + a diagonal hatch: the non-colour signal that the ratio is past 100%. */
+  background-color: var(--color-danger);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 3px,
+    color-mix(in srgb, var(--color-bg) 60%, transparent) 3px 6px
+  );
+}

@@ -164,6 +164,29 @@ async function expectChart(page: Page) {
   await expect(page.getByRole("img").first()).toBeVisible();
 }
 
+/** Seed a budgeted envelope spent OVER its target, then scan the budget table — so the UX13
+ *  over-budget encoding (danger progress fill + hatch SHAPE, weighted remaining) is axe-gated with
+ *  it VISIBLE. `scanBudget` already covers the under-budget (accent) state. */
+async function scanOverBudget(page: Page) {
+  const stamp = `over-${Date.now()}`;
+  const account = `A11y-${stamp}-acct`;
+  const envelope = `A11y-${stamp}-env`;
+  await createAccount(page, account, { balance: "1000.00" });
+  await createEnvelope(page, envelope);
+  await openAnalysis(page, "Budget");
+  const budgetRow = page.getByRole("row").filter({ hasText: envelope });
+  await budgetRow.getByLabel(`Monthly target for ${envelope}`).fill("200.00");
+  await budgetRow.getByRole("button", { name: "Save" }).click();
+  await expect(budgetRow.getByRole("button", { name: "Clear" })).toBeVisible();
+  await spend(page, account, envelope, "250.00", `A11y-${stamp}-pay`); // 250 of a 200 target ⇒ over
+  await openAnalysis(page, "Budget");
+  await expect(
+    page.getByRole("heading", { name: "Insights — budget vs. actual", level: 1 }),
+  ).toBeVisible();
+  await expect(page.getByText("-$50.00").first()).toBeVisible(); // over-budget remaining is rendered
+  await assertNoViolations(page);
+}
+
 async function assertNoViolations(page: Page) {
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
@@ -449,6 +472,16 @@ test.describe("a11y — Insights views (UX8 charts)", () => {
   });
 });
 
+// UX13 — money & budget-health visual encoding. The over-budget state is the headline a11y risk (a
+// danger-coloured progress fill): scan the budget table with an OVER-budget row VISIBLE so the fill
+// + hatch SHAPE (1.4.11) and the weighted remaining text (1.4.1) are gated in light AND dark.
+test.describe("a11y — budget-health encoding (UX13)", () => {
+  test("an over-budget progress bar + weighted remaining is accessible", async ({ page }) => {
+    await page.goto("/");
+    await scanOverBudget(page);
+  });
+});
+
 test.describe("a11y — Error boundary fallback", () => {
   test("the render-crash fallback is accessible", async ({ page }) => {
     // R12 — the dev-only ?boom hook forces a render crash so the top-level boundary's fallback
@@ -601,6 +634,11 @@ test.describe("a11y — dark mode", () => {
   test("payoff gauge is accessible in dark mode (UX8)", async ({ page }) => {
     await page.goto("/");
     await scanPayoff(page);
+  });
+
+  test("over-budget encoding is accessible in dark mode (UX13)", async ({ page }) => {
+    await page.goto("/");
+    await scanOverBudget(page);
   });
 });
 

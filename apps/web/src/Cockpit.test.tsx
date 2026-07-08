@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router";
 import { Cockpit } from "./Cockpit";
 import { type Api } from "./api";
 import { makeFakeApi } from "./test/fakeApi";
+import styles from "./Cockpit.module.css";
 
 function renderCockpit(api: Api = makeFakeApi()) {
   return render(
@@ -111,6 +112,10 @@ describe("Cockpit (UX5 — budget + future-planning home)", () => {
     renderCockpit(api);
     const p = await panel("This month's budget");
     expect(await within(p).findByText("1 envelope over budget")).toBeTruthy();
+    // UX13: a decorative spent-of-target summary bar, and the negative remaining is weighted
+    // (the "-$50.00" text keeps its minus sign — colour is never the sole signal).
+    expect(p.querySelector('[aria-hidden="true"]')).toBeTruthy();
+    expect(within(p).getByText("-$50.00").className).toContain(styles.negative);
   });
 
   test("budget panel shows an empty state when no targets are set", async () => {
@@ -142,6 +147,20 @@ describe("Cockpit (UX5 — budget + future-planning home)", () => {
     expect(within(p).getByRole("link", { name: "Net worth over time" }).getAttribute("href")).toBe(
       "/insights/networth",
     );
+  });
+
+  test("net worth panel weights negative liabilities and a negative net worth (UX13)", async () => {
+    const api = makeFakeApi();
+    await api.createAccount({ name: "Checking", kind: "checking", startingBalance: "200.00" });
+    await api.createAccount({ name: "Card", kind: "credit", startingBalance: "-500.00" });
+
+    renderCockpit(api);
+    const p = await panel("Net worth");
+    await within(p).findByText("$200.00");
+    // assets 200 (not weighted), liabilities −500 and net −300 (both weighted).
+    expect(within(p).getByText("$200.00").className).not.toContain(styles.negative);
+    expect(within(p).getByText("-$500.00").className).toContain(styles.negative);
+    expect(within(p).getByText("-$300.00").className).toContain(styles.negative);
   });
 
   test("net worth panel is an empty state with no accounts", async () => {

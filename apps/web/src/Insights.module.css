@@ -90,6 +90,17 @@
   font-weight: 700;
 }
 
+/* UX13 — inline budget-health encoding. The progress column keeps the bar compact; the over-budget
+ * figure gets weight + danger tone, with the minus sign as the non-colour signal (supersedes the V1
+ * "minus sign only" encoding). */
+.progressCell {
+  min-width: 9rem;
+}
+.overText {
+  color: var(--color-danger); /* ~6.3:1 on bg/surface, light + dark — text, not colour alone */
+  font-weight: 700;
+}
+
 /* Inline cell editor (target / limit / principal) — keep the controls compact on one row. */
 .editor {
   display: inline-flex;
