@@ -56,12 +56,13 @@ test("envelope target set in the Budget view shows inline on the /envelopes row 
 
   // On /envelopes, the target shows inline on the envelope's row (no spend yet → remaining = target).
   await goToEnvelopes(page);
+  // UXR3 — Target/Spent/Remaining are their own table columns now (no "Target:"/"Remaining:" labels);
+  // the row carries the figures. No spend yet → remaining = target = $200.00 (both cells).
   const row = page
-    .getByRole("list", { name: "Envelopes list" })
-    .getByRole("listitem")
+    .getByRole("table", { name: "Envelopes", exact: true })
+    .getByRole("row")
     .filter({ hasText: ENVELOPE });
-  await expect(row).toContainText("Target: $200.00");
-  await expect(row).toContainText("Remaining: $200.00");
+  await expect(row.getByRole("cell", { name: "$200.00" })).toHaveCount(2);
 });
 
 test("create, archive, and unarchive an envelope", async ({ page }) => {
@@ -70,12 +71,12 @@ test("create, archive, and unarchive an envelope", async ({ page }) => {
   await page.goto("/");
   await createEnvelope(page, ENVELOPE); // leaves us on /envelopes
 
-  const envelopeList = page.getByRole("list", { name: "Envelopes list" });
-  const archivedList = page.getByRole("list", { name: "Archived envelopes" });
+  const envelopeList = page.getByRole("table", { name: "Envelopes", exact: true });
+  const archivedList = page.getByRole("table", { name: "Archived envelopes", exact: true });
 
   // Archive — UX12 confirms first in a dialog.
   await envelopeList
-    .getByRole("listitem")
+    .getByRole("row")
     .filter({ hasText: ENVELOPE })
     .getByRole("button", { name: `Archive ${ENVELOPE}`, exact: true })
     .click();
@@ -88,7 +89,7 @@ test("create, archive, and unarchive an envelope", async ({ page }) => {
 
   // Unarchive
   await archivedList
-    .getByRole("listitem")
+    .getByRole("row")
     .filter({ hasText: ENVELOPE })
     .getByRole("button", { name: `Unarchive ${ENVELOPE}`, exact: true })
     .click();

@@ -10,6 +10,7 @@ import {
 import { localMonth as currentMonth } from "./dates";
 import { formatCents } from "./format";
 import { Button, ConfirmDialog, Skeleton, useToast } from "./ui";
+import styles from "./Ledgers.module.css";
 
 const ENVELOPE_KINDS: EnvelopeKind[] = ["standard", "sinking_fund"];
 // R5 — current calendar month ("YYYY-MM") for the inline envelope-target join (the budget endpoint
@@ -135,19 +136,29 @@ function AddEnvelopeSection({
 }
 
 /**
- * R5 — inline envelope target: surfaces an active envelope's monthly target, spend, and remaining
- * (target − spent) right in its row. Rendered ONLY when a target is set — an envelope with no target
- * shows nothing extra (no faked $0). Plain labelled text (not colour-coded); `remaining` keeps its
- * sign (negative = over budget).
+ * R5 — inline envelope target as three table cells: an active envelope's monthly target, spend, and
+ * remaining (target − spent). The figures render ONLY when a target is set — an untargeted envelope
+ * shows "—" in all three (no faked $0, the R5 rule). Plain numeric text (not colour-coded);
+ * `remaining` keeps its sign (negative = over budget).
  */
-function EnvelopeBudgetInline({ row }: { row: BudgetVsActualRow | null }) {
-  if (row === null || row.targetCents === null) return null;
+function EnvelopeBudgetCells({ row }: { row: BudgetVsActualRow | null }) {
+  if (row === null || row.targetCents === null) {
+    return (
+      <>
+        <td className={styles.numeric}>—</td>
+        <td className={styles.numeric}>—</td>
+        <td className={styles.numeric}>—</td>
+      </>
+    );
+  }
   return (
-    <span>
-      {" "}
-      Target: {formatCents(row.targetCents)} · Spent: {formatCents(row.spentCents)} · Remaining:{" "}
-      {row.remainingCents === null ? "—" : formatCents(row.remainingCents)}
-    </span>
+    <>
+      <td className={styles.numeric}>{formatCents(row.targetCents)}</td>
+      <td className={styles.numeric}>{formatCents(row.spentCents)}</td>
+      <td className={styles.numeric}>
+        {row.remainingCents === null ? "—" : formatCents(row.remainingCents)}
+      </td>
+    </>
   );
 }
 
@@ -173,41 +184,97 @@ function EnvelopeList({
   }
   return (
     <>
-      <ul aria-label="Envelopes list">
-        {active.map((e) => (
-          <li key={e.id}>
-            {/* UX6 — the envelope name is now a <Link> to its ledger (UX3 left it a button). */}
-            <Link to={`/envelopes/${e.id}`}>{e.name}</Link> <span>{e.kind}</span>{" "}
-            <span>{formatCents(e.balanceCents)}</span>
-            <EnvelopeBudgetInline row={budgetByEnvelope?.get(e.id) ?? null} />
-            <button
-              type="button"
-              aria-label={`Archive ${e.name}`}
-              onClick={() => setPendingArchive({ id: e.id, name: e.name })}
-            >
-              Archive
-            </button>
-          </li>
-        ))}
-      </ul>
+      <div className="table-scroll" tabIndex={0} role="group" aria-label="Envelopes">
+        <table className={styles.table}>
+          <caption className="sr-only">Envelopes</caption>
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Kind</th>
+              <th scope="col" className={styles.numeric}>
+                Balance
+              </th>
+              <th scope="col" className={styles.numeric}>
+                Target
+              </th>
+              <th scope="col" className={styles.numeric}>
+                Spent
+              </th>
+              <th scope="col" className={styles.numeric}>
+                Remaining
+              </th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {active.map((e) => (
+              <tr key={e.id}>
+                <th scope="row">
+                  {/* UX6 — the envelope name is a <Link> to its ledger (UX3 left it a button). */}
+                  <Link to={`/envelopes/${e.id}`}>{e.name}</Link>
+                </th>
+                <td>{e.kind}</td>
+                <td className={styles.numeric}>{formatCents(e.balanceCents)}</td>
+                <EnvelopeBudgetCells row={budgetByEnvelope?.get(e.id) ?? null} />
+                <td>
+                  <div className={styles.actions}>
+                    <button
+                      type="button"
+                      aria-label={`Archive ${e.name}`}
+                      onClick={() => setPendingArchive({ id: e.id, name: e.name })}
+                    >
+                      Archive
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {archived.length > 0 ? (
         <section aria-labelledby="archived-envelopes-heading">
           <h2 id="archived-envelopes-heading">Archived</h2>
-          <ul aria-label="Archived envelopes">
-            {archived.map((e) => (
-              <li key={e.id}>
-                <Link to={`/envelopes/${e.id}`}>{e.name}</Link>{" "}
-                <span>{formatCents(e.balanceCents)}</span>
-                <button
-                  type="button"
-                  aria-label={`Unarchive ${e.name}`}
-                  onClick={() => onUnarchive(e.id)}
-                >
-                  Unarchive
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div
+            className="table-scroll"
+            tabIndex={0}
+            role="group"
+            aria-labelledby="archived-envelopes-heading"
+          >
+            <table className={styles.table}>
+              <caption className="sr-only">Archived envelopes</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col" className={styles.numeric}>
+                    Balance
+                  </th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {archived.map((e) => (
+                  <tr key={e.id}>
+                    <th scope="row">
+                      <Link to={`/envelopes/${e.id}`}>{e.name}</Link>
+                    </th>
+                    <td className={styles.numeric}>{formatCents(e.balanceCents)}</td>
+                    <td>
+                      <div className={styles.actions}>
+                        <button
+                          type="button"
+                          aria-label={`Unarchive ${e.name}`}
+                          onClick={() => onUnarchive(e.id)}
+                        >
+                          Unarchive
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       ) : null}
       <ConfirmDialog

@@ -58,9 +58,9 @@ test("envelope reallocation: move budgeted money between envelopes", async ({ pa
 
   // ENVELOPE_A = $200, ENVELOPE_B = $100 after the reallocation (balances shown on /envelopes).
   await goToEnvelopes(page);
-  const envelopeList = page.getByRole("list", { name: "Envelopes list" });
-  const rowA = envelopeList.getByRole("listitem").filter({ hasText: ENVELOPE_A });
-  const rowB = envelopeList.getByRole("listitem").filter({ hasText: ENVELOPE_B });
+  const envelopeList = page.getByRole("table", { name: "Envelopes", exact: true });
+  const rowA = envelopeList.getByRole("row").filter({ hasText: ENVELOPE_A });
+  const rowB = envelopeList.getByRole("row").filter({ hasText: ENVELOPE_B });
   await expect(rowA).toContainText("$200.00");
   await expect(rowB).toContainText("$100.00");
 });

@@ -9,6 +9,7 @@ import {
 import { formatCents } from "./format";
 import { InlineAllocationEditor } from "./InlineAllocationEditor";
 import { Skeleton } from "./ui";
+import styles from "./Ledgers.module.css";
 
 interface Props {
   api: Api;
@@ -66,27 +67,56 @@ export function NeedsAllocation({ api }: Props) {
       ) : items.length === 0 ? (
         <p>Nothing to allocate — you&rsquo;re all caught up.</p>
       ) : (
-        <ul aria-label="Needs allocation">
-          {items.map((t) => (
-            <li key={t.id}>
-              <span>{t.accountName}</span>{" "}
-              <span>{t.payee ?? (t.kind === "opening" ? "Opening balance" : "—")}</span>{" "}
-              <span>{formatCents(t.amountCents)}</span>{" "}
-              <span>needs {formatCents(Math.abs(t.unallocatedCents))}</span>
-              <InlineAllocationEditor
-                txn={t}
-                envelopes={envelopes}
-                templates={templates}
-                open={openId === t.id}
-                submitting={submittingId === t.id}
-                toggleLabel="Allocate"
-                saveLabel="Save allocation"
-                onToggle={() => setOpenId((cur) => (cur === t.id ? null : t.id))}
-                onSave={(allocs) => void saveAllocations(t, allocs)}
-              />
-            </li>
-          ))}
-        </ul>
+        // UXR3 — the waiting-transactions list as a table (Date · Payee/memo · Account · Amount),
+        // the Allocate editor carried per row in the actions cell. The "needs $X" remainder the list
+        // showed rides under the amount (styles.subNote). Column headers only — a waiting txn has no
+        // single stable row-identifier to promote to a <th scope="row">.
+        <div className="table-scroll" tabIndex={0} role="group" aria-label="Needs allocation">
+          <table className={styles.table}>
+            <caption className="sr-only">Needs allocation</caption>
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Payee/memo</th>
+                <th scope="col">Account</th>
+                <th scope="col" className={styles.numeric}>
+                  Amount
+                </th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((t) => (
+                <tr key={t.id}>
+                  <td>{t.occurredOn}</td>
+                  <td>{t.payee ?? (t.kind === "opening" ? "Opening balance" : "—")}</td>
+                  <td>{t.accountName}</td>
+                  <td className={styles.numeric}>
+                    {formatCents(t.amountCents)}
+                    <span className={styles.subNote}>
+                      needs {formatCents(Math.abs(t.unallocatedCents))}
+                    </span>
+                  </td>
+                  <td>
+                    <div className={styles.actions}>
+                      <InlineAllocationEditor
+                        txn={t}
+                        envelopes={envelopes}
+                        templates={templates}
+                        open={openId === t.id}
+                        submitting={submittingId === t.id}
+                        toggleLabel="Allocate"
+                        saveLabel="Save allocation"
+                        onToggle={() => setOpenId((cur) => (cur === t.id ? null : t.id))}
+                        onSave={(allocs) => void saveAllocations(t, allocs)}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </main>
   );

@@ -19,7 +19,7 @@ test("navigating to an account updates the URL, and a refresh re-renders it (dee
 
   // Opening the account pushes a real URL.
   await page
-    .getByRole("list", { name: "Accounts list" })
+    .getByRole("table", { name: "Accounts", exact: true })
     .getByRole("link", { name: ACCOUNT, exact: true })
     .click();
   await expect(page.getByRole("heading", { name: ACCOUNT, level: 1 })).toBeVisible();
@@ -38,7 +38,7 @@ test("browser back and forward move between the accounts list and a register", a
   await createAccount(page, ACCOUNT); // lands on /accounts (the list)
 
   await page
-    .getByRole("list", { name: "Accounts list" })
+    .getByRole("table", { name: "Accounts", exact: true })
     .getByRole("link", { name: ACCOUNT, exact: true })
     .click();
   await expect(page.getByRole("heading", { name: ACCOUNT, level: 1 })).toBeVisible();

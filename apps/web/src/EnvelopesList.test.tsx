@@ -45,7 +45,7 @@ describe("EnvelopesList (UX6 — /envelopes)", () => {
     await user.type(within(form).getByLabelText(/Name/i), "Groceries");
     await user.click(within(form).getByRole("button", { name: /add envelope/i }));
 
-    const list = await screen.findByRole("list", { name: "Envelopes list" });
+    const list = await screen.findByRole("table", { name: "Envelopes" });
     expect(within(list).getByRole("link", { name: "Groceries" })).toBeTruthy();
     expect(within(list).getByText("$0.00")).toBeTruthy();
   });
@@ -68,24 +68,31 @@ describe("EnvelopesList (UX6 — /envelopes)", () => {
     });
 
     renderEnvelopes(api);
-    // The inline figures come from a separate async fetch — wait for them to land.
-    expect(await screen.findByText(/Target: \$200\.00/)).toBeTruthy();
-    expect(screen.getByText(/Spent: \$40\.00/)).toBeTruthy();
-    expect(screen.getByText(/Remaining: \$160\.00/)).toBeTruthy();
+    // UXR3 — Target/Spent/Remaining are now their own table columns; the figures come from a
+    // separate async fetch, so wait for the Groceries row to carry them.
+    const list = await screen.findByRole("table", { name: "Envelopes" });
+    const row = await within(list).findByRole("row", { name: /Groceries/ });
+    expect(within(row).getByText("$200.00")).toBeTruthy(); // Target
+    expect(within(row).getByText("$40.00")).toBeTruthy(); // Spent
+    expect(within(row).getByText("$160.00")).toBeTruthy(); // Remaining
   });
 
-  test("an envelope with no target shows no inline budget figures (R5)", async () => {
+  test("an envelope with no target shows em-dashes for its budget figures (R5)", async () => {
     const api = makeFakeApi();
     const budgeted = await api.createEnvelope({ name: "Groceries", kind: "standard" });
     await api.setEnvelopeTarget(budgeted.id, "100.00");
     await api.createEnvelope({ name: "Fun", kind: "standard" });
 
     renderEnvelopes(api);
-    const list = await screen.findByRole("list", { name: "Envelopes list" });
+    const list = await screen.findByRole("table", { name: "Envelopes" });
     // Wait until the (independent) budget fetch has populated the budgeted row…
-    await within(list).findByText(/Target: \$100\.00/);
-    // …then exactly one row shows a target — "Fun" gets no faked $0 target.
-    expect(within(list).getAllByText(/Target:/)).toHaveLength(1);
+    const budgetedRow = await within(list).findByRole("row", { name: /Groceries/ });
+    // A targeted row carries its figures (Target $100.00) and no em-dash placeholders.
+    expect(within(budgetedRow).getAllByText("$100.00").length).toBeGreaterThanOrEqual(1);
+    expect(within(budgetedRow).queryByText("—")).toBeNull();
+    // …the untargeted "Fun" row shows "—" in Target/Spent/Remaining (no faked $0).
+    const funRow = within(list).getByRole("row", { name: /Fun/ });
+    expect(within(funRow).getAllByText("—")).toHaveLength(3);
   });
 
   test("archiving an envelope confirms first, then moves it to the Archived section (FEAT-006, UX12)", async () => {

@@ -1,0 +1,54 @@
+/*
+ * UXR3 — the shared table treatment for the three Ledgers-group pages (Accounts · Envelopes ·
+ * Needs allocation). One definition so the three scan-and-act surfaces line their numbers up the
+ * same way (the reference look). This mirrors the Insights sheet's `.table`/`.numeric` — both
+ * derive from the same tokens — but stays a separate scoped module so restyling the ledgers never
+ * reaches into UXR2's `Insights.module.css`. Wrap each `<table>` in the global `.table-scroll`
+ * region (base.css, UX15) so the page never scrolls horizontally at phone width.
+ */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-4) 0;
+  font-size: var(--text-sm);
+}
+.table caption {
+  text-align: left;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+.table thead th {
+  font-weight: 600;
+  border-bottom: 2px solid var(--color-border-strong);
+}
+
+/* Money columns: right-aligned, tabular figures so digits line up column-to-column. */
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Needs-allocation: the carried "needs $X" (unallocated remainder) reads as a muted second line
+ * under the transaction amount, so the Amount cell keeps both figures the list showed. */
+.subNote {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Per-row action cell — the carried inline controls (Rename/Archive/Allocate/…). A wrapping flex
+ * row with a real gap keeps the >= 24px tap targets (WCAG 2.5.8) from crowding when several sit in
+ * one cell, and lets the inline rename input / allocate editor drop below the buttons. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}

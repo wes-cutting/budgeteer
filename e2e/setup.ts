@@ -50,7 +50,9 @@ export async function createAccount(
   await form.getByLabel("Starting balance").fill(balance);
   await form.getByRole("button", { name: "Add account" }).click();
   await expect(
-    page.getByRole("list", { name: "Accounts list" }).getByRole("link", { name, exact: true }),
+    page
+      .getByRole("table", { name: "Accounts", exact: true })
+      .getByRole("link", { name, exact: true }),
   ).toBeVisible();
 }
 
@@ -63,7 +65,9 @@ export async function createEnvelope(page: Page, name: string) {
   await form.getByLabel("Name", { exact: true }).fill(name);
   await form.getByRole("button", { name: "Add envelope" }).click();
   await expect(
-    page.getByRole("list", { name: "Envelopes list" }).getByRole("link", { name, exact: true }),
+    page
+      .getByRole("table", { name: "Envelopes", exact: true })
+      .getByRole("link", { name, exact: true }),
   ).toBeVisible();
 }
 
@@ -99,7 +103,7 @@ export async function createRecurringRule(
 export async function openAccount(page: Page, name: string) {
   await goToAccounts(page);
   await page
-    .getByRole("list", { name: "Accounts list" })
+    .getByRole("table", { name: "Accounts", exact: true })
     .getByRole("link", { name, exact: true })
     .click();
   await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
@@ -109,7 +113,7 @@ export async function openAccount(page: Page, name: string) {
 export async function openEnvelope(page: Page, name: string) {
   await goToEnvelopes(page);
   await page
-    .getByRole("list", { name: "Envelopes list" })
+    .getByRole("table", { name: "Envelopes", exact: true })
     .getByRole("link", { name, exact: true })
     .click();
   await expect(page.getByRole("heading", { name: new RegExp(name), level: 1 })).toBeVisible();

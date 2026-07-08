@@ -40,6 +40,13 @@ describe("AccountsList (UX6 — /accounts)", () => {
     expect(await screen.findByText(/No accounts yet/i)).toBeTruthy();
   });
 
+  test("the page header offers Add transaction → the UX7 quick-add modal route (UXR3/UXR1 §11 Q2)", async () => {
+    renderAccounts();
+    await screen.findByText(/No accounts yet/i);
+    const addTxn = screen.getByRole("link", { name: "Add transaction" });
+    expect(addTxn.getAttribute("href")).toBe("/transactions/new");
+  });
+
   test("shows an accessible skeleton while the list loads (UX12b)", async () => {
     renderAccounts();
     // Before the async list resolves the loading state is the Skeleton primitive — a polite
@@ -67,7 +74,7 @@ describe("AccountsList (UX6 — /accounts)", () => {
     await user.type(balance, "2140.00");
     await user.click(within(form).getByRole("button", { name: /add account/i }));
 
-    const list = await screen.findByRole("list", { name: "Accounts list" });
+    const list = await screen.findByRole("table", { name: "Accounts" });
     expect(within(list).getByRole("link", { name: "Checking" })).toBeTruthy();
     expect(within(list).getByText("$2,140.00")).toBeTruthy();
   });
@@ -114,7 +121,7 @@ describe("AccountsList (UX6 — /accounts)", () => {
     await user.type(balance, "2140.00");
     expect(within(form).queryByText("Enter an amount like 12.34.")).toBeNull();
     await user.click(within(form).getByRole("button", { name: /add account/i }));
-    const list = await screen.findByRole("list", { name: "Accounts list" });
+    const list = await screen.findByRole("table", { name: "Accounts" });
     expect(within(list).getByRole("link", { name: "Checking" })).toBeTruthy();
   });
 

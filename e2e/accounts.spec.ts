@@ -20,7 +20,7 @@ test("create a checking account and open its register", async ({ page }) => {
   await createAccount(page, ACCOUNT);
   // The account name is now a <Link> on the /accounts list (UX6 — was a button).
   await page
-    .getByRole("list", { name: "Accounts list" })
+    .getByRole("table", { name: "Accounts", exact: true })
     .getByRole("link", { name: ACCOUNT, exact: true })
     .click();
   await expect(page.getByRole("heading", { name: ACCOUNT, level: 1 })).toBeVisible();
@@ -45,7 +45,7 @@ test("inline validation (UX12d): an un-parseable starting balance blocks the cre
   await expect(balance).toHaveAttribute("aria-invalid", "true");
   await form.getByRole("button", { name: "Add account" }).click();
   await expect(
-    page.getByRole("list", { name: "Accounts list" }).getByRole("link", { name: ACCOUNT }),
+    page.getByRole("table", { name: "Accounts", exact: true }).getByRole("link", { name: ACCOUNT }),
   ).toHaveCount(0);
 
   // Correcting it clears the error live and the account is created.
@@ -53,7 +53,7 @@ test("inline validation (UX12d): an un-parseable starting balance blocks the cre
   await expect(form.getByText("Enter an amount like 12.34.")).toHaveCount(0);
   await form.getByRole("button", { name: "Add account" }).click();
   await expect(
-    page.getByRole("list", { name: "Accounts list" }).getByRole("link", { name: ACCOUNT }),
+    page.getByRole("table", { name: "Accounts", exact: true }).getByRole("link", { name: ACCOUNT }),
   ).toBeVisible();
 });
 
@@ -62,7 +62,7 @@ test("archive and unarchive an account (R7)", async ({ page }) => {
   const ACCOUNT = `E2E Archive ${stamp}`;
   await page.goto("/");
   await createAccount(page, ACCOUNT);
-  const list = page.getByRole("list", { name: "Accounts list" });
+  const list = page.getByRole("table", { name: "Accounts", exact: true });
 
   // UX12 — archiving confirms first in a dialog.
   await page.getByRole("button", { name: `Archive ${ACCOUNT}` }).click();
@@ -114,7 +114,7 @@ test("rename an account inline (R1)", async ({ page }) => {
   const RENAMED = `E2E Renamed ${stamp}`;
   await page.goto("/");
   await createAccount(page, ORIGINAL);
-  const list = page.getByRole("list", { name: "Accounts list" });
+  const list = page.getByRole("table", { name: "Accounts", exact: true });
   await page.getByRole("button", { name: `Rename ${ORIGINAL}` }).click();
   await page.getByRole("textbox", { name: `Rename ${ORIGINAL}` }).fill(RENAMED);
   await page.getByRole("button", { name: "Save" }).click();

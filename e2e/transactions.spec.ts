@@ -40,8 +40,8 @@ test("single allocation: deposit fully allocated — balance derived end to end"
   // Back on the dashboard: the envelope balance is derived from that allocation.
   await goToEnvelopes(page);
   const envelopeRow = page
-    .getByRole("list", { name: "Envelopes list" })
-    .getByRole("listitem")
+    .getByRole("table", { name: "Envelopes", exact: true })
+    .getByRole("row")
     .filter({ hasText: ENVELOPE });
   await expect(envelopeRow).toContainText("$500.00");
 });
@@ -147,7 +147,9 @@ test("needs-allocation badge: Dashboard count equals the Needs allocation list (
   expect(badgeCount).toBeGreaterThanOrEqual(1);
 
   await needsLink.click();
-  await expect(page.getByRole("list", { name: "Needs allocation" }).getByText(PAYEE)).toBeVisible();
+  await expect(
+    page.getByRole("table", { name: "Needs allocation", exact: true }).getByText(PAYEE),
+  ).toBeVisible();
 });
 
 test("edit a past split: change the envelope allocation via the inline editor", async ({
@@ -282,8 +284,8 @@ test("delete transaction: row disappears and balance reverts", async ({ page }) 
   // Envelope balance also reverts: verify on dashboard.
   await goToEnvelopes(page);
   const envelopeRow = page
-    .getByRole("list", { name: "Envelopes list" })
-    .getByRole("listitem")
+    .getByRole("table", { name: "Envelopes", exact: true })
+    .getByRole("row")
     .filter({ hasText: ENVELOPE });
   await expect(envelopeRow).toContainText("$0.00");
 });

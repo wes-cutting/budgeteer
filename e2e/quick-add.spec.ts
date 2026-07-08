@@ -76,7 +76,9 @@ test("a partial allocation entered globally surfaces in needs-allocation", async
 
   // The unallocated remainder shows up in the Needs-allocation surface.
   await openNeeds(page);
-  await expect(page.getByRole("list", { name: "Needs allocation" }).getByText(PAYEE)).toBeVisible();
+  await expect(
+    page.getByRole("table", { name: "Needs allocation", exact: true }).getByText(PAYEE),
+  ).toBeVisible();
 });
 
 test("Escape closes the modal without recording anything", async ({ page }) => {

@@ -31,7 +31,7 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 | `GET /analysis/envelope-spend` (monthly grid) | < 200 ms p95 | 10 envelopes × 120 txns¹ | **3.4 ms** | `apps/api/test/perf.test.ts` · same |
 | `GET /export` (backup snapshot) | < 500 ms p95 | 5 accounts + 5 envelopes + 200 txns | **11.5 ms** | `apps/api/test/perf.test.ts` · same |
 | Web initial load (LCP) | < 2.5 s | Cold load, production build | < 1 s² | Manual Lighthouse on `vite build` output |
-| Web initial JS bundle (gz) | < 140 KB gz (re-baselined 2026-07-06; was 120)³ | Production `vite build`, single chunk | **123.80 KB gz** (+ 4.85 KB gz CSS, re-measured 2026-07-07 · UXR2)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
+| Web initial JS bundle (gz) | < 140 KB gz (re-baselined 2026-07-06; was 120)³ | Production `vite build`, single chunk | **124.09 KB gz** (+ 4.93 KB gz CSS, re-measured 2026-07-07 · UXR3)³ | `npm run build --workspace @budgeteer/web` (Vite prints gzip sizes) |
 
 > ¹ Half-scale of the original budget (2 yrs × 20 env × 100/mo = 48 000 txns); PGlite performance
 >   at full scale is expected to remain well under budget given the measured p95 at half-scale.
@@ -93,6 +93,13 @@ via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, loc
 >   `/pay-periods` route + redirect, and the cockpit's Next-paycheck line — added **+1.29 KB gz →
 >   123.80 KB gz** (CSS +0.30 → 4.85 KB gz). No new dependency; no new shape (the two additive API
 >   fields are pure-domain). ~16 KB of headroom remains under the 140 KB budget.
+>
+>   **`UXR3`'s Ledgers tables (2026-07-07)** — the three Ledgers-group lists (Accounts · Envelopes ·
+>   Needs allocation) re-laid as real design-system tables over one shared `Ledgers.module.css`
+>   treatment, plus the Accounts page-local Add-transaction link (a `<Link>` to the existing UX7
+>   route) — added **+0.29 KB gz → 124.09 KB gz** (CSS +0.08 → 4.93 KB gz). Presentation-only: **no
+>   new dependency, no data/API/domain change** (the new CSS module + table JSX are the only weight).
+>   ~15.9 KB of headroom remains under the 140 KB budget.
 
 ---
 

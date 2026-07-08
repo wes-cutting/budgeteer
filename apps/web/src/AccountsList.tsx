@@ -2,8 +2,10 @@ import { type FormEvent, useEffect, useId, useState } from "react";
 import { Link } from "react-router";
 import { type AccountKind, type AccountView, type Api, ApiError } from "./api";
 import { formatCents } from "./format";
+import btn from "./ui/Button.module.css";
 import { Button, ConfirmDialog, FieldError, Skeleton, useToast } from "./ui";
 import { amountFieldError } from "./validation";
+import styles from "./Ledgers.module.css";
 
 const ACCOUNT_KINDS: AccountKind[] = ["checking", "savings", "credit", "loan", "cash", "other"];
 
@@ -73,6 +75,14 @@ export function AccountsList({ api }: { api: Api }) {
     <main>
       {/* FEAT-UXR1 — the page title is the shell's single <h1> (top bar); this view drops its own. */}
       {loadError ? <p role="alert">{loadError}</p> : null}
+      {/* UXR3 (UXR1 §11 Q2, additive half) — the page-local "Add transaction" affordance opens the
+          UX7 quick-add MODAL route over this page and returns you here. A <Link>, matching how the
+          rest of the app enters `/transactions/new`. */}
+      <div className={styles.actions}>
+        <Link to="/transactions/new" className={btn.btn}>
+          Add transaction
+        </Link>
+      </div>
       <AddAccountSection
         api={api}
         onCreated={(a) => {
@@ -146,11 +156,14 @@ function AccountList({
     return <p>No accounts yet — add the bank, card, or cash accounts you use.</p>;
   }
 
+  // UXR3 — one row of the accounts table. Presentation-only over the UX6 reads: the name cell is
+  // the row header + its <Link> to the register; inline rename swaps that cell for the input+Save
+  // (kind/balance stay put); archive/unarchive carry their per-row accessible names.
   function renderRow(a: AccountView, isArchived: boolean) {
     return (
-      <li key={a.id}>
+      <tr key={a.id}>
         {renamingId === a.id ? (
-          <span>
+          <th scope="row" className={styles.actions}>
             <input
               aria-label={`Rename ${a.name}`}
               value={renameValue}
@@ -165,32 +178,37 @@ function AccountList({
             >
               Save
             </button>
-          </span>
+          </th>
         ) : (
-          <>
-            {/* UX6 — the account name is now a <Link> to its register (UX3 left it a button). */}
-            <Link to={`/accounts/${a.id}`}>{a.name}</Link> <span>{a.kind}</span>{" "}
-            <span>{formatCents(a.balanceCents)}</span>
+          <th scope="row">
+            {/* UX6 — the account name is a <Link> to its register (UX3 left it a button). */}
+            <Link to={`/accounts/${a.id}`}>{a.name}</Link>
+          </th>
+        )}
+        <td>{a.kind}</td>
+        <td className={styles.numeric}>{formatCents(a.balanceCents)}</td>
+        <td>
+          <div className={styles.actions}>
             {!isArchived ? (
-              <button
-                type="button"
-                aria-label={`Rename ${a.name}`}
-                onClick={() => {
-                  setRenamingId(a.id);
-                  setRenameValue(a.name);
-                }}
-              >
-                Rename
-              </button>
-            ) : null}
-            {!isArchived ? (
-              <button
-                type="button"
-                aria-label={`Archive ${a.name}`}
-                onClick={() => setPendingArchive({ id: a.id, name: a.name })}
-              >
-                Archive
-              </button>
+              <>
+                <button
+                  type="button"
+                  aria-label={`Rename ${a.name}`}
+                  onClick={() => {
+                    setRenamingId(a.id);
+                    setRenameValue(a.name);
+                  }}
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Archive ${a.name}`}
+                  onClick={() => setPendingArchive({ id: a.id, name: a.name })}
+                >
+                  Archive
+                </button>
+              </>
             ) : (
               <button
                 type="button"
@@ -200,15 +218,30 @@ function AccountList({
                 Unarchive
               </button>
             )}
-          </>
-        )}
-      </li>
+          </div>
+        </td>
+      </tr>
     );
   }
 
   return (
     <>
-      <ul aria-label="Accounts list">{active.map((a) => renderRow(a, false))}</ul>
+      <div className="table-scroll" tabIndex={0} role="group" aria-label="Accounts">
+        <table className={styles.table}>
+          <caption className="sr-only">Accounts</caption>
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Kind</th>
+              <th scope="col" className={styles.numeric}>
+                Balance
+              </th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>{active.map((a) => renderRow(a, false))}</tbody>
+        </table>
+      </div>
       {archived.length > 0 ? (
         <>
           <button type="button" onClick={() => setShowArchived((v) => !v)}>
@@ -217,7 +250,27 @@ function AccountList({
           {showArchived ? (
             <section aria-labelledby="archived-accounts-heading">
               <h2 id="archived-accounts-heading">Archived accounts</h2>
-              <ul aria-label="Archived accounts">{archived.map((a) => renderRow(a, true))}</ul>
+              <div
+                className="table-scroll"
+                tabIndex={0}
+                role="group"
+                aria-labelledby="archived-accounts-heading"
+              >
+                <table className={styles.table}>
+                  <caption className="sr-only">Archived accounts</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Name</th>
+                      <th scope="col">Kind</th>
+                      <th scope="col" className={styles.numeric}>
+                        Balance
+                      </th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>{archived.map((a) => renderRow(a, true))}</tbody>
+                </table>
+              </div>
             </section>
           ) : null}
         </>
