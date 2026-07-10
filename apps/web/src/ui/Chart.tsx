@@ -122,10 +122,14 @@ function Marker({
   }
 }
 
-/** Evenly spaced "nice-ish" tick values spanning [min, max] (always includes the ends). */
+/**
+ * Evenly spaced "nice-ish" tick values spanning [min, max] (always includes the ends).
+ * Rounded to integers: values are cents, and formatY (formatCents) assumes integer cents —
+ * a fractional tick like -89584.75 would render as "-$895.84.75".
+ */
 function ticksOf(min: number, max: number, count = 4): number[] {
   if (min === max) return [min];
-  return Array.from({ length: count + 1 }, (_, k) => min + ((max - min) * k) / count);
+  return Array.from({ length: count + 1 }, (_, k) => Math.round(min + ((max - min) * k) / count));
 }
 
 export interface LineSeries {

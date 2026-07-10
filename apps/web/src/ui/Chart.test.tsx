@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BarChart, BreakdownBars, Gauge, LineChart } from "./index";
+import { formatCents } from "../format";
 
 const dollars = (n: number) => `$${(n / 100).toFixed(0)}`;
 
@@ -170,6 +171,37 @@ describe("Chart primitives (FEAT-UX8 · ADR-0007)", () => {
     );
     expect(slanted).toHaveLength(categories.length);
     expect(slanted[0]?.getAttribute("text-anchor")).toBe("end");
+  });
+
+  test("y-axis ticks are rounded to integer cents before formatting (no '-$895.84.75')", () => {
+    // Range 618529 isn't divisible by the 4 tick intervals, so raw interpolation lands between
+    // cents (-89584.75, 65047.5, 219679.75) and formatCents would render "-$895.84.75".
+    const { container } = render(
+      <LineChart
+        caption="Spend trend"
+        summary="Spend trend across 2 months."
+        axis={["Jan", "Feb"]}
+        series={[
+          {
+            label: "Net",
+            token: "var(--chart-3)",
+            dash: "0",
+            marker: "circle",
+            values: [-244217, 374312],
+          },
+        ]}
+        formatY={formatCents}
+        table={fallback}
+      />,
+    );
+    const labels = Array.from(container.querySelectorAll("text"), (t) => t.textContent);
+    expect(labels).toEqual(
+      expect.arrayContaining(["-$2,442.17", "-$895.85", "$650.48", "$2,196.80", "$3,743.12"]),
+    );
+    // No label carries a second decimal point (the malformed fractional-cent form).
+    for (const label of labels) {
+      expect(label).not.toMatch(/\$[\d,]+\.\d+\.\d/);
+    }
   });
 
   test("Gauge: role=img with the truthful value label carried as text", () => {
