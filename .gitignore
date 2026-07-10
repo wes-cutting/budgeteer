@@ -25,6 +25,8 @@ budget-extraction/bank-statements
 budget-extraction/budgeteer_import.json
 budget-extraction/EXTRACTION_REPORT.md
 budget-extraction/EXTRACTION_ROADMAP.md
+# SPIKE-11 statement-profiling artifacts (parsed real rows/balances) — local audit trail
+budget-extraction/statement-spike/
 
 
 # ============================================================================
