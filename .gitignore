@@ -27,6 +27,10 @@ budget-extraction/EXTRACTION_REPORT.md
 budget-extraction/EXTRACTION_ROADMAP.md
 # SPIKE-11 statement-profiling artifacts (parsed real rows/balances) — local audit trail
 budget-extraction/statement-spike/
+# #20 statement-import outputs (real amounts/merchants) — committed tooling emits these locally
+budget-extraction/statement_import.json
+budget-extraction/STATEMENT_EXTRACTION_REPORT.md
+budget-extraction/merchant_rules.json
 
 
 # ============================================================================
