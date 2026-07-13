@@ -1,3 +1,9 @@
+---
+type: spike
+id: SPIKE-10
+roadmap-item: BUD-S61
+status: Done
+---
 <!--
 SPIKE REPORT — the deliverable; the code was disposable (two Python scripts in the session
 scratchpad: a read-only openpyxl extraction of BudgetHome.xlsx and an assignment-policy

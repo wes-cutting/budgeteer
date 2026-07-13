@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S52
+status: Implemented
+---
 <!--
 FEATURE SPEC — scopes roadmap item UX7 (2026-06-25 UX Uplift). Build as a vertical slice: an
 always-available global "add a transaction" entry, mounted as an accessible modal route that

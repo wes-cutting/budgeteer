@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S10
+status: Accepted
+---
 <!--
 UX SPEC — #10: reconcile to bank. A Reconcile panel on the account register (derived vs.
 entered balance, live difference, record, last-reconciled). Pairs with FEAT-010.

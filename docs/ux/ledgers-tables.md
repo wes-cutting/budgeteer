@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S65
+status: Implemented
+---
 <!--
 UX SPEC — UXR3 (2026-07-06 UX Redesign): the three Ledgers-group pages trade list markup for
 real tables. Presentation only — behaviors carry. §11 call: build detail lives here; no

@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S18
+status: Implemented
+---
 <!--
 FEATURE SPEC — #14a: analysis, credit utilization (owed vs. credit limit · per-account + roll-up).
 The FIRST half of the roadmap's "debt & credit trends" (#14), split per the owner: utilization now,

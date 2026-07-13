@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S10
+status: Implemented
+---
 <!--
 FEATURE SPEC — #10: reconcile to bank (manual balance compare + recorded history). Plain
 compare (no per-transaction cleared concept). Pairs with docs/ux/reconcile.md.

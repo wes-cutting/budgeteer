@@ -1,3 +1,7 @@
+---
+type: feature-spec
+roadmap-item: BUD-S57
+---
 <!--
 FEATURE SPEC — scopes the FOURTH (final) slice of roadmap item UX12 (2026-06-25 UX Uplift, Phase 4
 "Polish"). UX12 bundles four independent threads (skeletons · toasts · destructive-action confirms ·

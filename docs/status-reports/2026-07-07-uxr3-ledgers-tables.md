@@ -1,3 +1,8 @@
+---
+type: status-report
+roadmap-item: BUD-S65
+status: Snapshot
+---
 <!--
 STATUS REPORT — UXR3 (Ledgers tables). Presentation-only: the three Ledgers-group lists (Accounts ·
 Envelopes · Needs allocation) become real design-system tables over one shared treatment, plus the

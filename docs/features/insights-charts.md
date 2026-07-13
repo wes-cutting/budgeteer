@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S53
+status: Implemented
+---
 <!--
 FEATURE SPEC — scopes roadmap item UX8 (2026-06-25 UX Uplift, Phase 3 "Insights"). Build as a
 vertical, PRESENTATION-ONLY slice: rename + restyle the six analysis views onto the UX4 design

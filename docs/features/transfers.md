@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: [BUD-S6, BUD-S7]
+status: Implemented
+---
 <!--
 FEATURE SPEC — #7a: account↔account transfer (double-entry). Pairs with docs/ux/transfers.md.
 Models per ADR-0004 (validated by SPIKE-04). Envelope↔envelope reallocation = #7b (§12).

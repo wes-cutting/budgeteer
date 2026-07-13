@@ -1,3 +1,7 @@
+---
+type: ux-spec
+roadmap-item: [BUD-S61, BUD-S62]
+---
 <!--
 UX SPEC — S7 pay-period planning. Pairs with FEAT-S7 (docs/features/pay-periods.md). The sheet's
 colour-only blue/red bucket join (SPIKE-08 §5) is deliberately NOT replicated — the join is carried

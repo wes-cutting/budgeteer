@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S17
+status: Accepted
+---
 <!--
 UX SPEC — #13: analysis, cash-flow forecast. A new Forecast view: pick an account, set a horizon,
 toggle expected spend; read the summary (ending / min / first-negative) + a running-balance table.

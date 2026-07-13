@@ -1,3 +1,7 @@
+---
+type: status-report
+roadmap-item: [BUD-S79, SPIKE-03]
+---
 <!--
 STATUS REPORT — #17 (SPIKE-03) + #18 (historical import). The last V1-era track closes: the owner's
 out-of-repo Budget.xlsx ETL was reviewed, independently re-verified, wrapped, and restored via the EH10

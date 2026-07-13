@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: [BUD-S65, BUD-S70]
+status: Implemented
+---
 <!--
 FEAT NOTE — UXR8 (2026-07-06 UX Redesign): demo-grade synthetic seed. Tooling, not a page
 slice — the owner's "insights are masked behind limited data" callout. Strictly synthetic

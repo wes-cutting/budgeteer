@@ -1,3 +1,9 @@
+---
+type: spike
+id: SPIKE-04
+roadmap-item: [BUD-S27, SPIKE-04]
+status: Done
+---
 <!--
 SPIKE REPORT — the deliverable; the code is disposable (lives at
 spikes/04-transfer-modeling/, gitignored deps). See docs/00_WAYS_OF_WORKING.md §6.

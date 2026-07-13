@@ -1,3 +1,9 @@
+---
+type: spike
+id: SPIKE-07
+roadmap-item: SPIKE-07
+status: Done
+---
 <!--
 SPIKE REPORT — the deliverable; the code is disposable (lives at spikes/07-accessible-charting/,
 gitignored deps). See docs/00_WAYS_OF_WORKING.md §6. Scopes roadmap item UX2 of the 2026-06-25

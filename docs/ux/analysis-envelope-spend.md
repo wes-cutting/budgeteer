@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S15
+status: Accepted
+---
 <!--
 UX SPEC — #11: analysis, spend by envelope over time. A new Analysis view with a grain toggle
 (Monthly / Annual) and an envelope × period grid of net flow. Pairs with FEAT-011.

@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S3
+status: Implemented
+---
 <!--
 FEATURE SPEC — Slice 2 accelerators. Pairs with docs/ux/templates.md. Build as a vertical
 slice (data → API → UI). Reuses the AllocationEditor from Slice 1.

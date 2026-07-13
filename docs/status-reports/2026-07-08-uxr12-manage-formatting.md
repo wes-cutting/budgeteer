@@ -1,3 +1,7 @@
+---
+type: status-report
+roadmap-item: BUD-S74
+---
 <!--
 STATUS REPORT — UXR12 (Manage page formatting). The FIFTH and FINAL slice of the post-track polish batch
 (UXR9–UXR13), an owner-directed batch opened after the UXR1–UXR8 UX Redesign track closed. Presentation-only:

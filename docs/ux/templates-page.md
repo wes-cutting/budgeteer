@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: [BUD-S65, BUD-S66]
+status: Implemented
+---
 <!--
 UX SPEC — UXR4 (2026-07-06 UX Redesign): the Templates page — saved-templates table + the
 template editor re-organized. THIS SPEC ALSO DEFINES THE FORM-LAYOUT PATTERN (§3) that UXR5

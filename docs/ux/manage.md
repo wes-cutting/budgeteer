@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S51
+status: Accepted
+---
 <!--
 UX SPEC — UX6: demote management off the home. /accounts·/envelopes LIST routes own per-entity CRUD
 (progressive Add, name-as-Link), /manage is the cross-cutting hub (net worth + Move-money). Home is

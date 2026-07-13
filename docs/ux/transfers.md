@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: [BUD-S6, BUD-S7]
+status: Accepted
+---
 <!--
 UX SPEC — #7a: account↔account transfer. A "Transfer money" form on the account register +
 labeled transfer legs. Pairs with FEAT-007. #7b (envelope reallocation) gets its own UX.

@@ -1,3 +1,7 @@
+---
+type: feature-spec
+roadmap-item: BUD-S17
+---
 <!--
 FEATURE SPEC — #13: analysis, cash-flow forecast (per-account, event-stepped). The analysis area's
 one PROJECTING slice (vs. #11/#12 which only aggregate). De-risked by SPIKE-05. Pairs with

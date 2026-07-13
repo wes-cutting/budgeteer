@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S14
+status: Implemented
+---
 <!--
 UX SPEC — R15: envelope ledger. Built alongside the feature spec (Definition of Ready).
 Pairs with features/envelope-ledger.md (FEAT-015).

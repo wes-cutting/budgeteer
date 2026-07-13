@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S56
+status: Implemented
+---
 <!--
 FEATURE SPEC — scopes roadmap item UX11 (2026-06-25 UX Uplift, Phase 3 "Insights"). Build as a
 vertical slice that adds a NEW visualisation (not a migration): WITHIN-MONTH pace vs. target, on the

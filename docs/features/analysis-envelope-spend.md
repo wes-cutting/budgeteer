@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S15
+status: Implemented
+---
 <!--
 FEATURE SPEC — #11: analysis, spend by envelope over time (monthly grid + annual rollup).
 The first analysis slice; replaces the legacy hand-keyed "18 Monthly" tab with a GENERATED

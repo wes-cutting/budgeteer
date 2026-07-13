@@ -1,3 +1,9 @@
+---
+type: spike
+id: SPIKE-09
+roadmap-item: BUD-S31
+status: Done
+---
 <!--
 SPIKE REPORT — the deliverable; the code was disposable (a single tsx script run against
 in-memory PGlite, deleted after this report). See docs/00_WAYS_OF_WORKING.md §6.

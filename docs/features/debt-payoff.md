@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S19
+status: Implemented
+---
 <!--
 FEATURE SPEC — #14b: analysis, debt payoff (paid-down vs. original principal · per-account + roll-up).
 The SECOND half of the roadmap's "debt & credit trends" (#14); the installment-debt sibling of #14a

@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S4
+status: Implemented
+---
 <!--
 FEATURE SPEC — Slice #5: edit a past split. Thin UI slice reusing the AllocationEditor and
 the existing PUT /transactions/:id/allocations endpoint. Pairs with docs/ux/edit-split.md.

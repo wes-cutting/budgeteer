@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S8
+status: Accepted
+---
 <!--
 UX SPEC — #8: refund rows within a split. Extends the FEAT-003 allocation editor with a per-row
 Refund toggle. Pairs with FEAT-008.

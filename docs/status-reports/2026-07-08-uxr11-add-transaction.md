@@ -1,3 +1,7 @@
+---
+type: status-report
+roadmap-item: BUD-S73
+---
 <!--
 STATUS REPORT — UXR11 (Add-transaction cleanup). The THIRD slice of the post-track polish batch
 (UXR9–UXR13), an owner-directed batch opened after the UXR1–UXR8 UX Redesign track closed. Presentation-only:

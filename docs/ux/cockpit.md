@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S50
+status: Accepted
+---
 <!--
 UX SPEC — UX5: the home budget + future-planning cockpit. Five composed-read panels at `/`, each
 deep-linking to its detail route; management stays below (demoted in UX6). Pairs with FEAT-UX5.

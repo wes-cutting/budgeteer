@@ -1,3 +1,8 @@
+---
+type: status-report
+roadmap-item: BUD-E10
+status: Snapshot
+---
 <!--
 STATUS REPORT — the 2026-07-06/07 UX-Redesign scoping session (docs-only; no code executed).
 Right-sized per 00 §9/§11: a scoping block, not a build slice — the DoD table reflects that

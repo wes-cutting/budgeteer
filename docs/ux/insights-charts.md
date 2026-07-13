@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S53
+status: Accepted
+---
 <!--
 UX SPEC — UX8: accessible charts on the six Insights views. Add a hand-rolled SVG chart above each
 view's existing table (the table is the chart's accessible fallback), restyle onto the UX4 design

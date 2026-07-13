@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S48
+status: Implemented
+---
 <!--
 FEATURE SPEC — scopes roadmap item UX4 (2026-06-25 UX Uplift). Build as a vertical slice:
 tokens + a starter primitive set, PROVEN by restyling one real screen (the Account Register)

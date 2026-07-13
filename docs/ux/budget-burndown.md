@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S56
+status: Accepted
+---
 <!--
 UX SPEC — UX11: budget burn-down. A NEW Insights view: WITHIN-MONTH pace (spent ÷ target) vs. the
 elapsed-time pace, as a Gauge (chart + data-table fallback), on the UX4 design system. Pairs with

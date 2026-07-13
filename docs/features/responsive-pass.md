@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S60
+status: Implemented
+---
 <!--
 FEATURE SPEC — scopes roadmap item UX15 (2026-06-25 UX Uplift, Phase 4 "Polish"): the responsive
 pass. Fast-path ceremony (docs/00_WAYS_OF_WORKING.md §11): this note IS the spec — a small,

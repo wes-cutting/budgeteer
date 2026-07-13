@@ -1,3 +1,8 @@
+---
+type: status-report
+roadmap-item: BUD-S68
+status: Snapshot
+---
 <!--
 STATUS REPORT — UXR6 (Insights IA). A higher-risk slice than UXR3–UXR5: an IA RESTRUCTURE of the
 Insights chrome, not a form/table restyle. The flat nine-link sub-nav becomes a two-row category IA

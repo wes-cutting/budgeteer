@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S63
+status: Proposed
+---
 <!--
 UX SPEC — UXR1: the sidebar app shell (the 2026-07-06 UX-redesign layout shift). Replaces the
 top-banner chrome from UX3 with the reference layout: grouped left sidebar + top bar + content

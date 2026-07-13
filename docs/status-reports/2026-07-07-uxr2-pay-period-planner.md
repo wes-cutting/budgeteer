@@ -1,3 +1,8 @@
+---
+type: status-report
+roadmap-item: BUD-S64
+status: Snapshot
+---
 <!--
 STATUS REPORT — UXR2 (pay-period planner), the first UX-Redesign slice to touch data/API. Promotes
 the S7 Insights tab to a first-class /pay-periods planner (two side-by-side ledgers) and adds two

@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S4
+status: Accepted
+---
 <!--
 UX SPEC — Slice #5: edit a past split. Reuses the Slice 1 AllocationEditor, opened inline from
 the account register. Pairs with FEAT-005.

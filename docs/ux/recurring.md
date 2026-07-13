@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S9
+status: Accepted
+---
 <!--
 UX SPEC — #9: recurring transactions. A Recurring page (create form reusing the split editor,
 rule list, Post due). Pairs with FEAT-009.

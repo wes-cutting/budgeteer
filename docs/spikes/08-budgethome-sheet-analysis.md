@@ -1,3 +1,9 @@
+---
+type: spike
+id: SPIKE-08
+roadmap-item: SPIKE-08
+status: Done
+---
 <!--
 SPIKE REPORT
 A spike is a time-boxed, throwaway investigation that answers ONE question against

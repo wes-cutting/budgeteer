@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: [BUD-S65, BUD-S68]
+status: Implemented
+---
 <!--
 UX SPEC — UXR6 (2026-07-06 UX Redesign): the Insights information architecture — the wrapping
 ten-link sub-nav becomes a five-category top tab bar with segmented sub-views. Direction

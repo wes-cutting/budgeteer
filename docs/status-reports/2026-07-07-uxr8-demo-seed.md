@@ -1,3 +1,8 @@
+---
+type: status-report
+roadmap-item: BUD-S70
+status: Snapshot
+---
 <!--
 STATUS REPORT — UXR8 (demo-grade synthetic seed), the first code of the UX-Redesign track.
 Right-sized per 00 §9/§11: a small tooling slice (no user-facing surface, no new gate tests),

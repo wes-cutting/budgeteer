@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S16
+status: Accepted
+---
 <!--
 UX SPEC — #12: analysis, budget vs. actual. A new Budget view with a month picker and a table
 (envelope · monthly target · spent · remaining) where the target is set/cleared INLINE. Pairs with

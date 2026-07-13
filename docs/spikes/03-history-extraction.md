@@ -1,3 +1,9 @@
+---
+type: spike
+id: SPIKE-03
+roadmap-item: SPIKE-03
+status: Done
+---
 <!--
 SPIKE REPORT — findings only, REDACTED per SECURITY.md / SPIKE-08 stance: counts and
 structure are recorded; real amounts, merchants, funding sources, and balances are not.

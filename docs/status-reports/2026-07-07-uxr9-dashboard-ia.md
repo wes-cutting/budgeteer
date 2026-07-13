@@ -1,3 +1,7 @@
+---
+type: status-report
+roadmap-item: BUD-S71
+---
 <!--
 STATUS REPORT — UXR9 (Dashboard IA). The FIRST slice of the post-track polish batch (UXR9–UXR12), an
 owner-directed batch opened after the UXR1–UXR8 UX Redesign track closed. An IA restructure: the home

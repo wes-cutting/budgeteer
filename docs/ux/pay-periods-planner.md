@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S64
+status: Implemented
+---
 <!--
 UX SPEC — UXR2: the pay-period planner (the 2026-07-06 UX-redesign rework of the S7 surface).
 Supersedes the PRESENTATION of ux/pay-periods.md §3 (the stacked bucket sections) — the S7

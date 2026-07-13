@@ -1,3 +1,7 @@
+---
+type: status-report
+roadmap-item: SPIKE-11
+---
 <!--
 STATUS REPORT — #21 (SPIKE-11, statement profiling). The integration spike roadmap #20 required:
 all 20 bank-statement PDFs profiled with a throwaway parser; 30/30 account-statements reconcile to

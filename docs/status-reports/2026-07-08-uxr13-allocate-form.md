@@ -1,3 +1,7 @@
+---
+type: status-report
+roadmap-item: BUD-S75
+---
 <!--
 STATUS REPORT — UXR13 (Allocate form on the pattern). The FOURTH slice of the post-track polish batch
 (UXR9–UXR13), an owner-directed batch opened after the UXR1–UXR8 UX Redesign track closed. Presentation-only:

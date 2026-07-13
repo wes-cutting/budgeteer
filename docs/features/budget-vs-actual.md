@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S16
+status: Implemented
+---
 <!--
 FEATURE SPEC — #12: analysis, budget vs. actual (per-envelope monthly target vs. actual spend).
 The second analysis slice. ADDS the "budget" half Budgeteer lacked — per-envelope MONTHLY TARGETS

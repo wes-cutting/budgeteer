@@ -1,3 +1,9 @@
+---
+type: spike
+id: SPIKE-05
+roadmap-item: [BUD-S17, SPIKE-05]
+status: Done
+---
 <!--
 SPIKE REPORT — the deliverable; the code is disposable (lives at
 spikes/05-cashflow-forecast/, gitignored deps). See docs/00_WAYS_OF_WORKING.md §6.

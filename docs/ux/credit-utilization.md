@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S18
+status: Accepted
+---
 <!--
 UX SPEC — #14a: analysis, credit utilization. A new Credit view with a portfolio roll-up, a
 per-credit-account table (limit set/cleared INLINE · owed · available · utilization), and per-account

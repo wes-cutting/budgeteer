@@ -1,3 +1,7 @@
+---
+type: status-report
+roadmap-item: BUD-S72
+---
 <!--
 STATUS REPORT — UXR10 (Insights chart X-axis readability). The SECOND slice of the post-track polish batch
 (UXR9–UXR13), an owner-directed batch opened after the UXR1–UXR8 UX Redesign track closed. Presentation-only:

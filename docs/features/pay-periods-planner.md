@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: [BUD-S64, BUD-S65]
+status: Implemented
+---
 <!--
 FEATURE SPEC — scopes roadmap item UXR2 (2026-07-06 UX Redesign). The build/data/test side of
 the pay-period planner; look/behavior in the paired UX spec (docs/ux/pay-periods-planner.md,

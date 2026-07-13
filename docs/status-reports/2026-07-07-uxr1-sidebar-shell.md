@@ -1,3 +1,8 @@
+---
+type: status-report
+roadmap-item: BUD-S63
+status: Snapshot
+---
 <!--
 STATUS REPORT — UXR1 (sidebar app shell), the first user-facing UX-Redesign slice. A large,
 whole-app chrome rewrite (00 §11 "as written" ceremony): the shell now owns the single <h1>, so

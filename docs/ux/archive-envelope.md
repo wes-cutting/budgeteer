@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S5
+status: Accepted
+---
 <!--
 UX SPEC — #6: archive an envelope. Dashboard active/archived split + picker filtering.
 Pairs with FEAT-006.

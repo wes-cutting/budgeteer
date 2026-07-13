@@ -1,3 +1,9 @@
+---
+type: spike
+id: SPIKE-11
+roadmap-item: [BUD-S80, SPIKE-11]
+status: Done
+---
 <!--
 SPIKE REPORT — findings only, REDACTED per SECURITY.md / the SPIKE-03/SPIKE-08 stance:
 counts, structure, dates, and percentages are recorded; real amounts, merchants,

@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S49
+status: Implemented
+---
 <!--
 FEATURE SPEC — scopes roadmap item UX3 (2026-06-25 UX Uplift). Build as a vertical slice:
 React Router (data router) + a persistent app shell, retiring the hand-rolled `view` state

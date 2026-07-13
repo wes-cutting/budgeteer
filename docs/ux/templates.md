@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S3
+status: Accepted
+---
 <!--
 UX SPEC — Slice 2: allocation templates + editor accelerators. Built BEFORE the slice
 (Definition of Ready). Pairs with FEAT-004. Reuses the Slice 1 AllocationEditor.

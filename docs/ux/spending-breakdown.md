@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S54
+status: Accepted
+---
 <!--
 UX SPEC — UX9: spending breakdown. A NEW Insights view: each envelope's share of a chosen month's
 OUTFLOW as ranked horizontal bars (chart + data-table fallback), on the UX4 design system. Pairs

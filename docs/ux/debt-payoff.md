@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S19
+status: Accepted
+---
 <!--
 UX SPEC — #14b: analysis, debt payoff. A new Payoff view with a portfolio roll-up, a per-loan-account
 table (original principal set/cleared INLINE · owed · paid down · payoff), and per-loan payoff-over-time

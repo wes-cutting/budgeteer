@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S52
+status: Accepted
+---
 <!--
 UX SPEC — UX7: a global "add a transaction" entry as an accessible modal route that reuses the
 register's allocation editor (with an added account picker) and returns you where you were.

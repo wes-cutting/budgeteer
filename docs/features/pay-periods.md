@@ -1,3 +1,7 @@
+---
+type: feature-spec
+roadmap-item: [BUD-S61, BUD-S62]
+---
 <!--
 FEATURE SPEC — roadmap S7 (pay-period planning), the last sheet-parity gap (SPIKE-08 §6 S7 + S8).
 SPEC-FIRST per the roadmap: this document + docs/ux/pay-periods.md preceded any code. The §9

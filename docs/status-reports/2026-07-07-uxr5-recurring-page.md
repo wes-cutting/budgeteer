@@ -1,3 +1,8 @@
+---
+type: status-report
+roadmap-item: BUD-S67
+status: Snapshot
+---
 <!--
 STATUS REPORT — UXR5 (Recurring page). Presentation over the existing recurring reads/flows, PLUS
 two owner-ratified additions (Payee column · rule-delete UX12 ConfirmDialog). The rule FORM restyles

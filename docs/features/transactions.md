@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S2
+status: Implemented
+---
 <!--
 FEATURE SPEC — Slice 1, the core enter→allocate loop. Pairs with docs/ux/transactions.md.
 Build as a vertical slice (data → API → UI). The validated heart of the product (SPIKE-01).

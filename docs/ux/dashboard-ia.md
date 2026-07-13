@@ -1,3 +1,7 @@
+---
+type: ux-spec
+roadmap-item: BUD-S71
+---
 <!--
 UX SPEC — UXR9 (2026-07-07 UX Redesign, post-track polish): the Dashboard information architecture —
 the home (`/`) and the pay-period planner (`/pay-periods`) become two sub-tabs of one Dashboard

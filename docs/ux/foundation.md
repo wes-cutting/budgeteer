@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S1
+status: Accepted
+---
 <!--
 UX SPEC — copy of templates/UX-SPEC-TEMPLATE.md. Covers the Foundation surface (Accounts &
 Envelopes setup). Pairs with features/accounts.md (FEAT-001) and features/envelopes.md

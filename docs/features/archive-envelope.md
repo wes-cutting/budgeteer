@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S5
+status: Implemented
+---
 <!--
 FEATURE SPEC — #6: archive an envelope (sinking-fund soft-delete). Pairs with
 docs/ux/archive-envelope.md. No schema change (archived_at exists since the Foundation).

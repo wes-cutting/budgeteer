@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: [BUD-S65, BUD-S69]
+status: Implemented
+---
 <!--
 FEAT NOTE — UXR7 (2026-07-06 UX Redesign), §11-compressed: the Manage page's Move-money form
 adopts the UXR4 form-layout pattern. Presentation only; smallest item in the track.

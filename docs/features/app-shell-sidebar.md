@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: [BUD-S63, BUD-S65]
+status: Implemented
+---
 <!--
 FEATURE SPEC — scopes roadmap item UXR1 (2026-07-06 UX Redesign). The build/mechanism/test
 side of the sidebar shell; the look and behavior live in the paired UX spec

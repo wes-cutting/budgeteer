@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S54
+status: Implemented
+---
 <!--
 FEATURE SPEC — scopes roadmap item UX9 (2026-06-25 UX Uplift, Phase 3 "Insights"). Build as a
 vertical slice that adds a NEW visualisation (not a migration): each envelope's share of a month's

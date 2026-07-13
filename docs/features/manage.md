@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S51
+status: Implemented
+---
 <!--
 FEATURE SPEC — scopes roadmap item UX6 (2026-06-25 UX Uplift, Phase 2). Build as a vertical slice:
 DEMOTE account/envelope management off the home into the /accounts·/envelopes LIST routes (per-entity

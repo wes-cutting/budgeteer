@@ -1,3 +1,8 @@
+---
+type: status-report
+roadmap-item: BUD-S1
+status: Snapshot
+---
 <!--
 STATUS REPORT — point-in-time snapshot for clean hand-offs. Optimized for a cold reader.
 -->

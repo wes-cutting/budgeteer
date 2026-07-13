@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: [BUD-S65, BUD-S67]
+status: Implemented
+---
 <!--
 UX SPEC — UXR5 (2026-07-06 UX Redesign): the Recurring page — rule forms onto the UXR4
 form-layout pattern, and the rules list re-formatted for readability. Behavior (FEAT-009)

@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S9
+status: Implemented
+---
 <!--
 FEATURE SPEC — #9: recurring transactions. A rule (account + direction + amount + split +
 schedule) and an idempotent "Post due" generator over the existing txn model. Pairs with

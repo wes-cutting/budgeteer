@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S50
+status: Implemented
+---
 <!--
 FEATURE SPEC — scopes roadmap item UX5 (2026-06-25 UX Uplift, Phase 2). Build as a vertical slice:
 replace the console home at `/` with a budget + future-planning cockpit that COMPOSES EXISTING

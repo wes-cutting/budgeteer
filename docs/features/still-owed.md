@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S62
+status: Implemented
+---
 <!--
 FEATURE NOTE — roadmap S9 ("still owed this month"), from SPIKE-08 §6/§8: the sheet's D-column
 remaining-obligations countdown, computed instead of hand-chained. §11 fast path: this note IS the

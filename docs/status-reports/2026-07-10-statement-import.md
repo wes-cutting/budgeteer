@@ -1,3 +1,7 @@
+---
+type: status-report
+roadmap-item: BUD-S80
+---
 <!--
 STATUS REPORT — #20 (statement import, file half). The vertical slice SPIKE-11 unblocked:
 committed deterministic extraction tooling parses the 20 gitignored statement PDFs into

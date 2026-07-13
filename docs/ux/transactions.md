@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S2
+status: Accepted
+---
 <!--
 UX SPEC — Slice 1: the account register, add-transaction, the allocation editor, and the
 needs-allocation list. Built BEFORE the slice (Definition of Ready). Pairs with FEAT-003.

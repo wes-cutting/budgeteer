@@ -1,3 +1,7 @@
+---
+type: status-report
+roadmap-item: BUD-S69
+---
 <!--
 STATUS REPORT — UXR7 (Manage Move-money form). The LAST UX Redesign build and the lowest-risk: a
 form restyle over the existing Move-money reads/flows, the opposite risk profile to UXR6. Second

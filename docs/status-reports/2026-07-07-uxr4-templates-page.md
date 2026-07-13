@@ -1,3 +1,8 @@
+---
+type: status-report
+roadmap-item: BUD-S66
+status: Snapshot
+---
 <!--
 STATUS REPORT — UXR4 (Templates page). Presentation-only: the saved-templates LIST becomes a
 design-system table (reusing the UXR3 treatment), and the template editor is re-organized onto a NEW

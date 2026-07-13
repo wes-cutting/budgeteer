@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S1
+status: Implemented
+---
 <!--
 FEATURE SPEC — copy of templates/FEATURE-SPEC-TEMPLATE.md. Part of the Foundation slice.
 Pairs with docs/ux/foundation.md. Build as a vertical slice (data → API → UI).

@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S8
+status: Implemented
+---
 <!--
 FEATURE SPEC — #8: refunds (mixed-sign / "refund" rows within a split). Extends the FEAT-003
 allocation editor. No schema change; the split invariant (validateAllocations) governs the

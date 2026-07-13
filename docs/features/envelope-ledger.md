@@ -1,3 +1,8 @@
+---
+type: feature-spec
+roadmap-item: BUD-S14
+status: Implemented
+---
 <!--
 FEATURE SPEC — R15: envelope ledger (per-envelope allocation list). Pairs with
 docs/ux/envelope-ledger.md. No schema change — data is already in allocations ⋈ transactions.

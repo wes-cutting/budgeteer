@@ -1,3 +1,8 @@
+---
+type: ux-spec
+roadmap-item: BUD-S55
+status: Accepted
+---
 <!--
 UX SPEC — UX10: spending trends over time. A NEW Insights view: total + top-2 envelope OUTFLOW,
 month-over-month, as a multi-series line chart (chart + data-table fallback), on the UX4 design
