@@ -21,7 +21,14 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     // API/domain run on Node; the Playwright e2e + its config also run in the Node test runner.
-    files: ["apps/api/**/*.ts", "packages/**/*.ts", "e2e/**/*.ts", "playwright.config.ts"],
+    // scripts/ holds repo tooling (docs frontmatter check) run via tsx — also Node.
+    files: [
+      "apps/api/**/*.ts",
+      "packages/**/*.ts",
+      "e2e/**/*.ts",
+      "scripts/**/*.ts",
+      "playwright.config.ts",
+    ],
     languageOptions: { globals: globals.node },
   },
   {

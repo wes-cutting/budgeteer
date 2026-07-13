@@ -1,15 +1,15 @@
 <!--
 Artifact crosswalk — Follow-up B of the 2026-07-12 restructure initiative, now GENERATED
-FROM DOC FRONTMATTER (K30 Part A). Each artifact declares its own type/roadmap-item/status;
-this file is regenerated from that, not hand-maintained. Re-run scratchpad/build_artifact_index.py
-after adding a doc. Id metadata (title/was) comes from 03_ROADMAP-v2.md §2.
+FROM DOC FRONTMATTER (K30 Part A) by scripts/check-docs.ts. Each artifact declares its own
+type/roadmap-item/status; this file is regenerated from that (`npm run docs:crosswalk`) and
+validated in the gate (`npm run docs:check`). Do not hand-edit. Id metadata from 03_ROADMAP-v2.md §2.
 -->
 
 # Artifact crosswalk — reports · spikes · specs ↔ BUD-* ids
 
 | Field   | Value          |
 | ------- | -------------- |
-| Status  | Generated (do not hand-edit) |
+| Status  | Generated (do not hand-edit — `npm run docs:crosswalk`) |
 | Owner   | Wesley Cutting |
 | Date    | 2026-07-12     |
 | Parent  | [2026-07-12 restructure initiative](2026-07-12-roadmap-restructure-initiative.md) (Follow-up B) |
@@ -17,19 +17,20 @@ after adding a doc. Id metadata (title/was) comes from 03_ROADMAP-v2.md §2.
 
 ## What this is
 
-The back-reference bridge, now **self-describing and generated**: every artifact carries
-`roadmap-item:` frontmatter (seeded from the Follow-up B mapping, K30 Part A), so this index
-is *derived from the docs themselves* rather than parsed from roadmap prose + a hand-curated
-supplement. Adding a new doc with correct frontmatter puts it in the index on the next
-regeneration — no edits here, no roadmap link required.
+The back-reference bridge, **self-describing and generated**: every artifact carries
+`roadmap-item:` frontmatter (K30 Part A), so this index is *derived from the docs themselves*.
+Add a doc with correct frontmatter and it appears here on the next `npm run docs:crosswalk`;
+`npm run docs:check` (in the gate) fails if any artifact's frontmatter is missing/dangling or
+if this file drifts from the docs.
 
-**Still additive/reversible:** the artifact files keep their legacy names and old-id headers;
-only a small frontmatter block was prepended. Filename/id renames stay a **cutover** task.
+**Additive/reversible:** the artifact files keep their legacy names and old-id headers; only a
+small frontmatter block was prepended. Filename/id renames stay a **cutover** task.
 
 ## 1. Forward — each roadmap item → its artifacts
 
 | New ID | Was | Title | Feature/UX spec | Spike | Status report(s) |
 | --- | --- | --- | --- | --- | --- |
+| `BUD-E9` | `—` | Sheet parity | — | [08-budgethome-sheet-analysis.md](../spikes/08-budgethome-sheet-analysis.md) | — |
 | `BUD-E10` | `—` | UX Redesign | — | — | [2026-07-07-uxr-scoping.md](../status-reports/2026-07-07-uxr-scoping.md) |
 | `BUD-S1` | `#1` | Foundation | [accounts.md](../features/accounts.md) · [envelopes.md](../features/envelopes.md) · [foundation.md](../ux/foundation.md) | — | [2026-06-13-foundation-slice.md](../status-reports/2026-06-13-foundation-slice.md) |
 | `BUD-S2` | `#3` | core enter→allocate loop — enter deposit/withdrawal → allocate in Sing… | [transactions.md](../features/transactions.md) · [transactions.md](../ux/transactions.md) | — | [2026-06-13-slice-1.md](../status-reports/2026-06-13-slice-1.md) |
@@ -113,7 +114,6 @@ only a small frontmatter block was prepended. Filename/id renames stay a **cutov
 | `SPIKE-05` | `#5` | Cash-flow forecast model | — | [05-cashflow-forecast.md](../spikes/05-cashflow-forecast.md) | — |
 | `SPIKE-06` | `UX1` | Spike: design-system + routing foundation | — | [06-design-system-routing.md](../spikes/06-design-system-routing.md) | — |
 | `SPIKE-07` | `UX2` | Spike: accessible charting / viz a11y | — | [07-accessible-charting.md](../spikes/07-accessible-charting.md) | [2026-06-28-ux2.md](../status-reports/2026-06-28-ux2.md) |
-| `SPIKE-08` | `` |  | — | [08-budgethome-sheet-analysis.md](../spikes/08-budgethome-sheet-analysis.md) | — |
 | `SPIKE-11` | `#21` | SPIKE-11 — data-profiling: | — | [11-statement-extraction.md](../spikes/11-statement-extraction.md) | [2026-07-10-spike-11-statement-profiling.md](../status-reports/2026-07-10-spike-11-statement-profiling.md) |
 
 ## 2. Reverse — each artifact → its roadmap id (and its declared status)
@@ -165,7 +165,7 @@ only a small frontmatter block was prepended. Filename/id renames stay a **cutov
 | [`spikes/05-cashflow-forecast.md`](../spikes/05-cashflow-forecast.md) | Done | `BUD-S17` (#13) · `SPIKE-05` (#5) |
 | [`spikes/06-design-system-routing.md`](../spikes/06-design-system-routing.md) | Done | `SPIKE-06` (UX1) |
 | [`spikes/07-accessible-charting.md`](../spikes/07-accessible-charting.md) | Done | `SPIKE-07` (UX2) |
-| [`spikes/08-budgethome-sheet-analysis.md`](../spikes/08-budgethome-sheet-analysis.md) | Done | `SPIKE-08` |
+| [`spikes/08-budgethome-sheet-analysis.md`](../spikes/08-budgethome-sheet-analysis.md) | Done | `BUD-E9` (—) |
 | [`spikes/09-restore-roundtrip.md`](../spikes/09-restore-roundtrip.md) | Done | `BUD-S31` (EH10) |
 | [`spikes/10-payperiod-policy-validation.md`](../spikes/10-payperiod-policy-validation.md) | Done | `BUD-S61` (S7) |
 | [`spikes/11-statement-extraction.md`](../spikes/11-statement-extraction.md) | Done | `BUD-S80` (#20) · `SPIKE-11` (#21) |
@@ -283,6 +283,4 @@ only a small frontmatter block was prepended. Filename/id renames stay a **cutov
 
 - **158** of **158** artifact files carry a `roadmap-item` in their frontmatter
   and appear above — **self-describing**, no supplement, no roadmap-link dependency.
-- **0** without frontmatter · **0** with frontmatter but no
-  `roadmap-item`.
-
+- **0** with a frontmatter problem (see `npm run docs:check`).

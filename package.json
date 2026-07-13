@@ -15,7 +15,9 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "format": "prettier --check .",
-    "format:write": "prettier --write ."
+    "format:write": "prettier --write .",
+    "docs:check": "tsx scripts/check-docs.ts",
+    "docs:crosswalk": "tsx scripts/check-docs.ts --write"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -26,6 +28,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^15.15.0",
     "prettier": "^3.3.3",
+    "tsx": "^4.16.0",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.61.1",
     "vitest": "^2.0.5"

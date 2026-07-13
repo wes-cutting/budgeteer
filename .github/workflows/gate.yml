@@ -1,6 +1,6 @@
 # ============================================================================
 # CI gate — mirrors the local gate exactly (docs/TESTING_STRATEGY.md §3):
-#   typecheck → lint → format check → unit + integration → e2e (incl. a11y) → build → SCA
+#   typecheck → lint → format check → docs check → unit + integration → e2e (incl. a11y) → build → SCA
 #
 # Auto-run is intentionally OFF. This project runs the same gate locally
 # (see README / docs/TESTING_STRATEGY.md §3). Enable CI triggers (#16 done locally;
@@ -45,6 +45,9 @@ jobs:
 
       - name: format check
         run: npm run format
+
+      - name: docs frontmatter + crosswalk check
+        run: npm run docs:check
 
       - name: unit + integration
         run: npm test
