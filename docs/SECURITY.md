@@ -1,3 +1,7 @@
+---
+type: standard
+status: Accepted
+---
 # Security Baseline
 
 | Field   | Value                                                  |

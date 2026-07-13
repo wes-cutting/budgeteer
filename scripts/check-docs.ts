@@ -2,7 +2,8 @@
  * Docs frontmatter tooling (K30 Part A).
  *
  * Every artifact under docs/{status-reports,spikes,features,ux} carries YAML frontmatter
- * (`type` · `roadmap-item` · `status`, +`id` for spikes). This tool:
+ * (`type` · `roadmap-item` · `status`, +`id` for spikes); the core docs (docs/*.md + adr/)
+ * carry `type` (+ `id` for ADRs) but no `roadmap-item`. This tool:
  *   - `npm run docs:crosswalk` (--write) — regenerates docs/reviews/2026-07-12-roadmap-artifact-crosswalk.md
  *     FROM that frontmatter, so the index is derived from the docs, not hand-maintained.
  *   - `npm run docs:check` (default) — validates the frontmatter and fails if the committed
@@ -20,6 +21,20 @@ const TYPE_DIR: Record<string, string> = {
   spikes: "spike",
   "status-reports": "status-report",
 };
+// Core reference/standard/process docs (docs/*.md + docs/adr/*.md) — not per-roadmap-item;
+// they just need a recognized `type` (+ `id` for ADRs).
+const CORE_TYPES = new Set([
+  "process",
+  "intake",
+  "prd",
+  "roadmap",
+  "reference",
+  "standard",
+  "index",
+  "adr",
+  "template",
+  "feedback-log",
+]);
 const EPIC_TITLES: Record<string, string> = {
   "BUD-E1": "Foundation & stack",
   "BUD-E2": "Core budgeting domain",
@@ -221,6 +236,28 @@ ${rev.join("\n")}
   return { markdown, problems, covered, total };
 }
 
+/** Validate core docs' frontmatter: a recognized `type`, and `id` for ADR instances. */
+function checkCore(): { problems: Problem[]; total: number } {
+  const problems: Problem[] = [];
+  const files = [
+    ...readdirSync(DOCS).filter((f) => f.endsWith(".md")),
+    ...readdirSync(join(DOCS, "adr"))
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => `adr/${f}`),
+  ];
+  for (const rel of files) {
+    const fm = parseFrontmatter(readFileSync(join(DOCS, rel), "utf8"));
+    if (!fm) {
+      problems.push({ file: `docs/${rel}`, msg: "no frontmatter" });
+      continue;
+    }
+    if (typeof fm.type !== "string" || !CORE_TYPES.has(fm.type))
+      problems.push({ file: `docs/${rel}`, msg: `unknown/missing core type "${fm.type ?? ""}"` });
+    if (fm.type === "adr" && !fm.id) problems.push({ file: `docs/${rel}`, msg: "adr missing id" });
+  }
+  return { problems, total: files.length };
+}
+
 function main() {
   const write = process.argv.includes("--write");
   const { markdown, problems, covered, total } = build();
@@ -238,9 +275,12 @@ function main() {
       msg: "crosswalk is stale — run `npm run docs:crosswalk` and commit",
     });
 
+  const core = checkCore();
+  problems.push(...core.problems);
+
   if (problems.length === 0) {
     console.log(
-      `docs:check — OK (${covered}/${total} artifacts self-describing, crosswalk in sync)`,
+      `docs:check — OK (${covered}/${total} artifacts + ${core.total} core docs self-describing, crosswalk in sync)`,
     );
     return;
   }

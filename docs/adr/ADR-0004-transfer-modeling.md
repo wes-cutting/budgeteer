@@ -1,3 +1,8 @@
+---
+type: adr
+id: ADR-0004
+status: Accepted
+---
 <!--
 ADR — one decision per file. Append-only: supersede, don't edit. Status ladder:
 docs/00_WAYS_OF_WORKING.md §4. A "further ADR" for an expensive-to-reverse choice (the data

@@ -1,3 +1,7 @@
+---
+type: template
+status: Proposed
+---
 <!--
 ADR TEMPLATE — copy to docs/adr/ADR-XXXX-<slug>.md (next number).
 One decision per ADR. Append-only: supersede, don't edit. Status uses the ladder in

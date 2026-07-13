@@ -1,3 +1,7 @@
+---
+type: roadmap
+status: Living
+---
 <!--
 ROADMAP v2 — restructured under the BUD-E/S/T id scheme (Epic → Story → Task).
 Transitional: lives beside 03_ROADMAP.md until cutover. Objective + id convention:

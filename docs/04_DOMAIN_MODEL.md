@@ -1,3 +1,7 @@
+---
+type: reference
+status: Accepted
+---
 <!--
 DOMAIN MODEL — copy of templates/DOMAIN-MODEL-TEMPLATE.md, filled for Budgeteer. The
 conceptual model: entities, invariants, lifecycles. Storage-neutral (05_DATA_MODEL maps it

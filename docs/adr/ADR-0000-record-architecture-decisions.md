@@ -1,3 +1,8 @@
+---
+type: adr
+id: ADR-0000
+status: Accepted
+---
 # ADR-0000: Record architecture decisions
 
 | Field    | Value        |

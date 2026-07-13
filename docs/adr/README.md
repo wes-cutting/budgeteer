@@ -1,3 +1,6 @@
+---
+type: index
+---
 # Architecture Decision Records
 
 The index of decisions for this project. One decision per ADR; **append-only** (to change

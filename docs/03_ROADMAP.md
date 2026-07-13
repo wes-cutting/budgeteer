@@ -1,3 +1,7 @@
+---
+type: roadmap
+status: Living
+---
 <!--
 ROADMAP — copy of templates/ROADMAP-TEMPLATE.md, filled for Budgeteer. The living plan of
 record: spikes + vertical slices ordered by uncertainty × value (NOT by layer). Update

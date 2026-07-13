@@ -1,3 +1,7 @@
+---
+type: standard
+status: Accepted
+---
 # Engineering Standards
 
 | Field   | Value                                                  |

@@ -1,3 +1,8 @@
+---
+type: adr
+id: ADR-0003
+status: Accepted
+---
 <!--
 ADR — one decision per file. Append-only: supersede, don't edit. Status ladder:
 docs/00_WAYS_OF_WORKING.md §4. ADR-0001 = stack, ADR-0002 = datastore (per ADR-0000);

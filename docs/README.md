@@ -1,3 +1,6 @@
+---
+type: index
+---
 # Documentation map
 
 This is the authoritative map of the kit's docs: the **numbering scheme**, what each doc

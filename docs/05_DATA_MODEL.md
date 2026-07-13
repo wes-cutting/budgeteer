@@ -1,3 +1,7 @@
+---
+type: reference
+status: Accepted
+---
 <!--
 DATA MODEL — copy of templates/DATA-MODEL-TEMPLATE.md, filled for Budgeteer. The PHYSICAL
 model realizing 04_DOMAIN_MODEL.md in PostgreSQL (per ADR-0002). Keep in sync with

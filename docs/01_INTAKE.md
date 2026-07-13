@@ -1,3 +1,7 @@
+---
+type: intake
+status: Proposed
+---
 <!--
 INTAKE RECORD — the captured output of the discovery conversation (see
 templates/DISCOVERY-GUIDE.md). This is the FIRST thing filled in on a new project, BEFORE

@@ -1,3 +1,7 @@
+---
+type: prd
+status: Proposed
+---
 <!--
 PRD — copy of templates/PRD-TEMPLATE.md, filled for Budgeteer. Written AFTER SPIKE-01
 de-risked the core bet (see docs/00_WAYS_OF_WORKING.md). Promoted from docs/01_INTAKE.md.

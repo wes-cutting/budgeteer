@@ -1,3 +1,7 @@
+---
+type: reference
+status: Implemented
+---
 <!--
 API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgeteer's HTTP API
 (apps/api, Fastify per ADR-0001). Kept in sync with the implementation in the same change.

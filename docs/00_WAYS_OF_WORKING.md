@@ -1,3 +1,7 @@
+---
+type: process
+status: Accepted
+---
 # 00 — Ways of Working
 
 | Field   | Value                                                          |

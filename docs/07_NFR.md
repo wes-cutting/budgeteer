@@ -1,3 +1,7 @@
+---
+type: reference
+status: Active
+---
 <!--
 NFR / OPERATIONAL-READINESS — hardening track for Budgeteer. The non-functional requirements
 and operational readiness the app must meet. Created alongside #15a (backup/export), the first

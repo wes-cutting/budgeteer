@@ -1,3 +1,7 @@
+---
+type: reference
+status: Accepted
+---
 # Architecture
 
 | Field   | Value                                                       |

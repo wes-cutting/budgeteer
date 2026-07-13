@@ -1,3 +1,8 @@
+---
+type: adr
+id: ADR-0006
+status: Accepted
+---
 <!--
 ADR — one decision per file. Append-only: supersede, don't edit. Status ladder:
 docs/00_WAYS_OF_WORKING.md §4. Stay Proposed until a spike validates the assumptions.

@@ -1,3 +1,7 @@
+---
+type: standard
+status: Accepted
+---
 # Testing Strategy
 
 | Field   | Value                                                  |
