@@ -1,3 +1,7 @@
+---
+type: initiative
+status: Proposed
+---
 <!--
 UX UPLIFT — initiative brief / thorough backlog. Captured 2026-06-25 from a design session
 with the owner. Companion to the plan of record (docs/03_ROADMAP.md), which tracks these as

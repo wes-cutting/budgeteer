@@ -14,7 +14,9 @@ import { join, basename } from "node:path";
 
 const DOCS = "docs";
 const V2 = join(DOCS, "03_ROADMAP-v2.md");
+const HIST = join(DOCS, "03_ROADMAP-HISTORY-v2.md");
 const CROSSWALK = join(DOCS, "reviews", "2026-07-12-roadmap-artifact-crosswalk.md");
+const DONE_MARKER = "## 2. Done / shipped";
 const TYPE_DIR: Record<string, string> = {
   features: "feature-spec",
   ux: "ux-spec",
@@ -35,6 +37,9 @@ const CORE_TYPES = new Set([
   "template",
   "feedback-log",
 ]);
+// reviews/ genre taxonomy (K32): point-in-time audit · multi-item initiative · advisory
+// working-note · machine-generated.
+const REVIEW_TYPES = new Set(["audit", "initiative", "working-note", "generated"]);
 const EPIC_TITLES: Record<string, string> = {
   "BUD-E1": "Foundation & stack",
   "BUD-E2": "Core budgeting domain",
@@ -131,7 +136,14 @@ function idSort(a: string, b: string): number {
 type Problem = { file: string; msg: string };
 
 /** Read every artifact's frontmatter; build the crosswalk markdown + any problems. */
-function build(): { markdown: string; problems: Problem[]; covered: number; total: number } {
+function build(): {
+  markdown: string;
+  problems: Problem[];
+  covered: number;
+  total: number;
+  idToArts: Map<string, Set<string>>;
+  meta: Map<string, Meta>;
+} {
   const { meta, valid } = parseV2();
   const artToIds = new Map<string, string[]>();
   const idToArts = new Map<string, Set<string>>();
@@ -191,7 +203,11 @@ function build(): { markdown: string; problems: Problem[]; covered: number; tota
 
   const covered = artToIds.size;
   const bad = problems.filter((p) => p.msg === "no frontmatter" || p.msg === "no roadmap-item");
-  const markdown = `<!--
+  const markdown = `---
+type: generated
+status: Generated
+---
+<!--
 Artifact crosswalk — Follow-up B of the 2026-07-12 restructure initiative, now GENERATED
 FROM DOC FRONTMATTER (K30 Part A) by scripts/check-docs.ts. Each artifact declares its own
 type/roadmap-item/status; this file is regenerated from that (\`npm run docs:crosswalk\`) and
@@ -233,54 +249,130 @@ ${rev.join("\n")}
   and appear above — **self-describing**, no supplement, no roadmap-link dependency.
 - **${bad.length}** with a frontmatter problem (see \`npm run docs:check\`).
 `;
-  return { markdown, problems, covered, total };
+  return { markdown, problems, covered, total, idToArts, meta };
 }
 
-/** Validate core docs' frontmatter: a recognized `type`, and `id` for ADR instances. */
-function checkCore(): { problems: Problem[]; total: number } {
+/** Newest YYYY-MM-DD found across a set of dated status-report filenames. */
+function shippedDate(reports: string[]): string {
+  const dates = reports
+    .map((r) => /(\d{4}-\d{2}-\d{2})/.exec(r)?.[1] ?? "")
+    .filter(Boolean)
+    .sort();
+  return dates.at(-1) ?? "";
+}
+
+/** Generate history §2 (Done/shipped) from the plan's Done stories, newest first.
+ *  A story ships when its plan row's status cell begins with "Done" / "✅ Done"; the shipped
+ *  date is its newest linked status report. Regenerated, not hand-maintained. */
+function doneLedger(idToArts: Map<string, Set<string>>, meta: Map<string, Meta>): string {
+  let inPlan = false;
+  const shipped: string[] = [];
+  for (const l of readFileSync(V2, "utf8").split("\n")) {
+    if (l.startsWith("## 3.")) inPlan = true;
+    else if (inPlan && l.startsWith("## 4.")) break;
+    else if (inPlan && l.startsWith("| **BUD-S")) {
+      const id = /BUD-S\d+/.exec(l)?.[0];
+      const done = /\|\s*\*{0,2}(?:✅\s*)?\*{0,2}Done\b/.test(l);
+      if (id && done) shipped.push(id);
+    }
+  }
+  const rows = shipped
+    .map((id) => {
+      const reports = [...(idToArts.get(id) ?? [])]
+        .filter((p) => p.startsWith("status-reports/"))
+        .sort();
+      const m = meta.get(id);
+      return {
+        id,
+        date: shippedDate(reports),
+        was: m?.was ?? "",
+        title: m?.title ?? "",
+        report: reports.at(-1) ? `[report](../${reports.at(-1)})` : "—",
+      };
+    })
+    .sort((a, b) => b.date.localeCompare(a.date) || idSort(b.id, a.id));
+  const body = rows
+    .map((r) => `| ${r.date || "—"} | \`${r.id}\` | \`${r.was}\` | ${r.title} | ${r.report} |`)
+    .join("\n");
+  return `${DONE_MARKER} (generated)
+
+Every shipped story (plan status **Done**), newest first — **generated from the plan** by
+\`npm run docs:crosswalk\`, so it can't drift; do not hand-edit. Shipped date = the item's
+newest linked status report. Full detail lives in the plan (${"`03_ROADMAP-v2.md`"} §3) and the
+§1 log above.
+
+| Shipped | ID | Was | Item | Report |
+| --- | --- | --- | --- | --- |
+${body}
+`;
+}
+
+/** History with a freshly generated §2 spliced in (§0/§1 untouched). */
+function historyWith(ledger: string): string {
+  const text = readFileSync(HIST, "utf8");
+  return text.slice(0, text.indexOf(DONE_MARKER)) + ledger;
+}
+
+/** Validate a set of docs' frontmatter against an allowed `type` set (+ `id` for ADRs). */
+function checkDocs(files: string[], allowed: Set<string>): Problem[] {
   const problems: Problem[] = [];
-  const files = [
-    ...readdirSync(DOCS).filter((f) => f.endsWith(".md")),
-    ...readdirSync(join(DOCS, "adr"))
-      .filter((f) => f.endsWith(".md"))
-      .map((f) => `adr/${f}`),
-  ];
   for (const rel of files) {
     const fm = parseFrontmatter(readFileSync(join(DOCS, rel), "utf8"));
     if (!fm) {
       problems.push({ file: `docs/${rel}`, msg: "no frontmatter" });
       continue;
     }
-    if (typeof fm.type !== "string" || !CORE_TYPES.has(fm.type))
-      problems.push({ file: `docs/${rel}`, msg: `unknown/missing core type "${fm.type ?? ""}"` });
+    if (typeof fm.type !== "string" || !allowed.has(fm.type))
+      problems.push({ file: `docs/${rel}`, msg: `unknown/missing type "${fm.type ?? ""}"` });
     if (fm.type === "adr" && !fm.id) problems.push({ file: `docs/${rel}`, msg: "adr missing id" });
   }
-  return { problems, total: files.length };
+  return problems;
+}
+
+/** Non-artifact docs: core reference/standard docs (+ ADRs) and reviews (genre taxonomy). */
+function checkNonArtifact(): { problems: Problem[]; total: number } {
+  const core = [
+    ...readdirSync(DOCS).filter((f) => f.endsWith(".md")),
+    ...readdirSync(join(DOCS, "adr"))
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => `adr/${f}`),
+  ];
+  const reviews = readdirSync(join(DOCS, "reviews"))
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => `reviews/${f}`);
+  const problems = [...checkDocs(core, CORE_TYPES), ...checkDocs(reviews, REVIEW_TYPES)];
+  return { problems, total: core.length + reviews.length };
 }
 
 function main() {
   const write = process.argv.includes("--write");
-  const { markdown, problems, covered, total } = build();
+  const { markdown, problems, covered, total, idToArts, meta } = build();
+  const history = historyWith(doneLedger(idToArts, meta));
 
   if (write) {
     writeFileSync(CROSSWALK, markdown);
-    console.log(`docs:crosswalk — wrote ${CROSSWALK} (${covered}/${total} artifacts)`);
+    writeFileSync(HIST, history);
+    console.log(`docs:crosswalk — wrote ${CROSSWALK} + ${HIST} §2 (${covered}/${total} artifacts)`);
     return;
   }
 
-  const drift = readFileSync(CROSSWALK, "utf8") !== markdown;
-  if (drift)
+  if (readFileSync(CROSSWALK, "utf8") !== markdown)
     problems.push({
       file: CROSSWALK,
       msg: "crosswalk is stale — run `npm run docs:crosswalk` and commit",
     });
+  if (readFileSync(HIST, "utf8") !== history)
+    problems.push({
+      file: HIST,
+      msg: "history §2 (Done/shipped) is stale — run `npm run docs:crosswalk` and commit",
+    });
 
-  const core = checkCore();
-  problems.push(...core.problems);
+  const nonArt = checkNonArtifact();
+  problems.push(...nonArt.problems);
 
   if (problems.length === 0) {
     console.log(
-      `docs:check — OK (${covered}/${total} artifacts + ${core.total} core docs self-describing, crosswalk in sync)`,
+      `docs:check — OK (${covered}/${total} artifacts + ${nonArt.total} core/review docs self-describing, crosswalk in sync)`,
     );
     return;
   }

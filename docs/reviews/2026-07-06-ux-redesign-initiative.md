@@ -1,3 +1,7 @@
+---
+type: initiative
+status: Proposed
+---
 <!--
 UX REDESIGN — initiative brief / capture doc. Opened 2026-07-06 from an owner design session
 working from a reference dashboard screenshot. Companion to the plan of record

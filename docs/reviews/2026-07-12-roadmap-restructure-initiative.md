@@ -1,3 +1,7 @@
+---
+type: initiative
+status: Agreed
+---
 <!--
 Roadmap restructure initiative — objective + ID-scheme convention agreed 2026-07-12.
 First item of the V1/Alpha documentation improvement cycle. This is the brief; the
@@ -111,6 +115,16 @@ Faithful grouping of the existing families (final map is produced in the draft):
   the crosswalk regenerates from that, supplement retired). Filename/id renames stay a
   **cutover** task (Follow-up C).
 - **Follow-up C:** at cutover, `03_ROADMAP-v2.md` replaces `03_ROADMAP.md`.
+- **Follow-up D (meta — orientation docs lag the new structure):** [`../../CLAUDE.md`](../../CLAUDE.md)
+  and [`../00_WAYS_OF_WORKING.md`](../00_WAYS_OF_WORKING.md) still describe the pre-restructure
+  docs world. They need updating to reflect: the doc **frontmatter convention**
+  (`type`/`roadmap-item`/`status`) and the **`npm run docs:check`** gate step; the **`BUD-E/S/T`
+  id scheme** (K29) and where the roadmap now lives (living plan `03_ROADMAP-v2.md` + append-only
+  history `03_ROADMAP-HISTORY-v2.md`, K31); the **`reviews/` genre taxonomy** (K32); and the
+  [artifact crosswalk](2026-07-12-roadmap-artifact-crosswalk.md) as the report↔id bridge. Also
+  fold `docs:check` into any documented gate/DoD list. Best done **at cutover**, so the process
+  docs describe the end state, not the transitional one. (Kit: K30/K31/K32 recommend the same
+  updates to the baseline's `CLAUDE.md`/`00_WAYS_OF_WORKING.md`.)
 - **Out of scope / relocate:** the `K##` kit-feedback items do not belong in the roadmap;
   their home is [`../KIT_FEEDBACK.md`](../KIT_FEEDBACK.md). They are omitted from the new
   roadmap.

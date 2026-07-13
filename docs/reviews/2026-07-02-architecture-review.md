@@ -1,3 +1,6 @@
+---
+type: audit
+---
 <!--
 CODE REVIEW — a point-in-time, repo-wide architecture review against the project standards
 (ARCHITECTURE · ENGINEERING_STANDARDS · SECURITY · TESTING_STRATEGY), taken at the completion

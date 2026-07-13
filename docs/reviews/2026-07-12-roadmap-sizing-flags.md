@@ -1,3 +1,7 @@
+---
+type: working-note
+status: Advisory
+---
 <!--
 Roadmap sizing flags — Follow-up A of the 2026-07-12 restructure initiative.
 ADVISORY ONLY. Nothing here is applied: no id, status, or grouping in 03_ROADMAP-v2.md

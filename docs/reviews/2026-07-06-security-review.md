@@ -1,3 +1,6 @@
+---
+type: audit
+---
 <!--
 SECURITY REVIEW — a point-in-time, repo-wide security review against the exploited-in-practice
 vulnerability classes (injection · broken authn/access-control · secrets/weak-crypto · unsafe

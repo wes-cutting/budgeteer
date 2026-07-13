@@ -1,3 +1,7 @@
+---
+type: generated
+status: Generated
+---
 <!--
 Artifact crosswalk — Follow-up B of the 2026-07-12 restructure initiative, now GENERATED
 FROM DOC FRONTMATTER (K30 Part A) by scripts/check-docs.ts. Each artifact declares its own
