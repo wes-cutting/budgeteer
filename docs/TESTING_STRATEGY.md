@@ -38,6 +38,12 @@ Guidelines:
   what shipped here as the CORS bug, caught only by running the app by hand. Wire one real
   e2e (app loads + one journey against the running API) **and** lint in the foundation slice,
   so "the gate" is real on day one rather than aspirational.
+- **Lint config must exclude nested, tool-created checkouts from day zero** (e.g. `.claude/`,
+  `**/worktrees/**`). An agent-spawned worktree left behind after a task looks like source to
+  a repo-wide lint sweep — often without its own `node_modules`, so it fails with confusing
+  "rule not found" errors that read as a real regression, not an environment artifact.
+  `git worktree list` is the first diagnostic when lint errors point outside the working tree
+  (SPIKE-11 gate run, K28).
 
 ## 2. What must be tested
 
@@ -74,6 +80,11 @@ types/typecheck  →  lint  →  format check  →  unit + integration  →  e2e
   its own command.
 - Reset state between tests (truncate/teardown) for isolation.
 - Flaky tests are bugs — fix or quarantine with a tracked issue, never ignore.
+- **Relative-date fixtures tested against the real calendar are a smell** — a test that
+  passes today and fails on some future date with no code change. Use fixed/injected dates
+  (the injected-clock pattern, [`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) §4; EH7).
+- **Demo/seed-data captures earn the same reset-before-run discipline as tests** — see the
+  demo-asset-capture pattern ([`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) §4).
 
 ## 5. e2e conventions
 
@@ -84,5 +95,13 @@ types/typecheck  →  lint  →  format check  →  unit + integration  →  e2e
 - The a11y scan should fail on **serious/critical** violations and ship a baseline
   accessibility CSS floor (e.g. a minimum interactive target size) so WCAG 2.2 AA is enforced
   from commit zero, not discovered late.
+- **The harness owns the ephemeral stack it tests against — never reuse a server it didn't
+  start.** Attaching to a dev server "for convenience" silently invalidates empty-state
+  assertions (a real dev store isn't empty) and can leak test-written data into it. Either
+  the harness starts every dependency itself, or it **fails fast** with a clear message when
+  a port it needs is already held — don't let it silently attach. Verify a port is genuinely
+  free with the OS (e.g. `lsof -iTCP:<port> -sTCP:LISTEN`), not by trusting that a wrapper
+  process was stopped — stopping the wrapper can still orphan the child holding the port
+  (K20/K24; `playwright.config.ts`'s `reuseExistingServer: false` on both webServers here).
 - The reference harness is in this repo: `e2e/` (per-area Playwright specs + `e2e/setup.ts`),
   `e2e/a11y.spec.ts` (axe scan), and `apps/api/test/perf.test.ts` (p95 budgets).

@@ -17,7 +17,8 @@
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "docs:check": "tsx scripts/check-docs.ts",
-    "docs:crosswalk": "tsx scripts/check-docs.ts --write"
+    "docs:crosswalk": "tsx scripts/check-docs.ts --write",
+    "capture:demo": "tsx scripts/capture-demo-assets.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -27,6 +28,7 @@
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^15.15.0",
+    "playwright": "^1.61.0",
     "prettier": "^3.3.3",
     "tsx": "^4.16.0",
     "typescript": "^5.5.4",

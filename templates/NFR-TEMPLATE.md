@@ -70,7 +70,10 @@ concerns, the audit cadence, and the tools used.
 The checklist before anything is treated as production (see
 [`SECURITY.md`](../docs/SECURITY.md) §6):
 
-- [ ] **Backups + a tested restore drill** — restore is proven, not assumed.
+- [ ] **Backups + a tested restore drill** — restore is proven, not assumed. The export
+      stamps its own schema version from the first one shipped, and the export→restore
+      round-trip is itself the acceptance test (see
+      [`ENGINEERING_STANDARDS.md`](../docs/ENGINEERING_STANDARDS.md) §4).
 - [ ] **Deploy & rollback** — a documented, rehearsed path to ship and to revert.
 - [ ] **Config & secrets** — from the environment, validated at startup; rotation plan.
 - [ ] **Runbook(s)** — for each alert: symptom → diagnosis → action.

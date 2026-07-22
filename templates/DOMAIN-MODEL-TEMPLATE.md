@@ -50,3 +50,9 @@ patterns).
 ## 6. Cross-cutting rules
 
 Tenancy/ownership scoping, units/money representation, and other rules that span entities.
+
+- **Calendar dates:** for any entity with a date the user thinks of as a *day*, not an
+  instant — **in whose timezone is it derived, and which layer derives it?** Left
+  unanswered, "today"/"this month" defaults to the server's (often UTC), silently shifting
+  every user-facing default for anyone west of UTC. Prefer: the client derives "today" in
+  the user's local timezone; the server never derives a calendar default itself.

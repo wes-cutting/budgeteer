@@ -105,6 +105,34 @@ assumption that hasn't been checked against reality.**
 Rule of thumb: the amount of code you may build on a document scales with its status.
 `Proposed` supports a spike or one slice; `Accepted` supports a phase.
 
+### Frontmatter (machine-readable identity)
+
+Every doc under `docs/` (plus each `templates/` file, as a worked example) carries a
+lightweight YAML frontmatter block, not only the prose meta-table above:
+
+```yaml
+---
+id: <stable-typed-id>       # e.g. FEAT-<roadmap-id>, ADR-0003, SPIKE-07, a status-report date+slug
+type: <doc-type>            # feature-spec · ux-spec · spike · status-report · adr · standard · index · …
+status: <ladder value>      # the status ladder above
+roadmap-item: <id>          # cross-links to the roadmap's stable id (ROADMAP-TEMPLATE.md §3)
+supersedes: <id>            # ADRs/specs only — append-only, never edit a superseded doc
+---
+```
+
+This is what turns "which roadmap item is this report?" from hand-work into something
+*generated*: a docs map, an artifact crosswalk, and a gate check can all be built **from**
+the frontmatter instead of hand-authored and left to rot (closes the doc-index half of
+**Summary Drift**, §10). Keep the frontmatter minimal and the prose meta-table primary —
+this nudges the kit from *prose-first* toward *tooling-checked*, not the other way round;
+don't let the schema grow past what a gate check actually needs.
+
+This is exactly the pattern implemented here: `scripts/check-docs.ts` (`npm run
+docs:check`) validates every doc's frontmatter and regenerates the crosswalk
+([`reviews/2026-07-12-roadmap-artifact-crosswalk.md`](reviews/2026-07-12-roadmap-artifact-crosswalk.md))
+from it, wired into the gate so a missing/dangling `roadmap-item` or a stale crosswalk fails
+loudly (K30) — the reference implementation for any project porting this pattern.
+
 **Which states apply to which artifact** (not every status fits every doc):
 
 | Artifact | States it uses |

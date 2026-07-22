@@ -29,7 +29,12 @@ A spike with more than one question is two spikes.
 ## 2. Method
 
 How you'll answer it, against **real** inputs (real data sample, real API, real users).
-Note what you will deliberately *not* do (this is throwaway, not production).
+**Name the concrete reality source** (which file, which endpoint, which store) and **state
+how you'll confirm it actually contains the reality you need** (e.g. "N real rows covering
+the real date range") *before* running the spike — a source that turns out empty or
+synthetic doesn't fail loudly, it just validates vacuously and ships a wrong conclusion with
+a confident report around it (SPIKE-10, K25). Note what you will deliberately *not* do (this
+is throwaway, not production).
 
 ## 3. Findings
 

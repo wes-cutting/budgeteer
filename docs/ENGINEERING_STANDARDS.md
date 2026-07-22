@@ -79,9 +79,40 @@ the choice in an ADR when adopted.
   cross-tenant access so existence doesn't leak.
 - **Pure core / impure shell.** Keep decision logic pure and push I/O to adapters, so the
   logic is exhaustively testable without infrastructure.
+- **Inject the clock; never reach for `now()` deep in logic.** Time is I/O (see
+  [`ARCHITECTURE.md`](ARCHITECTURE.md) §1) — thread it in explicitly (e.g.
+  `buildServer(deps, { now?: () => Date })`, defaulted to the real clock in production,
+  passed as a fixed date in tests) rather than letting a service or domain function call
+  `new Date()` itself. A test built on the real calendar is a ticking time bomb: it passes
+  today and fails on some future date with no code change. Pair with
+  [`TESTING_STRATEGY.md`](TESTING_STRATEGY.md)'s fixture-hygiene note.
 - **Idempotent, reconcilable data imports.** One-time/seed imports run through the same
   validation as the app, are idempotent against an empty/known dataset, and **reconcile
   to a checkable invariant** (a pass/fail gate) so "did it work?" is never a guess.
+- **Keep the founding migration idempotent — it's the exit recipe for adopting a versioned
+  migrator later.** Write the very first schema migration so every statement is safe to
+  re-run (`if not exists` / drop-then-add); a pre-migrator store can then replay it as a
+  no-op and simply record it as executed, letting you freeze it as `0001-baseline` the day
+  a real migrator lands. Two traps this recipe must dodge: a run-every-startup seed row
+  (e.g. a default tenant/household) must never live inside a run-once migration — a reset
+  that truncates data but not the migrations table would leave it unhealable; and migration
+  files are frozen the moment they're committed, so the founding file's "replace me"
+  invitation expires once the migrator ships.
+- **Exports stamp their own schema version from the first one shipped.** A backup/export
+  format needs to say *which schema* it was taken against (e.g. a
+  `schema: { migrations: [...] }` field) from day one — not only once restore exists to
+  need it — or every export taken before that becomes an un-checkable legacy file forever.
+  Treat the **export → restore round-trip** as the slice's acceptance test, not a deferred
+  nice-to-have: an export nobody has ever restored is a hope, not a backup.
+- **A demo/marketing capture is a seed-data pattern, not a one-off script.** Keep a
+  synthetic demo seed separate from the everyday dev seed (strictly invented data — never a
+  real record, per [`SECURITY.md`](SECURITY.md)), and give the capture script that turns it
+  into screenshots/video **its own server lifecycle**: reset + reseed the store, spawn a
+  throwaway server, capture, tear the server down in a `finally` — rather than driving
+  whatever dev server happens to be running. Otherwise a capture that performs any real
+  write (e.g. to demo a save action) silently compounds on every re-run instead of starting
+  clean. Write output into datetime-stamped, gitignored folders so past captures remain a
+  comparable history instead of being overwritten.
 - **A consistent error envelope** at every interface (a stable shape with a code,
   message, and correlation id) so callers and logs can rely on it.
 - **Presentation imports the domain; never reimplement it in the UI.** Wire the pure-core
@@ -89,6 +120,14 @@ the choice in an ADR when adopted.
   exports). The UI must not re-derive domain logic (money math, validation, date rules) — a
   duplicated rule is a second source of truth that drifts. Distinguish **domain** formatting
   (plain, exact) from **presentation** formatting (locale/currency) and keep each in one place.
+- **Share the server's response types with the client via a types-only contract module —
+  no build step, no copy.** Re-export the API's own view/DTO types from a small
+  `contract.ts` (wired into the API package's `exports`) and have the client import from
+  it; hand-duplicating server interfaces on the client is a silent second source of truth
+  that drifts the moment a field changes. This needs a narrow lint carve-out where boundary
+  rules ([`ARCHITECTURE.md`](ARCHITECTURE.md) §2) otherwise ban the client from importing
+  the server workspace at all — allow **type-only** imports of that one contract module,
+  keep every runtime import banned.
 - **Share adapter/service plumbing; don't couple constants to a module that does I/O.** Put
   cross-cutting helpers (date conversion, group-by, an error shim) in a small `util/`, and app
   constants in a neutral `constants` module — not inside the migration/bootstrap module that

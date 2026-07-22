@@ -87,3 +87,6 @@ Thumbs.db
 .idea/
 .vscode/
 .claude/
+# Agent-spawned worktrees (K28): ESLint doesn't honor .gitignore, but a stale worktree left
+# behind by a tool session shouldn't be tracked either way — and this line is the reminder.
+**/worktrees/**

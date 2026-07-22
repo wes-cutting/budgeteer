@@ -100,6 +100,10 @@ Move through these themes in order. Each maps to something the kit does downstre
   that bound the choice (record as input to `ADR-0001`, not as a decision).
 - **Timeline, team, budget:** what's the real shape of the effort?
 - **Non-functional needs:** latency, volume, availability expectations (seed the NFR doc).
+- **Calendar-date semantics:** if any entity has a date the user thinks of as a *day* (not
+  an instant), **in whose timezone is "today"/"this month" derived, and which layer derives
+  it?** An undeclared default silently picks the server's timezone — flag it now, not eight
+  components deep (feeds [`DOMAIN-MODEL-TEMPLATE.md`](DOMAIN-MODEL-TEMPLATE.md) §6).
 
 ### 3.7 The first usable slice → *foundation slice, ROADMAP*
 - What's the thinnest end-to-end thing (data → API → UI) that a human could actually
