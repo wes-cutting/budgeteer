@@ -18,7 +18,8 @@
     "format:write": "prettier --write .",
     "docs:check": "tsx scripts/check-docs.ts",
     "docs:crosswalk": "tsx scripts/check-docs.ts --write",
-    "capture:demo": "tsx scripts/capture-demo-assets.ts"
+    "capture:demo": "tsx scripts/capture-demo-assets.ts --no-video",
+    "capture:demo:video": "tsx scripts/capture-demo-assets.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",

@@ -1,10 +1,11 @@
 /**
  * Demo-grade synthetic seed (UXR8) — run via `npm run seed:demo` from apps/api.
  *
- * A *standalone* rich dataset for design/dev: ~6 months of dated history across every surface
- * so Insights, the pay-period planner, Templates, and the cockpit all show real patterns. It is
- * NOT the baseline `seed` (which stays lean and byte-identical for e2e/K24 isolation) — this is
- * a separate dev tool that populates its own store.
+ * A *standalone* rich dataset for design/dev: 6 months of dated history plus the current month
+ * (through today) across every surface, so Insights, the pay-period planner, Templates, and the
+ * cockpit all show real patterns. It is NOT the baseline `seed` (which stays lean and
+ * byte-identical for e2e/K24 isolation) — this is a separate dev tool that populates its own
+ * store.
  *
  * Non-destructive (the EH10 / restore.ts precedent): refuses any store that already contains
  * user data. The flow is `npm run db:reset && npm run seed:demo` (or point PGLITE_DIR at a fresh
@@ -15,8 +16,13 @@
  * durable unlock for real-data richness remains the deferred history import (#17/#18); this is
  * the cheap dev-time proxy.
  *
- * Deterministic: all week-to-week variance is drawn from a fixed-seed PRNG, so the charts look
- * the same on every machine and every run.
+ * Deterministic per day: all week-to-week variance is drawn from a fixed-seed PRNG, so two runs
+ * on the same calendar day produce byte-identical output. The history window itself is relative
+ * to *today* (util/dates.ts's `systemClock` convention) rather than a fixed calendar range, so it
+ * rolls forward automatically as real time passes — a fixed range goes stale the moment a demo is
+ * captured after it, leaving every current-month view (Breakdown, Budget vs. Actual, Burn-down,
+ * the dashboard's "This month's budget" card) empty. Rolling forward daily is the fix, not a
+ * determinism break.
  */
 
 import path from "node:path";
@@ -26,6 +32,7 @@ import { loadConfig } from "../config.js";
 import { createDb } from "./connection.js";
 import { migrateToLatest } from "./migrate.js";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants.js";
+import { systemClock, todayStr } from "../util/dates.js";
 import type { DB } from "./schema.js";
 
 loadEnv({ path: path.resolve(import.meta.dirname, "../../../../.env") });
@@ -81,7 +88,7 @@ if (occupied.length > 0) {
 }
 
 // ── Deterministic PRNG (mulberry32) ──────────────────────────────────────────
-// Fixed seed → identical data on every machine and every run.
+// Fixed seed → identical data on every machine, for every run on the same calendar day.
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
@@ -114,17 +121,32 @@ function addDays(date: string, n: number): string {
   t.setUTCDate(t.getUTCDate() + n);
   return t.toISOString().slice(0, 10);
 }
-/** A day within `month`, clamped to the month's last day (so day 29 lands on Feb 28). */
-function dom(month: number, day: number): string {
-  const last = new Date(Date.UTC(YEAR, month, 0)).getUTCDate();
-  return iso(YEAR, month, Math.min(day, last));
+/** A day within `year`/`month`, clamped to the month's last day (so day 29 lands on Feb 28). */
+function dom(year: number, month: number, day: number): string {
+  const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return iso(year, month, Math.min(day, last));
+}
+/** `{ year, month }` shifted by `delta` calendar months (may be negative or span years). */
+function shiftMonth(year: number, month: number, delta: number): { year: number; month: number } {
+  const idx = year * 12 + (month - 1) + delta;
+  return { year: Math.floor(idx / 12), month: (idx % 12) + 1 };
+}
+/** The first Friday on or after `date` — the biweekly paycheck's anchor weekday. */
+function firstFridayOnOrAfter(date: string): string {
+  const weekday = new Date(`${date}T00:00:00Z`).getUTCDay(); // 0=Sun..6=Sat, Friday=5
+  return addDays(date, (5 - weekday + 7) % 7);
 }
 
-// Six full prior months of history: Jan–Jun 2026. Openings sit on the eve of the window; the
-// recurring rules point at the upcoming (July+) occurrences so the planner has live pay periods.
-const YEAR = 2026;
-const MONTHS = [1, 2, 3, 4, 5, 6];
-const OPENING_ON = "2025-12-31";
+// A rolling window anchored on today rather than a fixed calendar range: 6 full prior months of
+// history, plus the current month populated up through today. MONTHS[6] (the last entry) is that
+// partial current month; every dated insert below is additionally gated on `<= TODAY` so nothing
+// lands in the future. The opening balance sits on the eve of the window.
+const TODAY = todayStr(systemClock);
+const todayParts = TODAY.split("-").map(Number);
+const TODAY_YEAR = todayParts[0]!;
+const TODAY_MONTH = todayParts[1]!;
+const MONTHS = Array.from({ length: 7 }, (_, i) => shiftMonth(TODAY_YEAR, TODAY_MONTH, i - 6));
+const OPENING_ON = addDays(dom(MONTHS[0]!.year, MONTHS[0]!.month, 1), -1);
 
 // ── Envelopes & the monthly budget (drives the paycheck split + targets) ─────
 // Standard first, sinking funds last (mirrors the baseline seed's ordering convention).
@@ -313,7 +335,11 @@ const PAYCHECK_LINES = BUDGET.map((b, i) => ({
 }));
 
 // ── Opening balances ──────────────────────────────────────────────────────────
-const openingRows = await db
+// All four openings are left unallocated (like the checking/card/loan ones already were) — the
+// Emergency Fund envelope instead earns its balance from its ongoing paycheck line below, so it
+// shows a modest, *growing* balance rather than a one-time lump that dwarfs every other envelope's
+// net flow on the by-envelope chart.
+await db
   .insertInto("transactions")
   .values([
     {
@@ -345,22 +371,14 @@ const openingRows = await db
       occurred_on: OPENING_ON,
     },
   ])
-  .returning(["id"])
-  .execute();
-// The savings opening funds the Emergency Fund envelope, so it shows a live balance.
-await db
-  .insertInto("allocations")
-  .values({
-    transaction_id: openingRows[1]!.id,
-    envelope_id: env["Emergency Fund"]!,
-    amount_cents: 820_000,
-  })
   .execute();
 
-// ── Biweekly paychecks (13 across the window) ────────────────────────────────
-// Anchored on the first Friday, every 14 days, while inside the Jan–Jun window.
-let payday = "2026-01-02"; // a Friday
-while (payday < iso(YEAR, 7, 1)) {
+// ── Biweekly paychecks ────────────────────────────────────────────────────────
+// Anchored on the first Friday on/after the opening date, every 14 days, through today. The first
+// occurrence after today becomes the recurring rule's next_occurrence_on below.
+const firstPayday = firstFridayOnOrAfter(OPENING_ON);
+let payday = firstPayday;
+while (payday <= TODAY) {
   await addDeposit(
     db,
     checking,
@@ -372,102 +390,128 @@ while (payday < iso(YEAR, 7, 1)) {
   );
   payday = addDays(payday, 14);
 }
+const nextPayday = payday;
 
 // ── Monthly history ──────────────────────────────────────────────────────────
 for (let m = 0; m < MONTHS.length; m++) {
-  const month = MONTHS[m]!;
+  const { year, month } = MONTHS[m]!;
   const t = m / (MONTHS.length - 1); // 0 → 1 across the window, for trends
+  const dateOn = (day: number) => dom(year, month, day);
+  // Every date is additionally gated on `<= TODAY` — a no-op for the 6 full history months
+  // (always in the past) and what keeps the current (last, partial) month from inserting
+  // not-yet-happened transactions.
+  const past = (date: string) => date <= TODAY;
 
   // Bills paid from checking (the month-boundary cluster the planner exists for: 1/2/7/15/29).
-  await addSingle(db, checking, dom(month, 1), "Cedar Ridge Apartments", "Rent", -140_000);
-  await addSingle(db, checking, dom(month, 2), "Northstar Insurance", "Insurance", -12_000);
-  await addSingle(
-    db,
-    checking,
-    dom(month, 7),
-    "Municipal Power Co.",
-    "Electric",
-    -jitter(11_500, 0.18),
-  );
-  await addSingle(db, checking, dom(month, 15), "FiberStream ISP", "Internet", -7_500);
-  await addSingle(db, checking, dom(month, 15), "Cellwave Mobile", "Phone", -8_900);
-  await addSingle(
-    db,
-    checking,
-    dom(month, 29),
-    "City Water & Sewer",
-    "Water",
-    -jitter(4_500, 0.22),
-  );
+  if (past(dateOn(1)))
+    await addSingle(db, checking, dateOn(1), "Cedar Ridge Apartments", "Rent", -140_000);
+  if (past(dateOn(2)))
+    await addSingle(db, checking, dateOn(2), "Northstar Insurance", "Insurance", -12_000);
+  if (past(dateOn(7)))
+    await addSingle(
+      db,
+      checking,
+      dateOn(7),
+      "Municipal Power Co.",
+      "Electric",
+      -jitter(11_500, 0.18),
+    );
+  if (past(dateOn(15)))
+    await addSingle(db, checking, dateOn(15), "FiberStream ISP", "Internet", -7_500);
+  if (past(dateOn(15)))
+    await addSingle(db, checking, dateOn(15), "Cellwave Mobile", "Phone", -8_900);
+  if (past(dateOn(29)))
+    await addSingle(db, checking, dateOn(29), "City Water & Sewer", "Water", -jitter(4_500, 0.22));
 
   // Groceries — 7 trips/month, per-trip cost drifting UP across the window (a visible trend).
-  const perTrip = lerp(9_500, 13_500, t);
+  // Kept close to its $520/mo target (average ~$87/trip) so the cumulative funding/spend gap
+  // stays in scale with every other envelope's net flow on the by-envelope chart, rather than
+  // compounding into a multi-month outlier the way a much higher trend range would.
+  const perTrip = lerp(7_200, 10_200, t);
   for (const day of [3, 7, 11, 15, 19, 23, 27]) {
+    if (!past(dateOn(day))) continue;
     const payee = rng() < 0.5 ? "Harvest Market" : "GreenGrocer";
-    await addSingle(db, checking, dom(month, day), payee, "Groceries", -jitter(perTrip, 0.22));
+    await addSingle(db, checking, dateOn(day), payee, "Groceries", -jitter(perTrip, 0.22));
   }
 
   // Gas — 4 fill-ups/month from checking.
   for (const day of [5, 12, 19, 26]) {
-    await addSingle(db, checking, dom(month, day), "QuickFuel", "Gas", -jitter(5_000, 0.2));
+    if (past(dateOn(day)))
+      await addSingle(db, checking, dateOn(day), "QuickFuel", "Gas", -jitter(5_000, 0.2));
   }
 
   // Dining Out — 4/month on the credit card.
   for (const day of [6, 13, 20, 27]) {
+    if (!past(dateOn(day))) continue;
     const payee = rng() < 0.5 ? "The Corner Bistro" : "Noodle House";
-    await addSingle(db, card, dom(month, day), payee, "Dining Out", -jitter(6_000, 0.35));
+    await addSingle(db, card, dateOn(day), payee, "Dining Out", -jitter(6_000, 0.35));
   }
 
   // Recurring card subscriptions + card discretionary.
-  await addSingle(db, card, dom(month, 29), "StreamFlix", "Streaming Services", -2_800);
-  await addSingle(db, card, dom(month, 16), "Cineplex", "Entertainment", -jitter(10_000, 0.3));
-  await addSingle(db, card, dom(month, 22), "Trend Threads", "Clothing", -jitter(8_000, 0.4));
+  if (past(dateOn(29)))
+    await addSingle(db, card, dateOn(29), "StreamFlix", "Streaming Services", -2_800);
+  if (past(dateOn(16)))
+    await addSingle(db, card, dateOn(16), "Cineplex", "Entertainment", -jitter(10_000, 0.3));
+  if (past(dateOn(22)))
+    await addSingle(db, card, dateOn(22), "Trend Threads", "Clothing", -jitter(8_000, 0.4));
 
-  // Discretionary from checking; Medical has a one-month spike in March (m === 2).
-  await addSingle(
-    db,
-    checking,
-    dom(month, 8),
-    "HomeMart",
-    "Household Supplies",
-    -jitter(8_000, 0.3),
-  );
-  await addSingle(
-    db,
-    checking,
-    dom(month, 10),
-    "Clip & Style",
-    "Personal Care",
-    -jitter(6_000, 0.25),
-  );
-  const medical = m === 2 ? 45_000 : jitter(5_000, 0.3);
-  await addSingle(
-    db,
-    checking,
-    dom(month, 18),
-    m === 2 ? "Regional Clinic" : "Corner Pharmacy",
-    "Medical",
-    -medical,
-  );
-  await addSingle(db, checking, dom(month, 24), "Paws & Claws", "Pet Care", -jitter(5_000, 0.25));
-  await addSingle(
-    db,
-    checking,
-    dom(month, 26),
-    "Sundry Store",
-    "Miscellaneous",
-    -jitter(6_000, 0.4),
-  );
+  // Discretionary from checking; Medical has a one-month spike partway through the window.
+  if (past(dateOn(8)))
+    await addSingle(db, checking, dateOn(8), "HomeMart", "Household Supplies", -jitter(8_000, 0.3));
+  if (past(dateOn(10)))
+    await addSingle(
+      db,
+      checking,
+      dateOn(10),
+      "Clip & Style",
+      "Personal Care",
+      -jitter(6_000, 0.25),
+    );
+  if (past(dateOn(18))) {
+    const medical = m === 2 ? 45_000 : jitter(5_000, 0.3);
+    await addSingle(
+      db,
+      checking,
+      dateOn(18),
+      m === 2 ? "Regional Clinic" : "Corner Pharmacy",
+      "Medical",
+      -medical,
+    );
+  }
+  if (past(dateOn(24)))
+    await addSingle(db, checking, dateOn(24), "Paws & Claws", "Pet Care", -jitter(5_000, 0.25));
+  if (past(dateOn(26)))
+    await addSingle(db, checking, dateOn(26), "Sundry Store", "Miscellaneous", -jitter(6_000, 0.4));
 
-  // Debt payments (transfers): loan every month, card Jan–May.
-  await addTransfer(db, checking, loan, dom(month, 5), 40_000, "Auto loan payment");
-  if (m < 5) await addTransfer(db, checking, card, dom(month, 20), 30_000, "Credit card payment");
+  // Debt payments (transfers): loan every month, card in all but the last.
+  if (past(dateOn(5)))
+    await addTransfer(db, checking, loan, dateOn(5), 40_000, "Auto loan payment");
+  if (m < MONTHS.length - 1 && past(dateOn(20)))
+    await addTransfer(db, checking, card, dateOn(20), 30_000, "Credit card payment");
 }
 
 // A one-off account transfer to savings, and a refund back into an envelope — so those ledger
-// shapes appear.
-await addTransfer(db, checking, savings, "2026-03-15", 50_000, "Top up savings");
-await addSingle(db, checking, "2026-04-12", "Trend Threads (refund)", "Clothing", 4_000);
+// shapes appear. Anchored to fully-historical months (indices 2–4 of the 7-month window), well
+// clear of the partial current month.
+const savingsTopUpMonth = MONTHS[2]!;
+const refundMonth = MONTHS[3]!;
+const reallocationMonth = MONTHS[4]!;
+await addTransfer(
+  db,
+  checking,
+  savings,
+  dom(savingsTopUpMonth.year, savingsTopUpMonth.month, 15),
+  50_000,
+  "Top up savings",
+);
+await addSingle(
+  db,
+  checking,
+  dom(refundMonth.year, refundMonth.month, 12),
+  "Trend Threads (refund)",
+  "Clothing",
+  4_000,
+);
 
 // An envelope↔envelope reallocation (re-budget, no account movement) — Manage/reallocation shape.
 await db
@@ -477,7 +521,7 @@ await db
     from_envelope_id: env["Miscellaneous"]!,
     to_envelope_id: env["Vacation"]!,
     amount_cents: 5_000,
-    occurred_on: "2026-05-10",
+    occurred_on: dom(reallocationMonth.year, reallocationMonth.month, 10),
     memo: "Move leftover to the vacation fund",
   })
   .execute();
@@ -505,7 +549,17 @@ await db
   .execute();
 
 // ── Recurring rules (the planner's upcoming pay periods + bill cluster) ───────
-// Biweekly paycheck — next future occurrence after 2026-07-07.
+// Every next_occurrence_on below is strictly after TODAY — computed, not hardcoded — so the
+// Recurring page and dashboard "Upcoming" widget always read as current, never overdue.
+/** The next occurrence of a given day-of-month, strictly after today. */
+function nextMonthlyOccurrence(day: number): string {
+  const thisMonth = dom(TODAY_YEAR, TODAY_MONTH, day);
+  if (thisMonth > TODAY) return thisMonth;
+  const next = shiftMonth(TODAY_YEAR, TODAY_MONTH, 1);
+  return dom(next.year, next.month, day);
+}
+
+// Biweekly paycheck.
 const paycheckRule = await db
   .insertInto("recurring_transactions")
   .values({
@@ -516,8 +570,8 @@ const paycheckRule = await db
     payee: "Northwind Payroll",
     memo: "Paycheck",
     frequency: "biweekly",
-    anchor_on: "2026-01-02",
-    next_occurrence_on: "2026-07-17",
+    anchor_on: firstPayday,
+    next_occurrence_on: nextPayday,
   })
   .returning(["id"])
   .executeTakeFirstOrThrow();
@@ -534,52 +588,15 @@ await db
   .execute();
 
 // Monthly bills as withdrawal rules — anchored across the month boundary (1/2/7/15/29).
-const BILL_RULES: { payee: string; envelope: string; amount: number; day: number; next: string }[] =
-  [
-    {
-      payee: "Cedar Ridge Apartments",
-      envelope: "Rent",
-      amount: 140_000,
-      day: 1,
-      next: iso(YEAR, 8, 1),
-    },
-    {
-      payee: "Northstar Insurance",
-      envelope: "Insurance",
-      amount: 12_000,
-      day: 2,
-      next: iso(YEAR, 8, 2),
-    },
-    {
-      payee: "Municipal Power Co.",
-      envelope: "Electric",
-      amount: 11_500,
-      day: 7,
-      next: iso(YEAR, 8, 7),
-    },
-    {
-      payee: "FiberStream ISP",
-      envelope: "Internet",
-      amount: 7_500,
-      day: 15,
-      next: iso(YEAR, 7, 15),
-    },
-    { payee: "Cellwave Mobile", envelope: "Phone", amount: 8_900, day: 15, next: iso(YEAR, 7, 15) },
-    {
-      payee: "City Water & Sewer",
-      envelope: "Water",
-      amount: 4_500,
-      day: 29,
-      next: iso(YEAR, 7, 29),
-    },
-    {
-      payee: "StreamFlix",
-      envelope: "Streaming Services",
-      amount: 2_800,
-      day: 29,
-      next: iso(YEAR, 7, 29),
-    },
-  ];
+const BILL_RULES: { payee: string; envelope: string; amount: number; day: number }[] = [
+  { payee: "Cedar Ridge Apartments", envelope: "Rent", amount: 140_000, day: 1 },
+  { payee: "Northstar Insurance", envelope: "Insurance", amount: 12_000, day: 2 },
+  { payee: "Municipal Power Co.", envelope: "Electric", amount: 11_500, day: 7 },
+  { payee: "FiberStream ISP", envelope: "Internet", amount: 7_500, day: 15 },
+  { payee: "Cellwave Mobile", envelope: "Phone", amount: 8_900, day: 15 },
+  { payee: "City Water & Sewer", envelope: "Water", amount: 4_500, day: 29 },
+  { payee: "StreamFlix", envelope: "Streaming Services", amount: 2_800, day: 29 },
+];
 for (const bill of BILL_RULES) {
   const rule = await db
     .insertInto("recurring_transactions")
@@ -590,8 +607,8 @@ for (const bill of BILL_RULES) {
       amount_cents: bill.amount,
       payee: bill.payee,
       frequency: "monthly",
-      anchor_on: iso(YEAR, 1, bill.day),
-      next_occurrence_on: bill.next,
+      anchor_on: dom(MONTHS[0]!.year, MONTHS[0]!.month, bill.day),
+      next_occurrence_on: nextMonthlyOccurrence(bill.day),
     })
     .returning(["id"])
     .executeTakeFirstOrThrow();
@@ -640,7 +657,9 @@ await addTemplate("Paycheck Split", PAYCHECK_LINES);
 await addTemplate("Weekly Grocery Run", [{ envelope: "Groceries", amount: 12_000 }]);
 
 console.log("Demo seed complete (strictly synthetic).");
-console.log("  4 accounts · 22 envelopes · ~6 months of dated history (Jan–Jun 2026)");
+console.log(
+  `  4 accounts · 22 envelopes · dated history ${OPENING_ON} → ${TODAY} (6 months + today)`,
+);
 console.log(
   "  targets · credit limit · loan principal · biweekly paycheck + 7 bill rules · 3 templates",
 );

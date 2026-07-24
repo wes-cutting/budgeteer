@@ -16,7 +16,8 @@
  * script owns the api-demo server for its own duration and fails loudly if something else
  * is already listening there.
  *
- * Usage: npm run capture:demo
+ * Usage: npm run capture:demo             — screenshots only (default; faster)
+ *        npm run capture:demo:video       — screenshots + the golden-path video
  */
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
@@ -33,11 +34,12 @@ const API_BASE = `http://localhost:${API_PORT}`;
 // Relative to apps/api's cwd (the convention every other script in apps/api/src/db uses).
 const PGLITE_DIR = "../../data/budgeteer-demo";
 const VIEWPORT = { width: 1920, height: 1080 };
+const SKIP_VIDEO = process.argv.includes("--no-video");
 
 const stamp = new Date().toISOString().replace(/:/g, "-").split(".")[0];
 const OUT = path.resolve(ROOT, "data/demo-assets", stamp);
 mkdirSync(path.join(OUT, "screenshots"), { recursive: true });
-mkdirSync(path.join(OUT, "video"), { recursive: true });
+if (!SKIP_VIDEO) mkdirSync(path.join(OUT, "video"), { recursive: true });
 
 function assertPortFree(port: number): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -130,7 +132,7 @@ try {
   async function shot(route: string, file: string) {
     await page.goto(`${WEB_BASE}${route}`, { waitUntil: "networkidle" });
     await page.waitForTimeout(300);
-    await page.screenshot({ path: path.join(OUT, "screenshots", file) });
+    await page.screenshot({ path: path.join(OUT, "screenshots", file), fullPage: true });
     console.log("saved", file);
   }
 
@@ -138,7 +140,10 @@ try {
 
   await page.getByRole("link", { name: "Pay periods" }).click();
   await page.waitForTimeout(300);
-  await page.screenshot({ path: path.join(OUT, "screenshots", "02-dashboard-pay-periods.png") });
+  await page.screenshot({
+    path: path.join(OUT, "screenshots", "02-dashboard-pay-periods.png"),
+    fullPage: true,
+  });
   console.log("saved 02-dashboard-pay-periods.png");
 
   // Every Insights sub-view (apps/web/src/AnalysisSection.tsx CATEGORIES) — each is its own
@@ -159,7 +164,10 @@ try {
   // list route renders real <Link>s, so click through rather than guessing the seeded UUID.
   await page.getByRole("link", { name: "Everyday Checking", exact: true }).click();
   await page.waitForTimeout(300);
-  await page.screenshot({ path: path.join(OUT, "screenshots", "13-account-register.png") });
+  await page.screenshot({
+    path: path.join(OUT, "screenshots", "13-account-register.png"),
+    fullPage: true,
+  });
   console.log("saved 13-account-register.png");
 
   await shot("/envelopes", "14-envelopes.png");
@@ -168,7 +176,10 @@ try {
   // demo transaction below), not every envelope.
   await page.getByRole("link", { name: "Groceries", exact: true }).click();
   await page.waitForTimeout(300);
-  await page.screenshot({ path: path.join(OUT, "screenshots", "15-envelope-ledger.png") });
+  await page.screenshot({
+    path: path.join(OUT, "screenshots", "15-envelope-ledger.png"),
+    fullPage: true,
+  });
   console.log("saved 15-envelope-ledger.png");
 
   await shot("/needs-allocation", "16-needs-allocation.png");
@@ -191,40 +202,47 @@ try {
   await page.getByRole("combobox", { name: "Envelope for row 2" }).selectOption({ label: "Household Supplies" });
   await page.getByRole("button", { name: "use remaining" }).nth(1).click();
   await page.waitForTimeout(200);
-  await page.screenshot({ path: path.join(OUT, "screenshots", "20-split-allocation.png") });
+  await page.screenshot({
+    path: path.join(OUT, "screenshots", "20-split-allocation.png"),
+    fullPage: true,
+  });
   console.log("saved 20-split-allocation.png");
 
   await context.close();
 
   // --- Golden-path video (1x scale — 2x would roughly 4x the file size) ---
-  const videoContext = await browser.newContext({
-    viewport: VIEWPORT,
-    recordVideo: { dir: path.join(OUT, "video"), size: VIEWPORT },
-  });
-  const vp = await videoContext.newPage();
-  await vp.goto(`${WEB_BASE}/`, { waitUntil: "networkidle" });
-  await vp.waitForTimeout(800);
-  await vp.getByRole("link", { name: "Add transaction" }).click();
-  await vp.waitForTimeout(500);
-  await vp.getByRole("combobox", { name: "Account" }).selectOption({ label: "Everyday Checking" });
-  await vp.waitForTimeout(300);
-  await vp.getByRole("textbox", { name: "Transaction amount" }).fill("126.40");
-  await vp.waitForTimeout(300);
-  await vp.getByRole("textbox", { name: "Payee" }).fill("Trader Joe's");
-  await vp.waitForTimeout(300);
-  await vp.getByRole("radio", { name: "Split" }).click();
-  await vp.waitForTimeout(400);
-  await vp.getByRole("combobox", { name: "Envelope for row 1" }).selectOption({ label: "Groceries" });
-  await vp.getByRole("textbox", { name: "Amount for row 1" }).fill("80");
-  await vp.waitForTimeout(400);
-  await vp.getByRole("button", { name: "Add row" }).click();
-  await vp.waitForTimeout(300);
-  await vp.getByRole("combobox", { name: "Envelope for row 2" }).selectOption({ label: "Household Supplies" });
-  await vp.getByRole("button", { name: "use remaining" }).nth(1).click();
-  await vp.waitForTimeout(1200);
-  await vp.getByRole("button", { name: "Save transaction" }).click();
-  await vp.waitForTimeout(1500);
-  await videoContext.close();
+  if (SKIP_VIDEO) {
+    console.log("skipped video (--no-video)");
+  } else {
+    const videoContext = await browser.newContext({
+      viewport: VIEWPORT,
+      recordVideo: { dir: path.join(OUT, "video"), size: VIEWPORT },
+    });
+    const vp = await videoContext.newPage();
+    await vp.goto(`${WEB_BASE}/`, { waitUntil: "networkidle" });
+    await vp.waitForTimeout(800);
+    await vp.getByRole("link", { name: "Add transaction" }).click();
+    await vp.waitForTimeout(500);
+    await vp.getByRole("combobox", { name: "Account" }).selectOption({ label: "Everyday Checking" });
+    await vp.waitForTimeout(300);
+    await vp.getByRole("textbox", { name: "Transaction amount" }).fill("126.40");
+    await vp.waitForTimeout(300);
+    await vp.getByRole("textbox", { name: "Payee" }).fill("Trader Joe's");
+    await vp.waitForTimeout(300);
+    await vp.getByRole("radio", { name: "Split" }).click();
+    await vp.waitForTimeout(400);
+    await vp.getByRole("combobox", { name: "Envelope for row 1" }).selectOption({ label: "Groceries" });
+    await vp.getByRole("textbox", { name: "Amount for row 1" }).fill("80");
+    await vp.waitForTimeout(400);
+    await vp.getByRole("button", { name: "Add row" }).click();
+    await vp.waitForTimeout(300);
+    await vp.getByRole("combobox", { name: "Envelope for row 2" }).selectOption({ label: "Household Supplies" });
+    await vp.getByRole("button", { name: "use remaining" }).nth(1).click();
+    await vp.waitForTimeout(1200);
+    await vp.getByRole("button", { name: "Save transaction" }).click();
+    await vp.waitForTimeout(1500);
+    await videoContext.close();
+  }
 
   await browser.close();
   console.log(`\nSaved to ${OUT}`);
