@@ -33,7 +33,10 @@ sheet parity (BUD-E9), hardening (BUD-E11), and the real data & history import (
 - Ratify or veto FEAT-S7 §5's residual divergence (`BUD-S61`) — balanced latest-fit vs. the
   sheet's month-boundary float ([FEAT-S7 §5](features/pay-periods.md) · [SPIKE-10 §3.6](spikes/10-payperiod-policy-validation.md)); a veto scopes the §8 assignment store (a §11 scale-up).
 - Apply the reviewed merchant→envelope rules for the statement era (`BUD-S80`; opt-in, no app code).
-- `BUD-E13` multi-user / household scoping — deferred epic, full ceremony.
+- `BUD-E13` multi-user / household scoping — **now active as the exposure blocker for `BUD-E14`** (owner-confirmed 2026-07-29 to build as the full epic); needs discovery → spike → tenancy ADR → slices.
+
+**In flight:**
+- `BUD-E14` **Hub deployment readiness** (new epic) — deploy budgeteer as a self-hosted ARM64 container service on labs-hub. Brief: [2026-07-27 initiative](reviews/2026-07-27-hub-deployment-readiness-initiative.md); runtime shape: [ADR-0008](adr/ADR-0008-containerized-production-runtime.md). SPIKE-12 proved the production Postgres path (`BUD-S82` largely de-risked); build fronts B/D/E (`BUD-S81/S83/S84`) are `Ready` and can run in parallel; going live waits on `BUD-E13`.
 
 > **This is a transitional restructure.** Content is faithful to `03_ROADMAP.md`; only the
 > id scheme and grouping changed. `FEAT-*` spec names, `features/*` and `status-reports/*`
@@ -59,6 +62,7 @@ in either doc (they appear only in the log/spike reports) and are omitted here.
 | New ID | Type | Title | Was | Epic |
 | --- | --- | --- | --- | --- |
 | `BUD-E13` | epic | Multi-user / household scoping | `#19` | Multi-user / household scoping |
+| `BUD-E14` | epic | Hub deployment readiness | — | Hub deployment readiness |
 | `BUD-S1` | story | Foundation | `#1` | Foundation & stack |
 | `BUD-S2` | story | core enter→allocate loop — enter deposit/withdrawal → allocate in Sing… | `#3` | Core budgeting domain |
 | `BUD-S3` | story | accelerators — templates/presets | `#4` | Core budgeting domain |
@@ -151,6 +155,12 @@ in either doc (they appear only in the log/spike reports) and are omitted here.
 | `SPIKE-06` | spike | Spike: design-system + routing foundation | `UX1` | UX Uplift |
 | `SPIKE-07` | spike | Spike: accessible charting / viz a11y | `UX2` | UX Uplift |
 | `SPIKE-11` | spike | SPIKE-11 — data-profiling: | `#21` | Data & history import |
+| `BUD-S81` | story | Containerization — multi-stage ARM64 image | — | Hub deployment readiness |
+| `BUD-S82` | story | Production Postgres validation + `/health` DB readiness | — | Hub deployment readiness |
+| `BUD-S83` | story | Production config profile + deploy contract | — | Hub deployment readiness |
+| `BUD-S84` | story | CI image publishing to GHCR (ARM64) | — | Hub deployment readiness |
+| `BUD-S85` | story | Data-at-rest encryption + backup/restore validation | — | Hub deployment readiness |
+| `SPIKE-12` | spike | Postgres production-runtime validation | — | Hub deployment readiness |
 
 
 ## 3. The plan
@@ -365,11 +375,24 @@ The owner's real financial history — the 12-year workbook and the post-reset s
 
 ### BUD-E13 — Multi-user / household scoping
 
-Deferred epic (no stories yet). Auth + owner/household isolation — a §11 scale-up trigger requiring full ceremony (tenancy ADR + threat model + property tests). Absorbs the reviews' "no authentication" finding and BUD-S38 (SEC3).
+Auth + owner/household isolation — a §11 scale-up trigger requiring full ceremony (tenancy ADR + threat model + property tests). Absorbs the reviews' "no authentication" finding and BUD-S38 (SEC3). **The deferral trigger has now fired:** BUD-E14 (hub deployment) requires serving on the LAN, and per SECURITY.md §3 / EH11 that is the documented trigger to pull this epic forward. It is now **the exposure blocker for BUD-E14** — owner-confirmed 2026-07-29 to build as the **full epic** (not a compressed single-household gate). Still needs its own discovery → spike → tenancy ADR → slices; no stories decomposed yet.
 
-| ID | Was | Item | Kind | Why deferred | Status |
+| ID | Was | Item | Kind | Why | Status |
 | --- | --- | --- | --- | --- | --- |
-| **BUD-E13** | #19 | **Multi-user / household scoping** (auth · owner/household isolation) | epic | Future direction; a §11 scale-up trigger → full ceremony (tenancy ADR + threat model + property tests). **Absorbs the review's "no authentication" finding** ([2026-06-15 review](reviews/2026-06-15-repo-review.md)) | Deferred |
+| **BUD-E13** | #19 | **Multi-user / household scoping** (auth · owner/household isolation) | epic | Now the **exposure blocker for BUD-E14** (LAN serving = the SECURITY.md §3 trigger). Full ceremony: tenancy ADR + threat model + property tests. **Absorbs the review's "no authentication" finding** ([2026-06-15 review](reviews/2026-06-15-repo-review.md)) + BUD-S38 (SEC3) | Active (blocker) — needs discovery/spike/ADR |
+
+### BUD-E14 — Hub deployment readiness
+
+Make budgeteer deployable as a self-hosted container service on **labs-hub** (a portable Raspberry Pi 5 / ARM64 hub, LAN-only behind CGNAT). Brief: [2026-07-27 hub deployment-readiness initiative](reviews/2026-07-27-hub-deployment-readiness-initiative.md). Decided runtime shape: [ADR-0008](adr/ADR-0008-containerized-production-runtime.md). **Exposure gated by BUD-E13** (auth before `0.0.0.0`); the build fronts (B–E) can proceed in parallel now.
+
+| ID | Was | Front | Item | Kind | Gated by | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| **BUD-S81** | — | B | **Containerization** — multi-stage Dockerfile: `vite build` static + Fastify API in one image serving both (`@fastify/static`); must build for **ARM64**. Validates ADR-0008's image half. | slice | ADR-0008 | **Ready** |
+| **BUD-S82** | — | C | **Production Postgres + `/health` readiness** — run against real PostgreSQL 16 via `DATABASE_URL`, migrate-on-boot; **extend `/health` to check DB reachability** (a true readiness probe). Runtime path **already proven** by SPIKE-12; the residual is the `/health` DB check + a compose validation harness. | slice | SPIKE-12 ✅ | **Ready** (largely de-risked) |
+| **BUD-S83** | — | D | **Production config profile + deploy contract** — validated prod env (`DATABASE_URL`, `CORS_ORIGINS`, `HOST=0.0.0.0` *only once BUD-E13 ships*, `VITE_API_BASE_URL`, auth secrets); publish the initiative §5 deploy contract for labs-hub LH-S3. Extends `config.ts`, no rebuild. | slice | BUD-S81 · BUD-S82 | **Ready** |
+| **BUD-S84** | — | E | **CI image publishing** — GitHub Actions builds the ARM64 image and pushes to `ghcr.io/wes-cutting/budgeteer:<tag>` on release/tag; the Pi pulls by tag/digest (never builds on-node). | tooling | BUD-S81 | **Ready** |
+| **BUD-S85** | — | F | **Data-at-rest & backup** — decide at-rest encryption (with labs-hub SPIKE-03) for a physically-stealable node; re-prove backup/restore **on Postgres** (CLI-only restore; no HTTP import — SEC3). | hardening | BUD-S82 · labs-hub SPIKE-03 | **Ready** |
+| **SPIKE-12** | — | C | **Postgres production-runtime validation** — does the wired `pg` path run against real PostgreSQL 16 (migrate · read · aggregate money · write · error-map) with no PGlite divergence? | spike | — | **Done** 2026-07-29 — **yes, zero code change** (PostgreSQL 16.14 aarch64); one gap: `/health` is liveness-only → `BUD-S82`. [SPIKE-12](spikes/12-postgres-production-validation.md) |
 
 ### Tasks under BUD-S57 (UX Uplift — Feedback & states)
 

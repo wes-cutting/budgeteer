@@ -111,6 +111,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | `BUD-S78` | `#16` | a11y pass | — | — | [2026-06-21-16.md](../status-reports/2026-06-21-16.md) |
 | `BUD-S79` | `#18` | Historical import | — | — | [2026-07-10-history-import.md](../status-reports/2026-07-10-history-import.md) |
 | `BUD-S80` | `#20` | Statement import | — | [11-statement-extraction.md](../spikes/11-statement-extraction.md) | [2026-07-10-statement-import.md](../status-reports/2026-07-10-statement-import.md) |
+| `BUD-S82` | `—` | Production Postgres validation + `/health` DB readiness | — | [12-postgres-production-validation.md](../spikes/12-postgres-production-validation.md) | — |
 | `SPIKE-01` | `#0` | Split-allocation UX | — | [01-split-allocation-ux.md](../spikes/01-split-allocation-ux.md) | — |
 | `SPIKE-02` | `#2` | Technical feasibility / stack | — | [02-stack-feasibility.md](../spikes/02-stack-feasibility.md) | — |
 | `SPIKE-03` | `#17` | SPIKE-03 — data-profiling: | — | [03-history-extraction.md](../spikes/03-history-extraction.md) | [2026-07-10-history-import.md](../status-reports/2026-07-10-history-import.md) |
@@ -119,6 +120,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | `SPIKE-06` | `UX1` | Spike: design-system + routing foundation | — | [06-design-system-routing.md](../spikes/06-design-system-routing.md) | — |
 | `SPIKE-07` | `UX2` | Spike: accessible charting / viz a11y | — | [07-accessible-charting.md](../spikes/07-accessible-charting.md) | [2026-06-28-ux2.md](../status-reports/2026-06-28-ux2.md) |
 | `SPIKE-11` | `#21` | SPIKE-11 — data-profiling: | — | [11-statement-extraction.md](../spikes/11-statement-extraction.md) | [2026-07-10-spike-11-statement-profiling.md](../status-reports/2026-07-10-spike-11-statement-profiling.md) |
+| `SPIKE-12` | `—` | Postgres production-runtime validation | — | [12-postgres-production-validation.md](../spikes/12-postgres-production-validation.md) | — |
 
 ## 2. Reverse — each artifact → its roadmap id (and its declared status)
 
@@ -173,6 +175,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | [`spikes/09-restore-roundtrip.md`](../spikes/09-restore-roundtrip.md) | Done | `BUD-S31` (EH10) |
 | [`spikes/10-payperiod-policy-validation.md`](../spikes/10-payperiod-policy-validation.md) | Done | `BUD-S61` (S7) |
 | [`spikes/11-statement-extraction.md`](../spikes/11-statement-extraction.md) | Done | `BUD-S80` (#20) · `SPIKE-11` (#21) |
+| [`spikes/12-postgres-production-validation.md`](../spikes/12-postgres-production-validation.md) | Done | `BUD-S82` (—) · `SPIKE-12` (—) |
 | [`status-reports/2026-06-13-foundation-slice.md`](../status-reports/2026-06-13-foundation-slice.md) | Snapshot | `BUD-S1` (#1) |
 | [`status-reports/2026-06-13-slice-1.md`](../status-reports/2026-06-13-slice-1.md) | Snapshot | `BUD-S2` (#3) |
 | [`status-reports/2026-06-13-slice-2.md`](../status-reports/2026-06-13-slice-2.md) | Snapshot | `BUD-S3` (#4) |
@@ -285,6 +288,6 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 
 ## 3. Coverage
 
-- **158** of **158** artifact files carry a `roadmap-item` in their frontmatter
+- **159** of **159** artifact files carry a `roadmap-item` in their frontmatter
   and appear above — **self-describing**, no supplement, no roadmap-link dependency.
 - **0** with a frontmatter problem (see `npm run docs:check`).

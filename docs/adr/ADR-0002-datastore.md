@@ -1,7 +1,7 @@
 ---
 type: adr
 id: ADR-0002
-status: Proposed
+status: Validated
 ---
 <!--
 ADR — one decision per file. Append-only: supersede, don't edit. Status ladder:
@@ -12,10 +12,10 @@ docs/00_WAYS_OF_WORKING.md §4. Stay Proposed until a spike/slice validates the 
 
 | Field         | Value                                                              |
 | ------------- | ------------------------------------------------------------------ |
-| Status        | Proposed                                                           |
+| Status        | Validated                                                          |
 | Date          | 2026-06-13                                                         |
 | Deciders      | Wesley Cutting + agent                                             |
-| Validated by  | Access-layer **seam** validated by [`SPIKE-02`](../spikes/02-stack-feasibility.md); Postgres wiring to be confirmed in the Foundation slice |
+| Validated by  | Access-layer **seam** validated by [`SPIKE-02`](../spikes/02-stack-feasibility.md); real-**PostgreSQL 16** production path (migrate-on-boot · reads · aggregate money math · writes · error mapping) confirmed by [`SPIKE-12`](../spikes/12-postgres-production-validation.md) |
 
 ## Context
 
