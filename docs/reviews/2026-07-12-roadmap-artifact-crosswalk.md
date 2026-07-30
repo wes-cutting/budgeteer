@@ -36,6 +36,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | --- | --- | --- | --- | --- | --- |
 | `BUD-E9` | `—` | Sheet parity | — | [08-budgethome-sheet-analysis.md](../spikes/08-budgethome-sheet-analysis.md) | — |
 | `BUD-E10` | `—` | UX Redesign | — | — | [2026-07-07-uxr-scoping.md](../status-reports/2026-07-07-uxr-scoping.md) |
+| `BUD-E13` | `#19` | Multi-user / household scoping | — | [13-auth-seam.md](../spikes/13-auth-seam.md) | — |
 | `BUD-S1` | `#1` | Foundation | [accounts.md](../features/accounts.md) · [envelopes.md](../features/envelopes.md) · [foundation.md](../ux/foundation.md) | — | [2026-06-13-foundation-slice.md](../status-reports/2026-06-13-foundation-slice.md) |
 | `BUD-S2` | `#3` | core enter→allocate loop — enter deposit/withdrawal → allocate in Sing… | [transactions.md](../features/transactions.md) · [transactions.md](../ux/transactions.md) | — | [2026-06-13-slice-1.md](../status-reports/2026-06-13-slice-1.md) |
 | `BUD-S3` | `#4` | accelerators — templates/presets | [templates.md](../features/templates.md) · [templates.md](../ux/templates.md) | [01-split-allocation-ux.md](../spikes/01-split-allocation-ux.md) | [2026-06-13-slice-2.md](../status-reports/2026-06-13-slice-2.md) |
@@ -121,6 +122,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | `SPIKE-07` | `UX2` | Spike: accessible charting / viz a11y | — | [07-accessible-charting.md](../spikes/07-accessible-charting.md) | [2026-06-28-ux2.md](../status-reports/2026-06-28-ux2.md) |
 | `SPIKE-11` | `#21` | SPIKE-11 — data-profiling: | — | [11-statement-extraction.md](../spikes/11-statement-extraction.md) | [2026-07-10-spike-11-statement-profiling.md](../status-reports/2026-07-10-spike-11-statement-profiling.md) |
 | `SPIKE-12` | `—` | Postgres production-runtime validation | — | [12-postgres-production-validation.md](../spikes/12-postgres-production-validation.md) | — |
+| `SPIKE-13` | `—` | Auth vertical seam (BUD-E13 shape A) | — | [13-auth-seam.md](../spikes/13-auth-seam.md) | — |
 
 ## 2. Reverse — each artifact → its roadmap id (and its declared status)
 
@@ -176,6 +178,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | [`spikes/10-payperiod-policy-validation.md`](../spikes/10-payperiod-policy-validation.md) | Done | `BUD-S61` (S7) |
 | [`spikes/11-statement-extraction.md`](../spikes/11-statement-extraction.md) | Done | `BUD-S80` (#20) · `SPIKE-11` (#21) |
 | [`spikes/12-postgres-production-validation.md`](../spikes/12-postgres-production-validation.md) | Done | `BUD-S82` (—) · `SPIKE-12` (—) |
+| [`spikes/13-auth-seam.md`](../spikes/13-auth-seam.md) | Done | `BUD-E13` (#19) · `SPIKE-13` (—) |
 | [`status-reports/2026-06-13-foundation-slice.md`](../status-reports/2026-06-13-foundation-slice.md) | Snapshot | `BUD-S1` (#1) |
 | [`status-reports/2026-06-13-slice-1.md`](../status-reports/2026-06-13-slice-1.md) | Snapshot | `BUD-S2` (#3) |
 | [`status-reports/2026-06-13-slice-2.md`](../status-reports/2026-06-13-slice-2.md) | Snapshot | `BUD-S3` (#4) |
@@ -288,6 +291,6 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 
 ## 3. Coverage
 
-- **159** of **159** artifact files carry a `roadmap-item` in their frontmatter
+- **160** of **160** artifact files carry a `roadmap-item` in their frontmatter
   and appear above — **self-describing**, no supplement, no roadmap-link dependency.
 - **0** with a frontmatter problem (see `npm run docs:check`).

@@ -19,6 +19,7 @@ a decision, write a new ADR that supersedes the old one — never edit history);
 | [ADR-0006](ADR-0006-client-routing.md) | Client routing (React Router data router) | Validated (by SPIKE-06) |
 | [ADR-0007](ADR-0007-accessible-charting.md) | Accessible charting (hand-rolled SVG + data-table fallback) | Accepted (validated by SPIKE-07) |
 | [ADR-0008](ADR-0008-containerized-production-runtime.md) | Containerized production runtime (single ARM64 image · Postgres · GHCR) | Proposed (runtime half validated by SPIKE-12) |
+| [ADR-0009](ADR-0009-authentication-household-scoping.md) | Authentication & household scoping (per-user auth · principal-scoped queries · no in-app multi-tenancy) | Proposed (mechanism validated by SPIKE-13) |
 
 > Add a row per ADR as it's written, newest decisions kept discoverable. When a decision
 > is replaced, mark the old ADR `Superseded by ADR-XXXX` and add the new one — don't delete

@@ -161,6 +161,11 @@ in either doc (they appear only in the log/spike reports) and are omitted here.
 | `BUD-S84` | story | CI image publishing to GHCR (ARM64) | — | Hub deployment readiness |
 | `BUD-S85` | story | Data-at-rest encryption + backup/restore validation | — | Hub deployment readiness |
 | `SPIKE-12` | spike | Postgres production-runtime validation | — | Hub deployment readiness |
+| `SPIKE-13` | spike | Auth vertical seam (BUD-E13 shape A) | — | Multi-user / household scoping |
+| `BUD-S86` | story | Principal seam refactor | — | Multi-user / household scoping |
+| `BUD-S87` | story | Auth core + login | — | Multi-user / household scoping |
+| `BUD-S88` | story | Roles + user management | — | Multi-user / household scoping |
+| `BUD-S89` | story | Login hardening + threat-model tests | — | Multi-user / household scoping |
 
 
 ## 3. The plan
@@ -375,11 +380,28 @@ The owner's real financial history — the 12-year workbook and the post-reset s
 
 ### BUD-E13 — Multi-user / household scoping
 
-Auth + owner/household isolation — a §11 scale-up trigger requiring full ceremony (tenancy ADR + threat model + property tests). Absorbs the reviews' "no authentication" finding and BUD-S38 (SEC3). **The deferral trigger has now fired:** BUD-E14 (hub deployment) requires serving on the LAN, and per SECURITY.md §3 / EH11 that is the documented trigger to pull this epic forward. It is now **the exposure blocker for BUD-E14** — owner-confirmed 2026-07-29 to build as the **full epic** (not a compressed single-household gate). Still needs its own discovery → spike → tenancy ADR → slices; no stories decomposed yet.
+Auth + owner/household isolation — a §11 scale-up trigger requiring full ceremony (tenancy ADR + threat model + property tests). Absorbs the reviews' "no authentication" finding and BUD-S38 (SEC3). **The deferral trigger has now fired:** BUD-E14 (hub deployment) requires serving on the LAN, and per SECURITY.md §3 / EH11 that is the documented trigger to pull this epic forward. It is now **the exposure blocker for BUD-E14**.
+
+**Discovery — decided 2026-07-29 (owner):**
+- **Tenancy shape A** — *one household, multiple member users* (not in-app multi-tenant isolation). Every table already carries `household_id` (ADR-0002 "designed toward"), so a future isolated-multi-household flip stays additive — but the chosen escape hatch for multi-household is **a separate container per household** (process/data isolation at the container boundary; ADR-0008 makes this cheap), so in-app RLS may never be needed. B (isolated households via RLS) is explicitly deferred and matched against Non-goal §8 of the [deploy initiative](reviews/2026-07-27-hub-deployment-readiness-initiative.md).
+- **Roles: admin + member** — admins manage users + run sensitive ops; members use the ledger. (Backup/restore stays CLI-only regardless — SEC3.)
+- **Recovery: CLI / admin reset** — no SMTP dependency on a CGNAT LAN box.
+- **The architectural crux:** `household_id` scoping is structurally present but *authenticates nobody* — services reach for the `DEFAULT_HOUSEHOLD_ID` constant. The real work is threading a **request-derived principal (userId + householdId)** from a Fastify auth hook through `buildServer` → routes → services (default-deny at the resource level), plus authN (users, KDF-hashed passwords, sessions) and the login UI.
+- **First spike: `SPIKE-13`** — prove the auth vertical seam (session + KDF + principal-scoped query on one slice) before the tenancy/auth ADR.
 
 | ID | Was | Item | Kind | Why | Status |
 | --- | --- | --- | --- | --- | --- |
-| **BUD-E13** | #19 | **Multi-user / household scoping** (auth · owner/household isolation) | epic | Now the **exposure blocker for BUD-E14** (LAN serving = the SECURITY.md §3 trigger). Full ceremony: tenancy ADR + threat model + property tests. **Absorbs the review's "no authentication" finding** ([2026-06-15 review](reviews/2026-06-15-repo-review.md)) + BUD-S38 (SEC3) | Active (blocker) — needs discovery/spike/ADR |
+| **BUD-E13** | #19 | **Multi-user / household scoping** (auth · owner/household isolation) | epic | Now the **exposure blocker for BUD-E14** (LAN serving = the SECURITY.md §3 trigger). Shape **A** (one household, many members; multi-household via container-per-household). Full ceremony: auth ADR + threat model + property tests. **Absorbs** the review's "no authentication" finding ([2026-06-15 review](reviews/2026-06-15-repo-review.md)) + BUD-S38 (SEC3) | Active (blocker) — discovery ✅ · SPIKE-13 ✅ · ADR-0009 · slices `BUD-S86`–`BUD-S89` |
+
+**Slices** (build order — vertical, gate-green at each step; ADR: [ADR-0009](adr/ADR-0009-authentication-household-scoping.md)):
+
+| ID | Slice — what it delivers | Kind | Gated by | Status |
+| --- | --- | --- | --- | --- |
+| **SPIKE-13** | **Auth vertical seam** — prove principal-scoped query + session gate + scrypt + enumeration-safety on one slice, zero new deps, on PGlite | spike | — | **Done** 2026-07-29 — 11/11; [report](spikes/13-auth-seam.md) |
+| **BUD-S86** | **Principal seam refactor** — per-request service factory bound to a principal; **remove `DEFAULT_HOUSEHOLD_ID` from the request path**. Ships with a **hardcoded bootstrap principal → zero behavior change, gate stays green**. Front-loads the invasive, every-route change in isolation (ADR-0009 §2). | refactor | ADR-0009 · SPIKE-13 ✅ | **Ready** (next) |
+| **BUD-S87** | **Auth core + login** (vertical DB→API→UI) — migration `0003-auth` (users+sessions), scrypt KDF, `POST /login`+`/logout`, session `preHandler` deriving the **real** principal, **gate every resource route** (401 default-deny), `create-admin` CLI, + the `/login` view · SPA 401→redirect · logout. *End state: login required and you can log in.* | slice | BUD-S86 | **Planned** |
+| **BUD-S88** | **Roles + user management** — admin/member enforcement (admin-only user-mgmt → 403 for members), admin UI to add/disable members, `reset-password`/`disable-user` CLI (**sessions revoked on reset/disable**, SECURITY.md §3). *End state: an admin adds the second member.* | slice | BUD-S87 | **Planned** |
+| **BUD-S89** | **Login hardening + threat-model tests** — enumeration-safety, login throttle/lockout, session expiry; **property/e2e tests of the security invariants** (default-deny · cross-household not-found · revocation on reset/disable); SECURITY.md + `06_API_CONTRACT` updates. *Closes SEC3/BUD-S38; flips ADR-0009 → Accepted; unblocks `HOST=0.0.0.0` (`BUD-S83`).* | hardening | BUD-S88 | **Planned** |
 
 ### BUD-E14 — Hub deployment readiness
 
