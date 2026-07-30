@@ -7,7 +7,7 @@ import {
   validateAllocations,
 } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { toDateStr } from "../util/dates";
 import { groupBy } from "../util/groupBy";
 import { NotFoundError, ValidationError } from "./errors";
@@ -59,15 +59,14 @@ export interface PostDueResult {
   rules: { recurringId: string; posted: number; error?: string }[];
 }
 
-const HH = DEFAULT_HOUSEHOLD_ID;
-
 /** Signed allocation amount: a normal line follows the direction; a refund line flips it. */
 const signed = (mag: number, refund: boolean, dirSign: 1 | -1): number =>
   mag * (refund ? -dirSign : dirSign);
 
 // `today` is the caller's local calendar date (EH8) — due-ness is always relative to it;
 // the service never derives it.
-export function makeRecurringService(db: Kysely<DB>) {
+export function makeRecurringService(db: Kysely<DB>, scope: Scope) {
+  const HH = scope.householdId;
   async function linesByRule(
     exec: Kysely<DB>,
     ruleIds: string[],

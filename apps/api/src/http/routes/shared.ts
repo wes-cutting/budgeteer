@@ -1,50 +1,28 @@
 import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import { parseMoney } from "@budgeteer/domain";
 import type { Clock } from "../../util/dates";
-import type { makeAccountService } from "../../services/accountService";
-import type { makeEnvelopeService } from "../../services/envelopeService";
-import type { makeTransactionService } from "../../services/transactionService";
-import type { makeTransferService } from "../../services/transferService";
-import type { makeEnvelopeTransferService } from "../../services/envelopeTransferService";
-import type { makeRecurringService } from "../../services/recurringService";
-import type { makeReconcileService } from "../../services/reconcileService";
-import type { makeTemplateService } from "../../services/templateService";
-import type { makeAnalysisService } from "../../services/analysisService";
-import type { makeTargetService } from "../../services/targetService";
-import type { makeCreditLimitService } from "../../services/creditLimitService";
-import type { makeLoanPrincipalService } from "../../services/loanPrincipalService";
-import type { makeBackupService } from "../../services/backupService";
+import type { Services } from "../../services/container";
 
 /**
- * The service container created once in `buildServer` and handed to every route plugin via
- * options. Splitting routes into per-domain plugins does not duplicate service instances —
- * each is constructed exactly once and shared by reference.
+ * Every request carries its own scope-bound service container, built per request in
+ * `buildServer`'s `onRequest` hook (ADR-0009 §2 · BUD-S86): each service filters by the request's
+ * `scope.householdId`, so a handler can only ever reach its own household's data. Handlers read
+ * `req.services.*` — there is no shared, unscoped container.
  */
-export interface Services {
-  accounts: ReturnType<typeof makeAccountService>;
-  envelopes: ReturnType<typeof makeEnvelopeService>;
-  transactions: ReturnType<typeof makeTransactionService>;
-  transfers: ReturnType<typeof makeTransferService>;
-  envelopeTransfers: ReturnType<typeof makeEnvelopeTransferService>;
-  recurring: ReturnType<typeof makeRecurringService>;
-  reconcile: ReturnType<typeof makeReconcileService>;
-  templates: ReturnType<typeof makeTemplateService>;
-  analysis: ReturnType<typeof makeAnalysisService>;
-  targets: ReturnType<typeof makeTargetService>;
-  creditLimits: ReturnType<typeof makeCreditLimitService>;
-  loanPrincipals: ReturnType<typeof makeLoanPrincipalService>;
-  backup: ReturnType<typeof makeBackupService>;
+declare module "fastify" {
+  interface FastifyRequest {
+    services: Services;
+  }
 }
 
 /** Options every route plugin receives from `buildServer`. */
 export interface RouteOptions {
-  services: Services;
   /** The injected clock (EH7) — operational stamps only (backup filename); user-facing
    *  calendar dates come from the caller (EH8, 04_DOMAIN_MODEL §6). */
   clock: Clock;
 }
 
-/** Every route module is an encapsulated Fastify plugin over the shared service container. */
+/** Every route module is an encapsulated Fastify plugin; services come from `req.services`. */
 export type RoutePlugin = FastifyPluginAsync<RouteOptions>;
 
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;

@@ -9,10 +9,9 @@ const createReconciliationBody = z.object({
 });
 
 // --- Reconcile to bank (FEAT-010, manual balance compare) ---
-export const reconcileRoutes: RoutePlugin = async (app, opts) => {
-  const { reconcile } = opts.services;
-
+export const reconcileRoutes: RoutePlugin = async (app) => {
   app.get<AccountIdParams>("/accounts/:accountId/reconciliations", async (req, reply) => {
+    const { reconcile } = req.services;
     const { accountId } = req.params;
     try {
       return { reconciliations: await reconcile.listByAccount(accountId) };
@@ -23,6 +22,7 @@ export const reconcileRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.post<AccountIdParams>("/accounts/:accountId/reconciliations", async (req, reply) => {
+    const { reconcile } = req.services;
     const parsed = createReconciliationBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     let statementBalanceCents: number;

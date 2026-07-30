@@ -12,12 +12,14 @@ const createAccountBody = z.object({
 const renameBody = z.object({ name: z.string() });
 
 // --- Accounts (FEAT-001) ---
-export const accountRoutes: RoutePlugin = async (app, opts) => {
-  const { accounts } = opts.services;
-
-  app.get("/accounts", async () => ({ accounts: await accounts.list() }));
+export const accountRoutes: RoutePlugin = async (app) => {
+  app.get("/accounts", async (req) => {
+    const { accounts } = req.services;
+    return { accounts: await accounts.list() };
+  });
 
   app.post("/accounts", async (req, reply) => {
+    const { accounts } = req.services;
     const parsed = createAccountBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const nameCheck = validateAccountName(parsed.data.name);
@@ -46,6 +48,7 @@ export const accountRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.patch<IdParams>("/accounts/:id", async (req, reply) => {
+    const { accounts } = req.services;
     const parsed = renameBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const nameCheck = validateAccountName(parsed.data.name);
@@ -62,6 +65,7 @@ export const accountRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.post<IdParams>("/accounts/:id/archive", async (req, reply) => {
+    const { accounts } = req.services;
     const { id } = req.params;
     try {
       return { account: await accounts.setArchived(id, true) };
@@ -72,6 +76,7 @@ export const accountRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.post<IdParams>("/accounts/:id/unarchive", async (req, reply) => {
+    const { accounts } = req.services;
     const { id } = req.params;
     try {
       return { account: await accounts.setArchived(id, false) };

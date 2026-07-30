@@ -19,7 +19,7 @@ import {
   netWorthOverTime as computeNetWorth,
 } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { groupBy } from "../util/groupBy";
 import { toDateStr } from "../util/dates";
 import { NotFoundError } from "./errors";
@@ -90,8 +90,6 @@ export interface NetWorthRollup extends NetWorthReport {
   grain: SpendGrain;
 }
 
-const HH = DEFAULT_HOUSEHOLD_ID;
-
 /** Everything the projecting reads (forecast, pay-period plan) start from — one gather. */
 interface ProjectionInputs {
   account: { id: string; name: string };
@@ -109,6 +107,7 @@ interface ProjectionInputs {
  */
 async function gatherProjectionInputs(
   db: Kysely<DB>,
+  householdId: string,
   accountId: string,
   today: string,
 ): Promise<ProjectionInputs> {
@@ -116,7 +115,7 @@ async function gatherProjectionInputs(
     .selectFrom("accounts")
     .select(["id", "name"])
     .where("id", "=", accountId)
-    .where("household_id", "=", HH)
+    .where("household_id", "=", householdId)
     .executeTakeFirst();
   if (!account) throw new NotFoundError("account");
 
@@ -139,7 +138,7 @@ async function gatherProjectionInputs(
       "anchor_on",
       "next_occurrence_on",
     ])
-    .where("household_id", "=", HH)
+    .where("household_id", "=", householdId)
     .where("account_id", "=", accountId)
     .execute();
   const lineRows =
@@ -177,7 +176,7 @@ async function gatherProjectionInputs(
   const targetRows = await db
     .selectFrom("envelope_targets")
     .select(["envelope_id", "monthly_target_cents"])
-    .where("household_id", "=", HH)
+    .where("household_id", "=", householdId)
     .execute();
   const targets: ForecastTarget[] = targetRows.map((r) => ({
     envelopeId: r.envelope_id,
@@ -189,7 +188,7 @@ async function gatherProjectionInputs(
   const spendRows = await db
     .selectFrom("allocations as al")
     .innerJoin("transactions as t", "t.id", "al.transaction_id")
-    .where("t.household_id", "=", HH)
+    .where("t.household_id", "=", householdId)
     .where(sql<boolean>`t.amount_cents < 0`)
     .where(sql<boolean>`to_char(t.occurred_on, 'YYYY-MM') = ${month}`)
     .select(["al.envelope_id as envelope_id", sql<string>`sum(al.amount_cents)`.as("net_cents")])
@@ -200,7 +199,8 @@ async function gatherProjectionInputs(
   return { account, startingBalanceCents, rules, targets, actualThisMonth };
 }
 
-export function makeAnalysisService(db: Kysely<DB>) {
+export function makeAnalysisService(db: Kysely<DB>, scope: Scope) {
+  const HH = scope.householdId;
   return {
     /**
      * Net signed allocation flow per envelope per period (FEAT-011) — the generated replacement for
@@ -361,7 +361,7 @@ export function makeAnalysisService(db: Kysely<DB>) {
       opts: { horizonDays: number; includeExpected: boolean; today: string },
     ): Promise<CashFlowForecast> {
       const { account, startingBalanceCents, rules, targets, actualThisMonth } =
-        await gatherProjectionInputs(db, accountId, opts.today);
+        await gatherProjectionInputs(db, HH, accountId, opts.today);
       const forecast = computeForecast(
         startingBalanceCents,
         opts.today,
@@ -389,7 +389,7 @@ export function makeAnalysisService(db: Kysely<DB>) {
       opts: { horizonDays: number; today: string },
     ): Promise<PayPeriodPlanView> {
       const { account, startingBalanceCents, rules, targets, actualThisMonth } =
-        await gatherProjectionInputs(db, accountId, opts.today);
+        await gatherProjectionInputs(db, HH, accountId, opts.today);
       const plan = computePayPeriodPlan(
         startingBalanceCents,
         opts.today,

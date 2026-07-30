@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 import { cents, transferLegs, validateTransfer } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { toDateStr } from "../util/dates";
 import { NotFoundError, ValidationError } from "./errors";
 
@@ -30,9 +30,8 @@ export interface CreateTransferInput {
   memo: string | null;
 }
 
-const HH = DEFAULT_HOUSEHOLD_ID;
-
-export function makeTransferService(db: Kysely<DB>) {
+export function makeTransferService(db: Kysely<DB>, scope: Scope) {
+  const HH = scope.householdId;
   async function getView(exec: Kysely<DB>, id: string): Promise<TransferView> {
     const transfer = await exec
       .selectFrom("transfers")

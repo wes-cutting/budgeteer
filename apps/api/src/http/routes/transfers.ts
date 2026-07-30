@@ -19,10 +19,9 @@ const createEnvelopeTransferBody = z.object({
 });
 
 // --- Transfers (FEAT-007, account↔account double-entry) + envelope reallocation (#7b) ---
-export const transferRoutes: RoutePlugin = async (app, opts) => {
-  const { transfers, envelopeTransfers } = opts.services;
-
+export const transferRoutes: RoutePlugin = async (app) => {
   app.post("/transfers", async (req, reply) => {
+    const { transfers } = req.services;
     const parsed = createTransferBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const magnitude = parsePositiveMagnitude(parsed.data.amount);
@@ -46,6 +45,7 @@ export const transferRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.delete<IdParams>("/transfers/:id", async (req, reply) => {
+    const { transfers } = req.services;
     const { id } = req.params;
     try {
       await transfers.remove(id);
@@ -58,6 +58,7 @@ export const transferRoutes: RoutePlugin = async (app, opts) => {
 
   // --- Envelope reallocation (FEAT-007 #7b, envelope↔envelope) ---
   app.post("/envelope-transfers", async (req, reply) => {
+    const { envelopeTransfers } = req.services;
     const parsed = createEnvelopeTransferBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const magnitude = parsePositiveMagnitude(parsed.data.amount);

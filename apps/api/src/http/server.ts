@@ -2,21 +2,11 @@ import Fastify, { type FastifyInstance, type FastifyServerOptions } from "fastif
 import cors from "@fastify/cors";
 import type { Kysely } from "kysely";
 import type { DB } from "../db/schema";
-import { makeAccountService } from "../services/accountService";
-import { makeEnvelopeService } from "../services/envelopeService";
-import { makeTransactionService } from "../services/transactionService";
-import { makeTransferService } from "../services/transferService";
-import { makeEnvelopeTransferService } from "../services/envelopeTransferService";
-import { makeRecurringService } from "../services/recurringService";
-import { makeReconcileService } from "../services/reconcileService";
-import { makeTemplateService } from "../services/templateService";
-import { makeAnalysisService } from "../services/analysisService";
-import { makeTargetService } from "../services/targetService";
-import { makeCreditLimitService } from "../services/creditLimitService";
-import { makeLoanPrincipalService } from "../services/loanPrincipalService";
-import { makeBackupService } from "../services/backupService";
+import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import { makeServices } from "../services/container";
+import type { Scope } from "../services/scope";
 import { type Clock, systemClock } from "../util/dates";
-import { type Services, fail } from "./routes/shared";
+import { fail } from "./routes/shared";
 import { accountRoutes } from "./routes/accounts";
 import { envelopeRoutes } from "./routes/envelopes";
 import { transactionRoutes } from "./routes/transactions";
@@ -75,23 +65,15 @@ export function buildServer(
     }
   });
 
-  // One service container, constructed once and shared (by reference) with every route plugin —
-  // modularizing the routes does not duplicate service instances or DB wiring.
-  const services: Services = {
-    accounts: makeAccountService(db),
-    envelopes: makeEnvelopeService(db),
-    transactions: makeTransactionService(db),
-    transfers: makeTransferService(db),
-    envelopeTransfers: makeEnvelopeTransferService(db),
-    recurring: makeRecurringService(db),
-    reconcile: makeReconcileService(db),
-    templates: makeTemplateService(db),
-    analysis: makeAnalysisService(db),
-    targets: makeTargetService(db),
-    creditLimits: makeCreditLimitService(db),
-    loanPrincipals: makeLoanPrincipalService(db),
-    backup: makeBackupService(db),
-  };
+  // Per-request, scope-bound service container (ADR-0009 §2 · BUD-S86). Each request builds its own
+  // services filtered by the caller's household, so no handler can reach another household's data
+  // and there is no shared, unscoped default. Until the auth slice (BUD-S87) the scope is a hardcoded
+  // BOOTSTRAP — the single seeded household — so behaviour is identical to the pre-auth app; BUD-S87
+  // replaces this one line with the session-derived principal (userId · householdId · role).
+  const BOOTSTRAP_SCOPE: Scope = { householdId: DEFAULT_HOUSEHOLD_ID };
+  app.addHook("onRequest", async (req) => {
+    req.services = makeServices(db, BOOTSTRAP_SCOPE);
+  });
 
   // Single error envelope for the whole API: `{ error: { message } }`. Set on the root so it is
   // inherited by every route plugin (children don't override it). 5xx detail is never leaked.
@@ -107,15 +89,15 @@ export function buildServer(
   // Per-domain route plugins. Paths are full literals (no Fastify `prefix`), because several
   // domains share URL roots that cross boundaries (e.g. credit-limit/target setters live under
   // /accounts and /envelopes but belong to the analysis area).
-  void app.register(accountRoutes, { services, clock });
-  void app.register(envelopeRoutes, { services, clock });
-  void app.register(transactionRoutes, { services, clock });
-  void app.register(reconcileRoutes, { services, clock });
-  void app.register(transferRoutes, { services, clock });
-  void app.register(recurringRoutes, { services, clock });
-  void app.register(analysisRoutes, { services, clock });
-  void app.register(templateRoutes, { services, clock });
-  void app.register(backupRoutes, { services, clock });
+  void app.register(accountRoutes, { clock });
+  void app.register(envelopeRoutes, { clock });
+  void app.register(transactionRoutes, { clock });
+  void app.register(reconcileRoutes, { clock });
+  void app.register(transferRoutes, { clock });
+  void app.register(recurringRoutes, { clock });
+  void app.register(analysisRoutes, { clock });
+  void app.register(templateRoutes, { clock });
+  void app.register(backupRoutes, { clock });
 
   return app;
 }

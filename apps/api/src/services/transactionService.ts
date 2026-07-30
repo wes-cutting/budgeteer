@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 import { cents, validateAllocations } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { toDateStr } from "../util/dates";
 import { groupBy } from "../util/groupBy";
 import { ConflictError, NotFoundError, ValidationError } from "./errors";
@@ -70,9 +70,8 @@ const VIEW_KINDS = new Set(["opening", "normal", "transfer"]);
 const toViewKind = (k: string): TransactionView["kind"] =>
   VIEW_KINDS.has(k) ? (k as TransactionView["kind"]) : "normal";
 
-const HH = DEFAULT_HOUSEHOLD_ID;
-
-export function makeTransactionService(db: Kysely<DB>) {
+export function makeTransactionService(db: Kysely<DB>, scope: Scope) {
+  const HH = scope.householdId;
   function selectTxns(exec: Kysely<DB>) {
     return exec
       .selectFrom("transactions as t")

@@ -113,6 +113,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | `BUD-S79` | `#18` | Historical import | — | — | [2026-07-10-history-import.md](../status-reports/2026-07-10-history-import.md) |
 | `BUD-S80` | `#20` | Statement import | — | [11-statement-extraction.md](../spikes/11-statement-extraction.md) | [2026-07-10-statement-import.md](../status-reports/2026-07-10-statement-import.md) |
 | `BUD-S82` | `—` | Production Postgres validation + `/health` DB readiness | — | [12-postgres-production-validation.md](../spikes/12-postgres-production-validation.md) | — |
+| `BUD-S86` | `—` | Principal seam refactor | — | — | [2026-07-29-bud-s86-principal-seam.md](../status-reports/2026-07-29-bud-s86-principal-seam.md) |
 | `SPIKE-01` | `#0` | Split-allocation UX | — | [01-split-allocation-ux.md](../spikes/01-split-allocation-ux.md) | — |
 | `SPIKE-02` | `#2` | Technical feasibility / stack | — | [02-stack-feasibility.md](../spikes/02-stack-feasibility.md) | — |
 | `SPIKE-03` | `#17` | SPIKE-03 — data-profiling: | — | [03-history-extraction.md](../spikes/03-history-extraction.md) | [2026-07-10-history-import.md](../status-reports/2026-07-10-history-import.md) |
@@ -258,6 +259,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | [`status-reports/2026-07-10-history-import.md`](../status-reports/2026-07-10-history-import.md) | — | `BUD-S79` (#18) · `SPIKE-03` (#17) |
 | [`status-reports/2026-07-10-spike-11-statement-profiling.md`](../status-reports/2026-07-10-spike-11-statement-profiling.md) | — | `SPIKE-11` (#21) |
 | [`status-reports/2026-07-10-statement-import.md`](../status-reports/2026-07-10-statement-import.md) | — | `BUD-S80` (#20) |
+| [`status-reports/2026-07-29-bud-s86-principal-seam.md`](../status-reports/2026-07-29-bud-s86-principal-seam.md) | — | `BUD-S86` (—) |
 | [`ux/analysis-envelope-spend.md`](../ux/analysis-envelope-spend.md) | Accepted | `BUD-S15` (#11) |
 | [`ux/app-shell-sidebar.md`](../ux/app-shell-sidebar.md) | Proposed | `BUD-S63` (UXR1) |
 | [`ux/archive-envelope.md`](../ux/archive-envelope.md) | Accepted | `BUD-S5` (#6) |
@@ -291,6 +293,6 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 
 ## 3. Coverage
 
-- **160** of **160** artifact files carry a `roadmap-item` in their frontmatter
+- **161** of **161** artifact files carry a `roadmap-item` in their frontmatter
   and appear above — **self-describing**, no supplement, no roadmap-link dependency.
 - **0** with a frontmatter problem (see `npm run docs:check`).

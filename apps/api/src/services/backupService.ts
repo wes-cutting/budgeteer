@@ -1,6 +1,6 @@
 import { type Kysely, sql } from "kysely";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 
 export interface BudgeteerBackup {
   version: 1;
@@ -52,10 +52,10 @@ function norm<T>(rows: T[]): Record<string, unknown>[] {
   return (rows as unknown as Record<string, unknown>[]).map(normRow);
 }
 
-export function makeBackupService(db: Kysely<DB>) {
+export function makeBackupService(db: Kysely<DB>, scope: Scope) {
   return {
     async snapshot(): Promise<BudgeteerBackup> {
-      const hid = DEFAULT_HOUSEHOLD_ID;
+      const hid = scope.householdId;
 
       const [
         households,
