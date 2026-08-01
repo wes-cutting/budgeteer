@@ -29,6 +29,7 @@ import {
   PlusIcon,
   RecurringIcon,
   TemplatesIcon,
+  UsersIcon,
 } from "./ui/icons";
 import styles from "./AppShell.module.css";
 
@@ -143,11 +144,13 @@ function SidebarNav({
   needsCount,
   onNavigate,
   onLogout,
+  isAdmin,
 }: {
   rail: boolean;
   needsCount: number | null;
   onNavigate?: () => void;
   onLogout: () => void;
+  isAdmin: boolean;
 }) {
   const hasNeeds = needsCount !== null && needsCount > 0;
   const badgeText = needsCount !== null && needsCount >= 100 ? "99+" : String(needsCount);
@@ -197,6 +200,23 @@ function SidebarNav({
                     </li>
                   );
                 })}
+                {/* Users management (BUD-S88) — admin-only, so it only appears for admins. */}
+                {group.heading === "Administration" && isAdmin ? (
+                  <li>
+                    <NavLink
+                      to="/users"
+                      onClick={onNavigate}
+                      className={styles.navLink}
+                      aria-label={rail ? "Users" : undefined}
+                      title={rail ? "Users" : undefined}
+                    >
+                      <span className={styles.navIcon}>
+                        <UsersIcon />
+                      </span>
+                      <span className={styles.navLabel}>Users</span>
+                    </NavLink>
+                  </li>
+                ) : null}
                 {/* Download backup is a real file link (GET /export), not a route — it lives under
                     Administration but can't be a NavLink. */}
                 {group.heading === "Administration" ? (
@@ -265,7 +285,25 @@ export function AppShell() {
   const [dynamicTitle, setDynamicTitle] = useState<string | null>(null);
   const [rail, setRail] = useState<boolean>(readSidebarState);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
+
+  // BUD-S88 — the Users management entry is admin-only, so ask who we are once. Auxiliary, like the
+  // needs badge: a failure just leaves the entry hidden (members never see it anyway).
+  useEffect(() => {
+    let active = true;
+    api
+      .me()
+      .then((user) => {
+        if (active) setIsAdmin(user?.role === "admin");
+      })
+      .catch(() => {
+        /* leave hidden on error */
+      });
+    return () => {
+      active = false;
+    };
+  }, [api]);
 
   // Needs-allocation badge — refetched per path change so completing an allocation refreshes it;
   // auxiliary, so a failure leaves the badge absent (carried verbatim from UX3).
@@ -335,7 +373,12 @@ export function AppShell() {
               <span className={styles.brandName}>Budgeteer</span>
             </Link>
           </div>
-          <SidebarNav rail={rail} needsCount={needsCount} onLogout={handleLogout} />
+          <SidebarNav
+            rail={rail}
+            needsCount={needsCount}
+            onLogout={handleLogout}
+            isAdmin={isAdmin}
+          />
         </aside>
 
         <div className={styles.main}>
@@ -426,6 +469,7 @@ export function AppShell() {
                 needsCount={needsCount}
                 onNavigate={() => setDrawerOpen(false)}
                 onLogout={handleLogout}
+                isAdmin={isAdmin}
               />
             </RadixDialog.Content>
           </RadixDialog.Portal>

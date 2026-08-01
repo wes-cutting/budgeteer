@@ -7,9 +7,9 @@ import type { DB } from "../db/schema";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants";
 import { makeServices } from "../services/container";
 import { makeAuthService, type Principal } from "../services/authService";
-import { DuplicateNameError, ValidationError } from "../services/errors";
+import { DuplicateNameError, NotFoundError, ValidationError } from "../services/errors";
 import { type Clock, systemClock } from "../util/dates";
-import { fail } from "./routes/shared";
+import { type IdParams, fail } from "./routes/shared";
 
 /** The session cookie name (opaque signed token; ADR-0009 §4). */
 const SESSION_COOKIE = "budgeteer_session";
@@ -182,6 +182,77 @@ export function buildServer(
   app.get("/auth/me", async (req) => ({
     user: req.principal ? { userId: req.principal.userId, role: req.principal.role } : null,
   }));
+
+  // --- User management (BUD-S88 · ADR-0009 §7). Admin-only within the caller's household. ---
+  const createUserBody = z.object({
+    username: z.string().min(1),
+    password: z.string().min(1),
+    role: z.enum(["admin", "member"]).default("member"),
+  });
+  const resetPasswordBody = z.object({ password: z.string().min(1) });
+
+  app.get("/users", async (req, reply) => {
+    const principal = req.principal;
+    if (!principal || principal.role !== "admin") return fail(reply, 403, "Admin access required.");
+    return { users: await authService.listUsers(principal.householdId) };
+  });
+
+  app.post("/users", async (req, reply) => {
+    const principal = req.principal;
+    if (!principal || principal.role !== "admin") return fail(reply, 403, "Admin access required.");
+    const body = createUserBody.safeParse(req.body);
+    if (!body.success) return fail(reply, 400, "Username, password, and role are required.");
+    try {
+      const user = await authService.createUser({
+        username: body.data.username,
+        password: body.data.password,
+        role: body.data.role,
+        householdId: principal.householdId,
+      });
+      return reply.code(201).send({ user });
+    } catch (e) {
+      if (e instanceof ValidationError) return fail(reply, 400, e.message);
+      if (e instanceof DuplicateNameError) return fail(reply, 409, e.message);
+      throw e;
+    }
+  });
+
+  const setUserDisabled = async (
+    req: { principal?: Principal; params: { id: string } },
+    reply: Parameters<typeof fail>[0],
+    disabled: boolean,
+  ) => {
+    const principal = req.principal;
+    if (!principal || principal.role !== "admin") return fail(reply, 403, "Admin access required.");
+    // Guard against self-lockout: an admin can't disable their own account.
+    if (disabled && req.params.id === principal.userId)
+      return fail(reply, 400, "You can't disable your own account.");
+    try {
+      return {
+        user: await authService.setDisabled(req.params.id, disabled, principal.householdId),
+      };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "User not found.");
+      throw e;
+    }
+  };
+  app.post<IdParams>("/users/:id/disable", (req, reply) => setUserDisabled(req, reply, true));
+  app.post<IdParams>("/users/:id/enable", (req, reply) => setUserDisabled(req, reply, false));
+
+  app.post<IdParams>("/users/:id/reset-password", async (req, reply) => {
+    const principal = req.principal;
+    if (!principal || principal.role !== "admin") return fail(reply, 403, "Admin access required.");
+    const body = resetPasswordBody.safeParse(req.body);
+    if (!body.success) return fail(reply, 400, "A new password is required.");
+    try {
+      await authService.resetPassword(req.params.id, body.data.password, principal.householdId);
+      return { ok: true };
+    } catch (e) {
+      if (e instanceof NotFoundError) return fail(reply, 404, "User not found.");
+      if (e instanceof ValidationError) return fail(reply, 400, e.message);
+      throw e;
+    }
+  });
 
   // Per-domain route plugins. Paths are full literals (no Fastify `prefix`), because several
   // domains share URL roots that cross boundaries (e.g. credit-limit/target setters live under

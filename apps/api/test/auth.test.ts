@@ -135,3 +135,85 @@ describe("session lifecycle", () => {
     ).toBe(401);
   });
 });
+
+describe("user management (BUD-S88)", () => {
+  const MEMBER = { username: "member1", password: "member-password" };
+
+  async function createMember(adminCookie: string) {
+    return ctx.app.inject({
+      method: "POST",
+      url: "/users",
+      headers: { cookie: adminCookie },
+      payload: { ...MEMBER, role: "member" },
+    });
+  }
+  const memberCookie = async () => cookieFrom(await login(MEMBER));
+  const get = (url: string, cookie: string) =>
+    ctx.app.inject({ method: "GET", url, headers: { cookie } });
+  const post = (url: string, cookie: string) =>
+    ctx.app.inject({ method: "POST", url, headers: { cookie } });
+
+  test("an admin adds a member who can log in but is not an admin", async () => {
+    const admin = await loginCookie();
+    expect((await createMember(admin)).statusCode).toBe(201);
+    const me = await get("/auth/me", await memberCookie());
+    expect(me.json().user.role).toBe("member");
+  });
+
+  test("a member is forbidden from user management (403)", async () => {
+    const admin = await loginCookie();
+    await createMember(admin);
+    const member = await memberCookie();
+    expect((await get("/users", member)).statusCode).toBe(403);
+    expect(
+      (
+        await ctx.app.inject({
+          method: "POST",
+          url: "/users",
+          headers: { cookie: member },
+          payload: { username: "x", password: "yyyyyyyy", role: "member" },
+        })
+      ).statusCode,
+    ).toBe(403);
+  });
+
+  test("disabling a user revokes their sessions and blocks re-login until re-enabled", async () => {
+    const admin = await loginCookie();
+    const memberId = (await createMember(admin)).json().user.id;
+    const member = await memberCookie();
+    expect((await get("/accounts", member)).statusCode).toBe(200);
+
+    expect((await post(`/users/${memberId}/disable`, admin)).statusCode).toBe(200);
+    expect((await get("/accounts", member)).statusCode).toBe(401); // existing session revoked
+    expect((await login(MEMBER)).statusCode).toBe(401); // and can't sign back in
+
+    expect((await post(`/users/${memberId}/enable`, admin)).statusCode).toBe(200);
+    expect((await login(MEMBER)).statusCode).toBe(200); // re-enabled
+  });
+
+  test("reset-password revokes existing sessions and swaps the password", async () => {
+    const admin = await loginCookie();
+    const memberId = (await createMember(admin)).json().user.id;
+    const member = await memberCookie();
+    expect((await get("/accounts", member)).statusCode).toBe(200);
+
+    const reset = await ctx.app.inject({
+      method: "POST",
+      url: `/users/${memberId}/reset-password`,
+      headers: { cookie: admin },
+      payload: { password: "new-member-pass" },
+    });
+    expect(reset.statusCode).toBe(200);
+    expect((await get("/accounts", member)).statusCode).toBe(401); // old session revoked
+    expect((await login(MEMBER)).statusCode).toBe(401); // old password rejected
+    expect(
+      (await login({ username: MEMBER.username, password: "new-member-pass" })).statusCode,
+    ).toBe(200);
+  });
+
+  test("an admin can't disable their own account (400)", async () => {
+    const admin = await loginCookie();
+    const adminId = (await get("/auth/me", admin)).json().user.userId;
+    expect((await post(`/users/${adminId}/disable`, admin)).statusCode).toBe(400);
+  });
+});

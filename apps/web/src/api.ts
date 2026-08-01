@@ -20,6 +20,8 @@ import type {
   EnvelopeView,
   LoanPrincipalView,
   NetWorthRollup,
+  Role,
+  UserView,
   PayPeriodPlanView,
   PostDueResult,
   ReconciliationView,
@@ -160,6 +162,12 @@ export interface Api {
   setup(username: string, password: string): Promise<void>;
   /** The current user, or null if unauthenticated. */
   me(): Promise<{ userId: string; role: string } | null>;
+
+  // User management (BUD-S88; admin-only — the API returns 403 for members).
+  listUsers(): Promise<UserView[]>;
+  createUser(username: string, password: string, role: Role): Promise<void>;
+  setUserDisabled(userId: string, disabled: boolean): Promise<void>;
+  resetUserPassword(userId: string, password: string): Promise<void>;
 }
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -219,6 +227,21 @@ export const httpApi: Api = {
     } catch {
       return null; // 401/any error → treat as logged out
     }
+  },
+  async listUsers() {
+    return (await request<{ users: UserView[] }>("/users")).users;
+  },
+  async createUser(username, password, role) {
+    await request("/users", { method: "POST", body: JSON.stringify({ username, password, role }) });
+  },
+  async setUserDisabled(userId, disabled) {
+    await request(`/users/${userId}/${disabled ? "disable" : "enable"}`, { method: "POST" });
+  },
+  async resetUserPassword(userId, password) {
+    await request(`/users/${userId}/reset-password`, {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
   },
   async listAccounts() {
     return (await request<{ accounts: AccountView[] }>("/accounts")).accounts;

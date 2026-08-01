@@ -728,6 +728,12 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
     async me() {
       return { userId: "fake-user", role: "admin" };
     },
+    async listUsers() {
+      return [];
+    },
+    async createUser() {},
+    async setUserDisabled() {},
+    async resetUserPassword() {},
     ...overrides,
   };
   return api;

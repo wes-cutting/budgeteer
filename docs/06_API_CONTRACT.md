@@ -84,6 +84,15 @@ allowlist** (never `*`).
 - **`POST /auth/logout`** *(public)* — deletes the session row + clears the cookie → `200 { ok: true }`.
 - **`GET /auth/me`** *(gated)* — `200 { user: { userId, role } }` for the caller; `401` when logged out.
 
+### User management (BUD-S88 · ADR-0009 §7)
+**Admin-only within the caller's household** — a member gets `403`. `UserView = { id, username, role, disabledAt }` (never the password hash). Disable and reset **revoke the target's sessions** (SECURITY.md §3).
+- **`GET /users`** — `200 { users: UserView[] }`.
+- **`POST /users`** — `{ username, password, role? }` (`role` default `member`) → `201 { user }`; `409` on a taken username; `400` on a too-short password.
+- **`POST /users/:id/disable`** · **`/enable`** — `200 { user }`. Disable revokes sessions; an admin **cannot disable their own account** (`400`). `404` for an unknown user.
+- **`POST /users/:id/reset-password`** — `{ password }` → `200 { ok: true }`; revokes the user's sessions. `404`/`400` on unknown user / short password.
+
+> CLIs (no HTTP surface): `create-admin`, `reset-password`, `disable-user` (`npm run … --workspace @budgeteer/api`).
+
 ### `GET /accounts`
 - **Output:** `200 { "accounts": AccountView[] }`, ordered by creation.
 - `AccountView = { id, name, kind, balanceCents, archivedAt }`; `kind ∈ {checking, savings, credit, cash, other}`; `balanceCents` is the **derived** account balance.

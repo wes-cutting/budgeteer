@@ -15,6 +15,7 @@ import { RecurringView } from "./RecurringView";
 import { AnalysisSection } from "./AnalysisSection";
 import { PayPeriodsView } from "./PayPeriodsView";
 import { Login } from "./Login";
+import { UsersAdmin } from "./UsersAdmin";
 
 /**
  * UX3 — the route map (ADR-0006), replacing the hand-rolled `view` state machine. The route
@@ -89,6 +90,10 @@ function LoginRoute() {
   return <Login api={useApi()} />;
 }
 
+function UsersAdminRoute() {
+  return <UsersAdmin api={useApi()} />;
+}
+
 /**
  * FEAT-UXR1 (Q3) — each static route carries a `handle: { title }` that the shell reads via
  * `useMatches()` and renders as the page's single `<h1>` in the top bar (and syncs `document.title`).
@@ -125,6 +130,7 @@ export function createAppRouter() {
         { path: "envelopes", element: <EnvelopesListRoute />, handle: { title: "Envelopes" } },
         { path: "envelopes/:id", element: <EnvelopeRoute />, handle: { title: "Envelope" } },
         { path: "manage", element: <ManageRoute />, handle: { title: "Manage" } },
+        { path: "users", element: <UsersAdminRoute />, handle: { title: "Users" } },
         {
           path: "needs-allocation",
           element: <NeedsRoute />,

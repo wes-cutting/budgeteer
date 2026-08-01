@@ -1,10 +1,10 @@
 import { randomBytes } from "node:crypto";
 import { type Kysely, sql } from "kysely";
 import type { DB } from "../db/schema";
-import type { Clock } from "../util/dates";
+import { type Clock, toISO } from "../util/dates";
 import { hashPassword, verifyPassword } from "../util/password";
 import { asDuplicateName } from "./dbErrors";
-import { ValidationError } from "./errors";
+import { NotFoundError, ValidationError } from "./errors";
 
 /** The authenticated caller (ADR-0009). Derived from the session; scopes every request. */
 export interface Principal {
@@ -14,6 +14,14 @@ export interface Principal {
 }
 
 export type Role = "admin" | "member";
+
+/** A user as the admin management UI sees it (BUD-S88) — never the password hash. */
+export interface UserView {
+  id: string;
+  username: string;
+  role: Role;
+  disabledAt: string | null;
+}
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const MIN_PASSWORD_LEN = 8;
@@ -118,6 +126,85 @@ export function makeAuthService(db: Kysely<DB>, clock: Clock) {
     /** End one session (logout). Idempotent. */
     async logout(token: string): Promise<void> {
       await db.deleteFrom("sessions").where("id", "=", token).execute();
+    },
+
+    // --- User management (BUD-S88; admin-gated at the route, household-scoped here) ---
+
+    /** List a household's users (admin UI). Never returns the password hash. */
+    async listUsers(householdId: string): Promise<UserView[]> {
+      const rows = await db
+        .selectFrom("users")
+        .select(["id", "username", "role", "disabled_at"])
+        .where("household_id", "=", householdId)
+        .orderBy("username")
+        .execute();
+      return rows.map((r) => ({
+        id: r.id,
+        username: r.username,
+        role: r.role as Role,
+        disabledAt: toISO(r.disabled_at),
+      }));
+    },
+
+    /** Resolve a username to its id within a household (CLI convenience), or null. */
+    async userIdByUsername(username: string, householdId: string): Promise<string | null> {
+      const row = await db
+        .selectFrom("users")
+        .select("id")
+        .where(sql<boolean>`lower(username) = ${username.trim().toLowerCase()}`)
+        .where("household_id", "=", householdId)
+        .executeTakeFirst();
+      return row?.id ?? null;
+    },
+
+    /**
+     * Enable/disable an account. Disabling **revokes every session** (a row delete), so a disabled
+     * user is logged out everywhere on the next request (SECURITY.md §3). Scoped to the household.
+     */
+    async setDisabled(userId: string, disabled: boolean, householdId: string): Promise<UserView> {
+      const target = await db
+        .selectFrom("users")
+        .select("id")
+        .where("id", "=", userId)
+        .where("household_id", "=", householdId)
+        .executeTakeFirst();
+      if (!target) throw new NotFoundError("user");
+      await db
+        .updateTable("users")
+        .set({ disabled_at: disabled ? clock() : null })
+        .where("id", "=", userId)
+        .execute();
+      if (disabled) await db.deleteFrom("sessions").where("user_id", "=", userId).execute();
+      const row = await db
+        .selectFrom("users")
+        .select(["id", "username", "role", "disabled_at"])
+        .where("id", "=", userId)
+        .executeTakeFirstOrThrow();
+      return {
+        id: row.id,
+        username: row.username,
+        role: row.role as Role,
+        disabledAt: toISO(row.disabled_at),
+      };
+    },
+
+    /** Set a new password and **revoke every existing session** (force re-login everywhere). */
+    async resetPassword(userId: string, newPassword: string, householdId: string): Promise<void> {
+      if (newPassword.length < MIN_PASSWORD_LEN)
+        throw new ValidationError(`Password must be at least ${MIN_PASSWORD_LEN} characters.`);
+      const target = await db
+        .selectFrom("users")
+        .select("id")
+        .where("id", "=", userId)
+        .where("household_id", "=", householdId)
+        .executeTakeFirst();
+      if (!target) throw new NotFoundError("user");
+      await db
+        .updateTable("users")
+        .set({ password_hash: hashPassword(newPassword) })
+        .where("id", "=", userId)
+        .execute();
+      await db.deleteFrom("sessions").where("user_id", "=", userId).execute();
     },
   };
 }

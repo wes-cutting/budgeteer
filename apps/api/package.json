@@ -15,7 +15,9 @@
     "db:reset": "tsx src/db/reset.ts",
     "db:restore": "tsx src/db/restore.ts",
     "db:fresh": "npm run db:reset && npm run seed",
-    "create-admin": "tsx src/cli/create-admin.ts"
+    "create-admin": "tsx src/cli/create-admin.ts",
+    "reset-password": "tsx src/cli/reset-password.ts",
+    "disable-user": "tsx src/cli/disable-user.ts"
   },
   "dependencies": {
     "@budgeteer/domain": "*",

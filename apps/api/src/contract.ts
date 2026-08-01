@@ -23,6 +23,7 @@ export type { ReconciliationView } from "./services/reconcileService";
 export type { EnvelopeTargetView } from "./services/targetService";
 export type { CreditLimitView } from "./services/creditLimitService";
 export type { LoanPrincipalView } from "./services/loanPrincipalService";
+export type { UserView, Role } from "./services/authService";
 export type {
   SpendGrain,
   EnvelopeSpendRow,
