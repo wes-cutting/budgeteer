@@ -14,6 +14,7 @@ import { TemplatesView } from "./TemplatesView";
 import { RecurringView } from "./RecurringView";
 import { AnalysisSection } from "./AnalysisSection";
 import { PayPeriodsView } from "./PayPeriodsView";
+import { Login } from "./Login";
 
 /**
  * UX3 — the route map (ADR-0006), replacing the hand-rolled `view` state machine. The route
@@ -84,6 +85,10 @@ function PayPeriodsRoute() {
   return <PayPeriodsView api={useApi()} />;
 }
 
+function LoginRoute() {
+  return <Login api={useApi()} />;
+}
+
 /**
  * FEAT-UXR1 (Q3) — each static route carries a `handle: { title }` that the shell reads via
  * `useMatches()` and renders as the page's single `<h1>` in the top bar (and syncs `document.title`).
@@ -93,6 +98,9 @@ function PayPeriodsRoute() {
  */
 export function createAppRouter() {
   return createBrowserRouter([
+    // BUD-S87 — the sign-in page lives OUTSIDE the shell (no nav/chrome, no data loads); the api
+    // client redirects here on a 401 from the default-deny gate.
+    { path: "/login", element: <LoginRoute /> },
     {
       path: "/",
       element: <AppShell />,

@@ -69,7 +69,20 @@ The error handler **preserves the original 4xx status** (e.g. a malformed/empty 
 ## 3. Resources / operations
 
 ### `GET /health`
-- **Output:** `200 { "status": "ok" }`. Liveness only.
+- **Output:** `200 { "status": "ok" }`. Liveness only. Public.
+
+### Authentication (BUD-S87 · ADR-0009)
+**Default-deny:** every operation except `GET /health` and the public auth routes requires a valid
+session; without one the API returns `401 { "error": { "message" } }`. The session is an opaque,
+signed, **HttpOnly** `budgeteer_session` cookie (`SameSite=Strict`; `Secure` in production), and every
+request is scoped to the session's household (ADR-0009 §2). CORS is **credentialed against the
+allowlist** (never `*`).
+- **`POST /auth/setup`** *(public, first-run only)* — `{ username, password }` → `201 { ok: true }`
+  while **zero** users exist; `409` once complete. Creates the first **admin** (min password length 8).
+- **`POST /auth/login`** *(public)* — `{ username, password }` → `200 { ok: true }` + `Set-Cookie`;
+  `401` on unknown user / wrong password / disabled account (an **identical** response — enumeration-safe).
+- **`POST /auth/logout`** *(public)* — deletes the session row + clears the cookie → `200 { ok: true }`.
+- **`GET /auth/me`** *(gated)* — `200 { user: { userId, role } }` for the caller; `401` when logged out.
 
 ### `GET /accounts`
 - **Output:** `200 { "accounts": AccountView[] }`, ordered by creation.

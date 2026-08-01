@@ -2,16 +2,19 @@ import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import { parseMoney } from "@budgeteer/domain";
 import type { Clock } from "../../util/dates";
 import type { Services } from "../../services/container";
+import type { Principal } from "../../services/authService";
 
 /**
  * Every request carries its own scope-bound service container, built per request in
  * `buildServer`'s `onRequest` hook (ADR-0009 §2 · BUD-S86): each service filters by the request's
  * `scope.householdId`, so a handler can only ever reach its own household's data. Handlers read
- * `req.services.*` — there is no shared, unscoped container.
+ * `req.services.*` — there is no shared, unscoped container. `principal` is the authenticated caller
+ * (BUD-S87): always set on gated routes, absent on the public auth/health routes.
  */
 declare module "fastify" {
   interface FastifyRequest {
     services: Services;
+    principal?: Principal;
   }
 }
 

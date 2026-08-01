@@ -142,6 +142,7 @@ newest linked status report. Full detail lives in the plan (`03_ROADMAP-v2.md` �
 
 | Shipped | ID | Was | Item | Report |
 | --- | --- | --- | --- | --- |
+| 2026-07-29 | `BUD-S87` | `—` | Auth core + login | [report](../status-reports/2026-07-29-bud-s87-auth-core.md) |
 | 2026-07-29 | `BUD-S86` | `—` | Principal seam refactor | [report](../status-reports/2026-07-29-bud-s86-principal-seam.md) |
 | 2026-07-10 | `BUD-S80` | `#20` | Statement import | [report](../status-reports/2026-07-10-statement-import.md) |
 | 2026-07-10 | `BUD-S79` | `#18` | Historical import | [report](../status-reports/2026-07-10-history-import.md) |

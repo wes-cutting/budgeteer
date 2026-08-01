@@ -720,6 +720,14 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
       }
       return { grain, ...netWorthOverTime([...byKey.values()]) };
     },
+    // Auth (BUD-S87) — inert in the jsdom/unit layer; a component under test that needs a specific
+    // auth behaviour overrides these.
+    async login() {},
+    async logout() {},
+    async setup() {},
+    async me() {
+      return { userId: "fake-user", role: "admin" };
+    },
     ...overrides,
   };
   return api;

@@ -16,5 +16,15 @@ await migrateToLatest(db);
 const corsOrigins = config.CORS_ORIGINS.split(",")
   .map((o) => o.trim())
   .filter(Boolean);
-const app = buildServer(db, { logger: { level: config.LOG_LEVEL }, corsOrigins });
+const app = buildServer(db, {
+  logger: { level: config.LOG_LEVEL },
+  corsOrigins,
+  // Auth is ALWAYS on for the real server (ADR-0009 · BUD-S87). SESSION_SECRET is required in
+  // production (config enforces it); dev/e2e fall back to a fixed non-secret. `Secure` cookies only
+  // in production (dev/e2e serve over plain HTTP on localhost).
+  auth: {
+    sessionSecret: config.SESSION_SECRET ?? "dev-only-insecure-session-secret-unset",
+    secureCookie: config.APP_ENV === "production",
+  },
+});
 await app.listen({ port: config.PORT, host: config.HOST });

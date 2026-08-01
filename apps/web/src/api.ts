@@ -152,6 +152,14 @@ export interface Api {
   setOriginalPrincipal(accountId: string, amount: string): Promise<LoanPrincipalView>;
   clearOriginalPrincipal(accountId: string): Promise<void>;
   getNetWorth(grain: SpendGrain): Promise<NetWorthRollup>;
+
+  // Authentication (BUD-S87 / ADR-0009).
+  login(username: string, password: string): Promise<void>;
+  logout(): Promise<void>;
+  /** First-run only: create the first admin (succeeds while zero users exist). */
+  setup(username: string, password: string): Promise<void>;
+  /** The current user, or null if unauthenticated. */
+  me(): Promise<{ userId: string; role: string } | null>;
 }
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -174,13 +182,44 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (init?.body !== undefined && headers["content-type"] === undefined) {
     headers["content-type"] = "application/json";
   }
-  const res = await fetch(`${BASE}${path}`, { ...init, headers });
+  // `credentials: "include"` sends the session cookie on cross-origin API calls (web:5173 →
+  // api:3001 in dev; same-origin in the prod container). The API's CORS allowlist + credentials
+  // flag (never `*`) makes this safe (ADR-0009 · SECURITY.md §2).
+  const res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: "include" });
   const data: unknown = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(errorMessage(data) ?? "Request failed.");
+  if (!res.ok) {
+    // Default-deny: a 401 on any non-auth call means the session is gone/expired → bounce to the
+    // login page (the reactive auth guard). The auth endpoints handle their own 401 (bad creds).
+    if (
+      res.status === 401 &&
+      !path.startsWith("/auth/") &&
+      typeof window !== "undefined" &&
+      window.location.pathname !== "/login"
+    ) {
+      window.location.assign("/login");
+    }
+    throw new ApiError(errorMessage(data) ?? "Request failed.");
+  }
   return data as T;
 }
 
 export const httpApi: Api = {
+  async login(username, password) {
+    await request("/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
+  },
+  async logout() {
+    await request("/auth/logout", { method: "POST" });
+  },
+  async setup(username, password) {
+    await request("/auth/setup", { method: "POST", body: JSON.stringify({ username, password }) });
+  },
+  async me() {
+    try {
+      return (await request<{ user: { userId: string; role: string } | null }>("/auth/me")).user;
+    } catch {
+      return null; // 401/any error → treat as logged out
+    }
+  },
   async listAccounts() {
     return (await request<{ accounts: AccountView[] }>("/accounts")).accounts;
   },

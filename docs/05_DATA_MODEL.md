@@ -237,6 +237,32 @@ seeded household** in V1 (no auth/RLS yet).
   `400`), not as a DB constraint. The **owed** side (= −derived balance), payoff, and paid-down are
   **derived**, never stored (see §5). Mirrors `credit_limits` (FEAT-014a).
 
+### users → auth principal (BUD-E13 · ADR-0009, migration `0003-auth`)
+| Field | Type | Null | Notes |
+| ----- | ---- | ---- | ----- |
+| id | uuid | no | PK |
+| household_id | uuid | no | FK → households(id); one household per user (shape A) |
+| username | text | no | login handle; `check (length(btrim(username)) > 0)` |
+| password_hash | text | no | scrypt `scrypt$N$r$p$salt$hash` (`util/password.ts`); never logged |
+| role | text | no | `check (role in ('admin','member'))` |
+| created_at | timestamptz | no | default `now()` |
+| disabled_at | timestamptz | yes | non-null = disabled (login refused; sessions dropped, BUD-S88) |
+- **Keys/Indexes:** PK `id`; **unique** `lower(username)` (case-insensitive handle); index `(household_id)`.
+- **Semantics:** the authenticated principal every request is scoped by (ADR-0009). Created **out of
+  band** — the `create-admin` CLI or the first-run `POST /auth/setup` (zero-users-only); never in a
+  migration (no secrets in migrations). Roles are **admin/member** (BUD-S88 enforces the split).
+
+### sessions → opaque server-side session (ADR-0009 §4)
+| Field | Type | Null | Notes |
+| ----- | ---- | ---- | ----- |
+| id | text | no | PK; the opaque high-entropy token = the (signed) cookie value |
+| user_id | uuid | no | FK → users(id), **cascade** (delete user → drop sessions) |
+| created_at | timestamptz | no | default `now()` |
+| expires_at | timestamptz | no | absolute expiry, checked against the injected clock |
+- **Keys/Indexes:** PK `id`; index `(user_id)`.
+- **Semantics:** server-side and **revocable** — deleted on logout (and, BUD-S88, on password reset /
+  disable), so invalidation is a row delete (SECURITY.md §3). The cookie carries only `id`.
+
 ## 3. Relationships & integrity
 
 - `accounts/envelopes/transactions.household_id → households` — **restrict** (the single V1

@@ -8,7 +8,7 @@ import {
   useState,
   type ComponentType,
 } from "react";
-import { Link, NavLink, Outlet, useLocation, useMatches } from "react-router";
+import { Link, NavLink, Outlet, useLocation, useMatches, useNavigate } from "react-router";
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { exportUrl } from "./api";
 import { useApi } from "./api-context";
@@ -21,6 +21,7 @@ import {
   HomeIcon,
   type IconProps,
   InsightsIcon,
+  LogOutIcon,
   ManageIcon,
   MenuIcon,
   NeedsIcon,
@@ -141,10 +142,12 @@ function SidebarNav({
   rail,
   needsCount,
   onNavigate,
+  onLogout,
 }: {
   rail: boolean;
   needsCount: number | null;
   onNavigate?: () => void;
+  onLogout: () => void;
 }) {
   const hasNeeds = needsCount !== null && needsCount > 0;
   const badgeText = needsCount !== null && needsCount >= 100 ? "99+" : String(needsCount);
@@ -232,6 +235,22 @@ function SidebarNav({
           </span>
           <span className={styles.navLabel}>Add transaction</span>
         </Link>
+        {/* BUD-S87 — end the session and return to the sign-in page. */}
+        <button
+          type="button"
+          className={styles.navLink}
+          onClick={() => {
+            onNavigate?.();
+            onLogout();
+          }}
+          aria-label={rail ? "Log out" : undefined}
+          title={rail ? "Log out" : undefined}
+        >
+          <span className={styles.navIcon}>
+            <LogOutIcon />
+          </span>
+          <span className={styles.navLabel}>Log out</span>
+        </button>
       </div>
     </nav>
   );
@@ -239,6 +258,7 @@ function SidebarNav({
 
 export function AppShell() {
   const api = useApi();
+  const navigate = useNavigate();
   const location = useLocation();
   const matches = useMatches();
   const [needsCount, setNeedsCount] = useState<number | null>(null);
@@ -285,6 +305,16 @@ export function AppShell() {
 
   const setPageTitle = useCallback((next: string | null) => setDynamicTitle(next), []);
 
+  // BUD-S87 — end the session, then land on the sign-in page (even if the network logout fails, we
+  // still leave the authenticated UI; the server session expires on its own).
+  const handleLogout = useCallback(async () => {
+    try {
+      await api.logout();
+    } finally {
+      navigate("/login");
+    }
+  }, [api, navigate]);
+
   const toggleRail = () =>
     setRail((current) => {
       const next = !current;
@@ -305,7 +335,7 @@ export function AppShell() {
               <span className={styles.brandName}>Budgeteer</span>
             </Link>
           </div>
-          <SidebarNav rail={rail} needsCount={needsCount} />
+          <SidebarNav rail={rail} needsCount={needsCount} onLogout={handleLogout} />
         </aside>
 
         <div className={styles.main}>
@@ -395,6 +425,7 @@ export function AppShell() {
                 rail={false}
                 needsCount={needsCount}
                 onNavigate={() => setDrawerOpen(false)}
+                onLogout={handleLogout}
               />
             </RadixDialog.Content>
           </RadixDialog.Portal>
