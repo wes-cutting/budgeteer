@@ -1,7 +1,7 @@
 ---
 type: adr
 id: ADR-0009
-status: Proposed
+status: Accepted
 ---
 <!--
 ADR — one decision per file. Append-only: supersede, don't edit. Status ladder:
@@ -14,10 +14,10 @@ this stays Proposed until then. Refines ADR-0002's multi-household note; resolve
 
 | Field         | Value                                                              |
 | ------------- | ------------------------------------------------------------------ |
-| Status        | Proposed                                                          |
+| Status        | Accepted                                                          |
 | Date          | 2026-07-29                                                         |
 | Deciders      | Wesley Cutting + agent                                             |
-| Validated by  | Auth **mechanism** (principal-scoped query · session gate · scrypt KDF · enumeration-safety) validated by [`SPIKE-13`](../spikes/13-auth-seam.md) (11/11, zero new deps, PGlite). Full decision validated when **`BUD-E13`'s first slice** lands. |
+| Validated by  | Mechanism by [`SPIKE-13`](../spikes/13-auth-seam.md); **fully implemented + validated** by BUD-E13 slices **BUD-S86** (principal seam) · **BUD-S87** (auth core + login) · **BUD-S88** (roles + user mgmt) · **BUD-S89** (throttle · session expiry · last-admin · threat-model tests). Gate-green (455 Vitest + 124 e2e). |
 | Refines       | [`ADR-0002`](ADR-0002-datastore.md) (its "future multi-household → RLS" note — this ADR chooses container-per-household instead) |
 | Resolves      | `SEC3` / `BUD-S38` (the unauthenticated-API finding); unblocks `HOST=0.0.0.0` for `BUD-E14`/[ADR-0008](ADR-0008-containerized-production-runtime.md) |
 | Context       | [`BUD-E13`](../03_ROADMAP-v2.md) discovery (2026-07-29): shape A · admin/member · CLI reset |

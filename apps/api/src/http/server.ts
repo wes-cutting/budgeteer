@@ -89,6 +89,14 @@ export function buildServer(
   const authService = makeAuthService(db, clock);
   void app.register(cookie, { secret: sessionSecret });
 
+  // Login throttle (BUD-S89): a small in-memory backoff keyed by (client IP + username) blunts
+  // brute-force. Keyed on the PAIR — not the username alone — so a different source can still sign
+  // the account in (no global account-lockout DoS). In-memory is deliberate: it resets on restart,
+  // fine for a single-container LAN service.
+  const LOGIN_MAX_FAILS = 5;
+  const LOGIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+  const loginFailures = new Map<string, { fails: number; lockedUntil: number }>();
+
   // The public surface — reachable without a session. Everything else is default-deny.
   const PUBLIC_PATHS = new Set(["/health", "/auth/login", "/auth/logout", "/auth/setup"]);
 
@@ -155,8 +163,27 @@ export function buildServer(
   app.post("/auth/login", async (req, reply) => {
     const body = credsBody.safeParse(req.body);
     if (!body.success) return fail(reply, 400, "Username and password are required.");
+    const throttleKey = `${req.ip}::${body.data.username.trim().toLowerCase()}`;
+    const now = clock().getTime();
+    const attempt = loginFailures.get(throttleKey);
+    if (attempt && attempt.lockedUntil > now)
+      return fail(reply, 429, "Too many attempts. Try again later.");
     const result = await authService.login(body.data.username, body.data.password);
-    if (result === null) return fail(reply, 401, "Invalid username or password.");
+    if (result === null) {
+      // Count consecutive fails. Reset only when a PREVIOUS lockout has expired (lockedUntil ≠ 0 and
+      // in the past) — not for the `lockedUntil === 0` "never locked yet" case, which must keep
+      // accumulating toward the threshold.
+      const lockoutExpired =
+        attempt !== undefined && attempt.lockedUntil !== 0 && attempt.lockedUntil <= now;
+      const priorFails = attempt === undefined || lockoutExpired ? 0 : attempt.fails;
+      const fails = priorFails + 1;
+      loginFailures.set(throttleKey, {
+        fails,
+        lockedUntil: fails >= LOGIN_MAX_FAILS ? now + LOGIN_LOCKOUT_MS : 0,
+      });
+      return fail(reply, 401, "Invalid username or password.");
+    }
+    loginFailures.delete(throttleKey); // a success clears the counter
     reply.setCookie(SESSION_COOKIE, result.token, {
       httpOnly: true,
       sameSite: "strict",
@@ -233,6 +260,7 @@ export function buildServer(
       };
     } catch (e) {
       if (e instanceof NotFoundError) return fail(reply, 404, "User not found.");
+      if (e instanceof ValidationError) return fail(reply, 400, e.message); // last-admin guard
       throw e;
     }
   };

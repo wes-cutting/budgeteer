@@ -70,11 +70,17 @@ in the `budget-extraction` review, 2026-07-10, K27 — the catch only happened b
   server-side or signed, with sensible expiry; invalidate sessions on password reset and
   on disabling an account.
 - Apply least privilege everywhere (roles, scopes, tokens).
-- **Keep the reachable surface as small as the auth story.** While the API has no
-  authentication (the deferred `#19` epic), it binds **loopback (`127.0.0.1`) by default**
-  (env `HOST`, validated at startup — EH11). Exposing it to the network (`0.0.0.0`) is a
-  deliberate per-environment opt-in, and doing so is the documented trigger to pull `#19`
-  forward — CORS is a browser courtesy and does not gate non-browser clients.
+- **Keep the reachable surface as small as the auth story.** budgeteer now implements
+  authentication (BUD-E13 / ADR-0009): **default-deny at the resource level**, opaque **revocable
+  server-side sessions** (HttpOnly, `SameSite=Strict`, `Secure` in prod), **scrypt**-hashed
+  passwords, **enumeration-safe** login with a per-`(IP, username)` **brute-force throttle**, and
+  **last-admin protection**. Disabling/resetting a user **revokes their sessions** immediately. The
+  API still binds **loopback (`127.0.0.1`) by default** (env `HOST`, EH11) as defense-in-depth;
+  serving `0.0.0.0` on the LAN is now safe because auth is in place (the `#19`/BUD-E13 exposure
+  blocker is closed). CORS is a browser courtesy and does not gate non-browser clients.
+- **Known accepted limitation (first-run):** `POST /auth/setup` gates on "zero users exist"
+  (check-then-insert), a narrow race on the very first setup of a fresh store. Accepted for a
+  trusted-LAN first run; the out-of-band `create-admin` CLI avoids it entirely.
 
 ## 4. Dependencies & supply chain
 

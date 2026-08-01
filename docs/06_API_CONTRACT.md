@@ -80,7 +80,8 @@ allowlist** (never `*`).
 - **`POST /auth/setup`** *(public, first-run only)* — `{ username, password }` → `201 { ok: true }`
   while **zero** users exist; `409` once complete. Creates the first **admin** (min password length 8).
 - **`POST /auth/login`** *(public)* — `{ username, password }` → `200 { ok: true }` + `Set-Cookie`;
-  `401` on unknown user / wrong password / disabled account (an **identical** response — enumeration-safe).
+  `401` on unknown user / wrong password / disabled account (an **identical** response — enumeration-safe);
+  `429` after repeated failures for the same `(IP, username)` (brute-force throttle, BUD-S89).
 - **`POST /auth/logout`** *(public)* — deletes the session row + clears the cookie → `200 { ok: true }`.
 - **`GET /auth/me`** *(gated)* — `200 { user: { userId, role } }` for the caller; `401` when logged out.
 

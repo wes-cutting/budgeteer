@@ -164,11 +164,24 @@ export function makeAuthService(db: Kysely<DB>, clock: Clock) {
     async setDisabled(userId: string, disabled: boolean, householdId: string): Promise<UserView> {
       const target = await db
         .selectFrom("users")
-        .select("id")
+        .select(["id", "role"])
         .where("id", "=", userId)
         .where("household_id", "=", householdId)
         .executeTakeFirst();
       if (!target) throw new NotFoundError("user");
+      // Last-admin protection (BUD-S89): a household must keep at least one active admin, or nobody
+      // could ever manage users again. Blocks disabling the final active admin (self-disable is
+      // already blocked at the route).
+      if (disabled && target.role === "admin") {
+        const { n } = await db
+          .selectFrom("users")
+          .select(db.fn.countAll<string>().as("n"))
+          .where("household_id", "=", householdId)
+          .where("role", "=", "admin")
+          .where("disabled_at", "is", null)
+          .executeTakeFirstOrThrow();
+        if (Number(n) <= 1) throw new ValidationError("Can't disable the last admin.");
+      }
       await db
         .updateTable("users")
         .set({ disabled_at: disabled ? clock() : null })

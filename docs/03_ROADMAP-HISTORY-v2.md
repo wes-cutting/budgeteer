@@ -142,6 +142,7 @@ newest linked status report. Full detail lives in the plan (`03_ROADMAP-v2.md` �
 
 | Shipped | ID | Was | Item | Report |
 | --- | --- | --- | --- | --- |
+| 2026-07-31 | `BUD-S89` | `—` | Login hardening + threat-model tests | [report](../status-reports/2026-07-31-bud-s89-login-hardening.md) |
 | 2026-07-31 | `BUD-S88` | `—` | Roles + user management | [report](../status-reports/2026-07-31-bud-s88-roles-user-management.md) |
 | 2026-07-29 | `BUD-S87` | `—` | Auth core + login | [report](../status-reports/2026-07-29-bud-s87-auth-core.md) |
 | 2026-07-29 | `BUD-S86` | `—` | Principal seam refactor | [report](../status-reports/2026-07-29-bud-s86-principal-seam.md) |
