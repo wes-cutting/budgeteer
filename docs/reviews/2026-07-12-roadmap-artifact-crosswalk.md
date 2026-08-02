@@ -124,7 +124,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | `BUD-S90` | `—` | A rebuilt store has a way in (reset/seed/demo auth gap) | — | — | [2026-08-01-bud-s90-rebuilt-store-access.md](../status-reports/2026-08-01-bud-s90-rebuilt-store-access.md) |
 | `BUD-S91` | `—` | Accessibility scans for the auth surfaces | — | — | [2026-08-02-bud-s91-auth-a11y.md](../status-reports/2026-08-02-bud-s91-auth-a11y.md) |
 | `BUD-S92` | `—` | First-run setup UI (`/setup` — the first admin from the browser) | [first-run-setup.md](../features/first-run-setup.md) | — | [2026-08-02-bud-s92-first-run-setup.md](../status-reports/2026-08-02-bud-s92-first-run-setup.md) · [2026-08-02-docs-onboarding-gap.md](../status-reports/2026-08-02-docs-onboarding-gap.md) |
-| `BUD-S93` | `—` | Demo instance (separate showcase container) | — | — | [2026-08-02-docs-onboarding-gap.md](../status-reports/2026-08-02-docs-onboarding-gap.md) |
+| `BUD-S93` | `—` | Demo instance (separate showcase container) | — | — | [2026-08-02-bud-s93-demo-instance.md](../status-reports/2026-08-02-bud-s93-demo-instance.md) · [2026-08-02-docs-onboarding-gap.md](../status-reports/2026-08-02-docs-onboarding-gap.md) |
 | `SPIKE-01` | `#0` | Split-allocation UX | — | [01-split-allocation-ux.md](../spikes/01-split-allocation-ux.md) | — |
 | `SPIKE-02` | `#2` | Technical feasibility / stack | — | [02-stack-feasibility.md](../spikes/02-stack-feasibility.md) | — |
 | `SPIKE-03` | `#17` | SPIKE-03 — data-profiling: | — | [03-history-extraction.md](../spikes/03-history-extraction.md) | [2026-07-10-history-import.md](../status-reports/2026-07-10-history-import.md) |
@@ -280,6 +280,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | [`status-reports/2026-08-02-bud-s84-ghcr-publish.md`](../status-reports/2026-08-02-bud-s84-ghcr-publish.md) | — | `BUD-S84` (—) |
 | [`status-reports/2026-08-02-bud-s91-auth-a11y.md`](../status-reports/2026-08-02-bud-s91-auth-a11y.md) | — | `BUD-S91` (—) |
 | [`status-reports/2026-08-02-bud-s92-first-run-setup.md`](../status-reports/2026-08-02-bud-s92-first-run-setup.md) | Snapshot | `BUD-S92` (—) |
+| [`status-reports/2026-08-02-bud-s93-demo-instance.md`](../status-reports/2026-08-02-bud-s93-demo-instance.md) | Snapshot | `BUD-S93` (—) |
 | [`status-reports/2026-08-02-docs-onboarding-gap.md`](../status-reports/2026-08-02-docs-onboarding-gap.md) | Snapshot | `BUD-S92` (—) · `BUD-S93` (—) |
 | [`ux/analysis-envelope-spend.md`](../ux/analysis-envelope-spend.md) | Accepted | `BUD-S15` (#11) |
 | [`ux/app-shell-sidebar.md`](../ux/app-shell-sidebar.md) | Proposed | `BUD-S63` (UXR1) |
@@ -314,6 +315,6 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 
 ## 3. Coverage
 
-- **171** of **171** artifact files carry a `roadmap-item` in their frontmatter
+- **172** of **172** artifact files carry a `roadmap-item` in their frontmatter
   and appear above — **self-describing**, no supplement, no roadmap-link dependency.
 - **0** with a frontmatter problem (see `npm run docs:check`).

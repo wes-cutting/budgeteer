@@ -1,0 +1,99 @@
+# ============================================================================
+# budgeteer — the DEMO instance (BUD-S93)
+#
+# A showcase box you can hand to someone, screenshot, or demo live, built from
+# the SAME image and tag as the real deployment (deploy/compose.yaml) but
+# sharing nothing else with it: its own project, its own volume, its own
+# database, its own SESSION_SECRET, and a published demo credential.
+#
+# Drive it with ./scripts/demo-instance.sh; the runbook is DEPLOY_CONTRACT.md §10.
+#
+#   Required env (supplied by deploy/.env.demo, which the script generates and
+#   .gitignore excludes — never commit it):
+#     DEMO_POSTGRES_PASSWORD   the demo database password
+#     DEMO_SESSION_SECRET      signs the demo session cookie
+#
+#   Optional:
+#     BUDGETEER_IMAGE          defaults to the GHCR image, same as production
+#     BUDGETEER_DEMO_PORT      host port for the app      (default 3010)
+#     BUDGETEER_DEMO_DB_PORT   loopback port for seeding  (default 5434)
+#
+#   docker compose --env-file deploy/.env.demo -f deploy/compose.demo.yaml up -d
+#
+# THE DATA HERE IS SYNTHETIC AND ONLY SYNTHETIC. It is loaded by `seed:demo`
+# (apps/api/src/db/seedDemo.ts), which invents every payee, amount, and account
+# name. The owner's real ledger is not reachable from this stack by
+# construction — see the DATABASE_URL note below.
+# ============================================================================
+
+# The project name is pinned IN THE FILE, not left to `-p` or the directory name. Without
+# it, `docker compose -f deploy/compose.demo.yaml up` would take its project from the
+# parent directory — `deploy` — which is exactly what a primary stack started the same way
+# would get, and the two would then share containers and volumes. The one thing this slice
+# must never allow is a demo box and the real ledger meeting each other.
+name: budgeteer-demo
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: budgeteer
+      POSTGRES_USER: budgeteer
+      POSTGRES_PASSWORD: ${DEMO_POSTGRES_PASSWORD:?DEMO_POSTGRES_PASSWORD is required (run ./scripts/demo-instance.sh init)}
+    volumes:
+      # A DIFFERENT volume from the production stack's `budgeteer-db`, under a different
+      # project — so `docker compose down --volumes` here can never touch the real ledger.
+      - budgeteer-demo-db:/var/lib/postgresql/data
+    ports:
+      # Published, unlike the production stack — and this is the one deliberate deviation
+      # from it. `seedDemo` is NOT in the production image (apps/api/scripts/build.ts ships
+      # the server and the operational CLIs only), which is precisely what keeps demo data
+      # ABSENT from a real deployment rather than merely guarded. The cost of that choice is
+      # that this box cannot seed itself: the seed runs from a repo checkout, over this port.
+      #
+      # Bound to 127.0.0.1, so it is reachable from the seeding machine and from nothing else
+      # on the LAN. The app port below is the only thing a viewer ever touches.
+      - "127.0.0.1:${BUDGETEER_DEMO_DB_PORT:-5434}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U budgeteer -d budgeteer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  app:
+    # The same image and tag the household runs. A demo box built from a different image
+    # proves nothing about what you are actually showing someone.
+    image: ${BUDGETEER_IMAGE:-ghcr.io/wes-cutting/budgeteer:latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: production
+      # Hard-wired to this stack's own `db` service. Deliberately NOT `${DATABASE_URL}` or any
+      # other ambient variable: an operator with the production environment exported in their
+      # shell must not be able to aim the demo container at the household's database. The only
+      # substitution here is the demo password.
+      DATABASE_URL: postgres://budgeteer:${DEMO_POSTGRES_PASSWORD:?DEMO_POSTGRES_PASSWORD is required (run ./scripts/demo-instance.sh init)}@db:5432/budgeteer
+      # Distinct variable name from the production stack's SESSION_SECRET, for the same reason:
+      # the demo box gets its own signing key, and cannot inherit the real one by accident.
+      SESSION_SECRET: ${DEMO_SESSION_SECRET:?DEMO_SESSION_SECRET is required (run ./scripts/demo-instance.sh init)}
+      CORS_ORIGINS: ""
+      LOG_LEVEL: info
+      # DEFAULTS TO false HERE, opposite to production (DEPLOY_CONTRACT §5) — and on purpose.
+      # A demo is served over plain http:// to a laptop or a phone on the LAN; a Secure cookie
+      # is discarded by the browser over HTTP, so the viewer would log in and bounce straight
+      # back to the login page. The exposure that argument turns on — a session token readable
+      # on the network — is a session on a box holding invented data. Set it to true if you put
+      # the demo behind TLS.
+      SESSION_COOKIE_SECURE: ${BUDGETEER_DEMO_COOKIE_SECURE:-false}
+    ports:
+      # 3010 by default: 3001/5173 are the dev stack, 3002/5174 the cold-start e2e stack,
+      # 3099 the deploy validation harness. The demo box gets a lane of its own so it can be
+      # left running while other work happens.
+      - "${BUDGETEER_DEMO_PORT:-3010}:3001"
+
+volumes:
+  budgeteer-demo-db:

@@ -13,8 +13,9 @@ not by hand.
 > gate, backup/export), **authentication + user management** (default-deny sessions, roles,
 > `BUD-E13`) and a **published ARM64 container image** (`BUD-E14`) are built and gate-green.
 > A brand-new install is now usable **from the browser alone** — it routes you to `/setup` to create
-> the first admin (`BUD-S92`). **Not yet:** a **showcase demo instance**, scoped as `BUD-S93` in
-> [`docs/03_ROADMAP-v2.md`](docs/03_ROADMAP-v2.md), the live plan for the `BUD-*` ids.
+> the first admin (`BUD-S92`), and there is a one-command **demo instance** to show it to someone
+> without the real ledger being anywhere near it (`BUD-S93`, below). The live plan for the `BUD-*`
+> ids is [`docs/03_ROADMAP-v2.md`](docs/03_ROADMAP-v2.md).
 
 ---
 
@@ -72,6 +73,7 @@ budgeteer/
 │  ├─ api/           # Fastify HTTP API + Kysely data layer (the impure shell)
 │  └─ web/           # React + Vite single-page app
 ├─ docs/             # source of truth: PRD, roadmap, models, ADRs, specs, reviews
+├─ deploy/           # the reference container stack, plus the demo instance's
 ├─ spikes/           # throwaway investigations (reports live in docs/spikes/)
 └─ .env.example      # copy to .env at the repo root (auto-loaded)
 ```
@@ -208,6 +210,24 @@ non-empty store. See [docs/features/demo-seed.md](docs/features/demo-seed.md).
 
 **Tests are unaffected.** The Vitest suite never reads `PGLITE_DIR`; each test spins up its own
 ephemeral in-memory PGlite and tears it down — no `PGLITE_DIR` needed, no cleanup required.
+
+## Demo instance
+
+To show Budgeteer to someone — hand them the app, screenshot it, demo it live — **without the real
+ledger being anywhere near it**, run the demo box: a second container off the same image and tag,
+with its own database, its own `SESSION_SECRET`, and a lived-in **synthetic** dataset. Needs a
+container runtime.
+
+```bash
+./scripts/demo-instance.sh up        # http://localhost:3010 — sign in as demo / demo-budgeteer
+./scripts/demo-instance.sh refresh   # re-pristine it between showings
+./scripts/demo-instance.sh down      # stop it (--purge also drops its database)
+```
+
+It shares nothing with a real deployment — its own compose project, its own volume, and a
+`DATABASE_URL` hard-wired to its own database rather than read from the environment. The runbook,
+including the two places it deliberately differs from the production stack, is
+[DEPLOY_CONTRACT §10](docs/DEPLOY_CONTRACT.md).
 
 ## Scripts (from the repo root)
 

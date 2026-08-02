@@ -21,7 +21,9 @@ to another project, so breaking any of it is a coordinated change, not a refacto
 
 > budgeteer is a **single-household, LAN-only** self-hosted service. Not multi-tenant, not
 > public-internet (initiative §8). A reference `docker compose` file lives at
-> [`deploy/compose.yaml`](../deploy/compose.yaml) — that file *is* the worked example of everything below.
+> [`deploy/compose.yaml`](../deploy/compose.yaml) — that file *is* the worked example of everything
+> below. Its sibling [`deploy/compose.demo.yaml`](../deploy/compose.demo.yaml) is the **demo
+> instance** (§10): the same image, a separate box, synthetic data only.
 
 ## 1. Image
 
@@ -153,6 +155,9 @@ therefore be handed to a non-technical user.
 The CLI above is the **recovery** path — when nobody can sign in, or when the box is not reachable by
 browser. It is not being retired.
 
+Showing the app to someone without exposing the household's ledger is a **separate instance**, not a
+mode of this one — see [§10](#10-the-demo-instance-bud-s93).
+
 Backups are taken with `GET /api/export` (authenticated) or `pg_dump` against the database volume.
 
 ### Restoring — what to know
@@ -195,3 +200,90 @@ This file is a promise to another project. Anything in §1–§7 changing — a 
 the health contract, the image name — is a **coordinated change with labs-hub**, announced before it
 ships, not a refactor. The API paths under `/api` follow
 [`06_API_CONTRACT.md`](06_API_CONTRACT.md) §5.
+
+§10 below is **not** part of that promise: the demo instance is a local showcase tool, not something
+the hub consumes, and it can change freely.
+
+## 10. The demo instance (`BUD-S93`)
+
+A showcase box you can hand to someone, screenshot, or demo live — **with the household's real
+ledger nowhere near it**. It is a *second container off the same image and tag* as the real
+deployment, not a mode inside it.
+
+| | |
+| --- | --- |
+| Stack | [`deploy/compose.demo.yaml`](../deploy/compose.demo.yaml) — project **`budgeteer-demo`**, pinned in the file |
+| Driver | [`scripts/demo-instance.sh`](../scripts/demo-instance.sh) |
+| URL | `http://<host>:3010` (override with `BUDGETEER_DEMO_PORT`) |
+| Sign in | **`demo` / `demo-budgeteer`** — published on purpose; see *The credential* below |
+| Data | strictly synthetic, from `seed:demo` ([`seedDemo.ts`](../apps/api/src/db/seedDemo.ts)) — every payee, amount, and account name invented |
+
+```bash
+./scripts/demo-instance.sh up        # start it, ensure the credential, load the demo data
+./scripts/demo-instance.sh refresh   # re-pristine it between showings
+./scripts/demo-instance.sh status    # URL, credential, health
+./scripts/demo-instance.sh down      # stop it (--purge also drops the database volume)
+```
+
+`init` (implied by the rest) generates `deploy/.env.demo` with a database password and a
+`SESSION_SECRET` of its own. That file is gitignored (`.env.*`) and **must never be committed**; the
+compose file has no fallback for either value and fails loudly, by name, without them.
+
+### What it does not share with the real deployment
+
+Isolation here is structural, not conventional — a demo box that could reach the household's data
+would defeat the entire point:
+
+- **Its own compose project**, pinned as `name: budgeteer-demo` *inside the file*. Without that, a
+  stack started as `docker compose -f deploy/compose.demo.yaml up` would take its project name from
+  the parent directory (`deploy`) — the same name a primary stack started that way would get, and the
+  two would then share containers and volumes.
+- **Its own volume** (`budgeteer-demo-db`), on its own network, so `down --volumes` can only ever drop
+  the demo database.
+- **`DATABASE_URL` hard-wired** to its own `db` service — deliberately not read from the environment,
+  so an operator with the production values exported cannot aim the demo container at the real
+  database.
+- **Its own `SESSION_SECRET`**, under a distinct variable name (`DEMO_SESSION_SECRET`), so the demo
+  box cannot inherit the real signing key by accident.
+
+### Seeding — why it needs a repo checkout
+
+`seedDemo` is **not in the production image**. [`apps/api/scripts/build.ts`](../apps/api/scripts/build.ts)
+ships the server and the operational CLIs only, which is exactly what keeps demo data *absent* from a
+real deployment rather than merely guarded — and the reason this is a second container instead of an
+in-app demo mode. The cost of that choice: **the demo box cannot seed itself.** The seed runs from a
+repo checkout against the demo database over a loopback-published port
+(`127.0.0.1:5434`, `BUDGETEER_DEMO_DB_PORT`).
+
+That port is the one deliberate deviation from §2's "the database port is never published". It is
+bound to `127.0.0.1`, so it is reachable from the seeding machine and from nothing else on the LAN,
+and the database behind it holds invented data. Everything except reseeding — start, stop, reset,
+restore the credential — works with no toolchain, because those CLIs *are* in the image.
+
+The other deviation is `SESSION_COOKIE_SECURE`, which defaults to **`false`** here and `true` in
+production (§5). A demo is served over plain `http://` to a laptop or a phone, and a browser discards
+a `Secure` cookie that arrives over HTTP — the viewer would sign in and bounce straight back to the
+login page. The exposure that trade-off normally turns on is a session token on a box holding nothing
+real. Set `BUDGETEER_DEMO_COOKIE_SECURE=true` if you put the demo behind TLS.
+
+### The credential
+
+`demo` / `demo-budgeteer`, written down here and in the script rather than generated per run. A
+showing that starts by reading a fresh password off a terminal is not a box you can hand to someone.
+This is **not a secret exception**: the account guards a throwaway database of invented figures, on
+its own `SESSION_SECRET`, and the real deployment shares nothing with it. The generated values in
+`deploy/.env.demo` *are* secrets and stay out of the repo.
+
+Alternatively, `down --purge` leaves a box nobody has claimed: bring it back up without seeding and
+the browser routes the next visitor to `/setup` (§7) to create their own account.
+
+### Re-pristining between showings
+
+`refresh` empties the ledger, reloads the synthetic dataset, and restores the published password —
+which also **revokes any live session**, so the last viewer is signed out. It is the answer to the two
+ways a showing leaves the box dirty: data someone entered, and a password someone changed.
+
+The ledger reset runs *inside* the container and preserves `households`, `users` and `sessions`
+(BUD-S90, §7), which is why the demo account survives a refresh instead of having to be recreated. For
+a box that is dirty in some way `refresh` does not cover, `down --purge && up` rebuilds it from
+nothing.
