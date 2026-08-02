@@ -33,3 +33,67 @@ describe("config — HOST boundary validation (EH11)", () => {
     expect(() => loadConfig({ HOST: "   " })).toThrow(/HOST/);
   });
 });
+
+// BUD-S81/S83 — the production profile has two hard requirements the dev profile does not, and both
+// must fail at STARTUP rather than at the first request that needs them.
+describe("config — production profile", () => {
+  const PROD = { APP_ENV: "production", DATABASE_URL: "postgres://u:p@db:5432/budgeteer" };
+
+  test("accepts a complete production profile", () => {
+    const cfg = loadConfig({ ...PROD, SESSION_SECRET: "a-long-enough-session-secret" });
+    expect(cfg.APP_ENV).toBe("production");
+    expect(cfg.DATABASE_URL).toBe("postgres://u:p@db:5432/budgeteer");
+  });
+
+  test("requires SESSION_SECRET — an unsigned session cookie is forgeable", () => {
+    expect(() => loadConfig(PROD)).toThrow(/SESSION_SECRET/);
+  });
+
+  test("rejects a trivially short SESSION_SECRET", () => {
+    expect(() => loadConfig({ ...PROD, SESSION_SECRET: "short" })).toThrow(/SESSION_SECRET/);
+  });
+
+  test("requires DATABASE_URL — there is no PGlite in the production image to fall back to", () => {
+    // Without this the container would boot, find no DATABASE_URL, and reach for a dev-only
+    // dependency that isn't installed. Worse than the crash would be it succeeding: a household's
+    // ledger served from an in-memory store that empties on every restart (ADR-0008 §2).
+    expect(() =>
+      loadConfig({ APP_ENV: "production", SESSION_SECRET: "a-long-enough-session-secret" }),
+    ).toThrow(/DATABASE_URL/);
+  });
+
+  test("neither is required outside production — dev runs with zero setup", () => {
+    expect(() => loadConfig({ APP_ENV: "development" })).not.toThrow();
+  });
+});
+
+// BUD-S83 — the Secure-cookie decision BUD-S87 deferred. A browser discards a `Secure` cookie that
+// arrives over plain HTTP, so a TLS-less LAN deployment needs a way to say so explicitly.
+describe("config — SESSION_COOKIE_SECURE", () => {
+  test("is unset by default, leaving the APP_ENV-derived default in force", () => {
+    expect(loadConfig({}).SESSION_COOKIE_SECURE).toBeUndefined();
+  });
+
+  test("parses to a boolean, not the string that came out of the environment", () => {
+    expect(loadConfig({ SESSION_COOKIE_SECURE: "false" }).SESSION_COOKIE_SECURE).toBe(false);
+    expect(loadConfig({ SESSION_COOKIE_SECURE: "true" }).SESSION_COOKIE_SECURE).toBe(true);
+  });
+
+  test("rejects anything that isn't true/false — `0` must not silently read as false", () => {
+    expect(() => loadConfig({ SESSION_COOKIE_SECURE: "0" })).toThrow(/SESSION_COOKIE_SECURE/);
+  });
+});
+
+// BUD-S81 — serving the SPA is opt-in, and a wrong path must fail at startup rather than boot a
+// server that 404s every page.
+describe("config — WEB_STATIC_ROOT", () => {
+  test("is optional — dev serves the web from Vite instead", () => {
+    expect(loadConfig({}).WEB_STATIC_ROOT).toBeUndefined();
+  });
+
+  test("is carried through when set", () => {
+    expect(loadConfig({ WEB_STATIC_ROOT: "/app/apps/web/dist" }).WEB_STATIC_ROOT).toBe(
+      "/app/apps/web/dist",
+    );
+  });
+});

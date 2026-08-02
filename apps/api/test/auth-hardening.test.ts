@@ -29,8 +29,8 @@ describe("login throttle + household scoping", () => {
   });
 
   const login = (creds: { username: string; password: string }) =>
-    ctx.app.inject({ method: "POST", url: "/auth/login", payload: creds });
-  const setup = () => ctx.app.inject({ method: "POST", url: "/auth/setup", payload: ADMIN });
+    ctx.app.inject({ method: "POST", url: "/api/auth/login", payload: creds });
+  const setup = () => ctx.app.inject({ method: "POST", url: "/api/auth/setup", payload: ADMIN });
 
   test("locks out (429) after repeated failures; a different username is unaffected", async () => {
     await setup();
@@ -55,12 +55,16 @@ describe("login throttle + household scoping", () => {
       householdId: HH_B,
     });
     // Household A's admin never sees household B's users...
-    const list = await ctx.app.inject({ method: "GET", url: "/users", headers: { cookie: admin } });
+    const list = await ctx.app.inject({
+      method: "GET",
+      url: "/api/users",
+      headers: { cookie: admin },
+    });
     expect(list.json().users.map((u: { username: string }) => u.username)).not.toContain("b-admin");
     // ...and can't touch them — scoped away as 404 (existence doesn't leak), never 200/403.
     const disable = await ctx.app.inject({
       method: "POST",
-      url: `/users/${other.id}/disable`,
+      url: `/api/users/${other.id}/disable`,
       headers: { cookie: admin },
     });
     expect(disable.statusCode).toBe(404);
@@ -75,17 +79,17 @@ describe("session expiry + last-admin protection", () => {
     const app = buildServer(db, { auth: AUTH, clock: () => new Date(now) });
     await app.ready();
 
-    await app.inject({ method: "POST", url: "/auth/setup", payload: ADMIN });
+    await app.inject({ method: "POST", url: "/api/auth/setup", payload: ADMIN });
     const cookie = cookieFrom(
-      await app.inject({ method: "POST", url: "/auth/login", payload: ADMIN }),
+      await app.inject({ method: "POST", url: "/api/auth/login", payload: ADMIN }),
     );
     expect(
-      (await app.inject({ method: "GET", url: "/accounts", headers: { cookie } })).statusCode,
+      (await app.inject({ method: "GET", url: "/api/accounts", headers: { cookie } })).statusCode,
     ).toBe(200);
 
     now += 31 * 24 * 60 * 60 * 1000; // past the 30-day TTL
     expect(
-      (await app.inject({ method: "GET", url: "/accounts", headers: { cookie } })).statusCode,
+      (await app.inject({ method: "GET", url: "/api/accounts", headers: { cookie } })).statusCode,
     ).toBe(401);
     expect(await db.selectFrom("sessions").selectAll().execute()).toHaveLength(0); // cleaned up
 

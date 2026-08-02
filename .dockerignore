@@ -1,0 +1,47 @@
+# ============================================================================
+# Docker build context — DENY BY DEFAULT (BUD-S81 · ADR-0008)
+#
+# This image is PUBLISHED to a registry (GHCR, BUD-S84), so anything that reaches
+# the build context can leave the machine. The repo also holds the owner's REAL
+# financial history in gitignored paths (/data/ — the ledger store and multi-MB
+# backup exports) and real secrets in /.env.
+#
+# So the posture is inverted from .gitignore: ignore EVERYTHING, then allow back
+# only the files the build actually needs. A new confidential file dropped into
+# the repo is therefore excluded automatically, instead of leaking until someone
+# remembers to add a rule (docs/SECURITY.md §1).
+# ============================================================================
+*
+
+# --- Workspace manifests + lockfile (the reproducible install) ---
+!package.json
+!package-lock.json
+!tsconfig.base.json
+
+# --- The API: source, its build script, and its manifests ---
+!apps/api/package.json
+!apps/api/tsconfig.json
+!apps/api/src
+!apps/api/scripts
+
+# --- The web SPA: source + the Vite build inputs ---
+!apps/web/package.json
+!apps/web/tsconfig.json
+!apps/web/vite.config.ts
+!apps/web/index.html
+!apps/web/src
+
+# --- Shared domain package (bundled into the API by esbuild) ---
+!packages/domain/package.json
+!packages/domain/tsconfig.json
+!packages/domain/src
+
+# --- Re-exclude anything the allow-rules above would otherwise pull back in ---
+# `!apps/api/src` re-includes the whole subtree, so these must be denied AFTER it.
+**/node_modules
+**/dist
+**/*.test.ts
+**/*.test.tsx
+**/.env
+**/.env.*
+**/*.local

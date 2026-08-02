@@ -74,15 +74,25 @@ sequences the rest behind it.
 
 ## 5. The deploy contract (the handoff to labs-hub)
 
-The concrete interface the hub's LH-S3 will consume — **this is the deliverable that unblocks
-the other side.** To be finalized as B–E land:
+**PUBLISHED — [`docs/DEPLOY_CONTRACT.md`](../DEPLOY_CONTRACT.md)** (BUD-S83, 2026-08-01), with a
+worked reference deployment at [`deploy/compose.yaml`](../../deploy/compose.yaml) and an executable
+proof at `scripts/validate-deploy.sh`. That document supersedes the sketch below and is what LH-S3
+consumes; §8 there makes it a coordinated-change surface.
 
-- **Image:** `ghcr.io/wes-cutting/budgeteer:<tag>` (ARM64), or separate `budgeteer-api` + `budgeteer-web` images.
-- **Ports:** API `3001` (serves `/health`); web (static) on its own port or served by the API.
-- **Env (required):** `DATABASE_URL`, `CORS_ORIGINS`, `HOST=0.0.0.0`, `VITE_API_BASE_URL`, plus the `#19` auth secrets.
-- **Volumes:** none for the app if state is fully in Postgres (the Postgres container owns the data-root volume).
-- **Health:** `GET /health → 200` (extend to include DB reachability for a true readiness check).
-- **Dependencies:** a PostgreSQL 16+ service; runs its own migrations on startup.
+How the sketch resolved, where it differs:
+
+- **Image:** `ghcr.io/wes-cutting/budgeteer:<tag>` (ARM64, ~82 MB) — the **single**-image option, not two.
+- **Ports:** `3001` only — the SPA, the API, and health all come from one process on one origin.
+- **Env (required):** `APP_ENV=production`, `DATABASE_URL`, `SESSION_SECRET`. `HOST=0.0.0.0` and
+  `CORS_ORIGINS=""` are image defaults, not things the hub must set; `VITE_API_BASE_URL` is
+  **build-time**, not runtime, so it is not part of the hub's env at all.
+- **Volumes:** none for the app — confirmed; the Postgres container owns the only volume.
+- **Health:** `GET /api/health` → `200 {"status":"ok","db":"ok"}`, `503` when the database is
+  unreachable. The DB-reachability extension landed (BUD-S82).
+- **Dependencies:** PostgreSQL 16+; migrates on startup. Confirmed.
+- **New, and not anticipated here:** every API path now lives under **`/api`** (the SPA's client
+  routes collided with the API's paths on a shared origin — ADR-0008 §1), and **TLS vs the `Secure`
+  session cookie** is a decision the hub must make before going live (contract §5).
 
 ## 6. Definition of "deployment-ready"
 
@@ -114,4 +124,5 @@ When A–E are checked, labs-hub LH-S3 can deploy budgeteer unchanged.
 - [x] Owner review; reconcile with the live roadmap — done 2026-07-29 (A = `BUD-E13`, full epic; corrected the "#19 already exists" framing to "named but unbuilt").
 - [x] Spawn roadmap items for **B–F** — `BUD-E14` epic: `BUD-S81` (B) · `BUD-S82` (C) · `BUD-S83` (D) · `BUD-S84` (E) · `BUD-S85` (F), sized in [`03_ROADMAP-v2.md`](../03_ROADMAP-v2.md) §3.
 - [x] **ADR** for the containerized production runtime — [`ADR-0008`](../adr/ADR-0008-containerized-production-runtime.md) (single ARM64 image · Postgres · GHCR), extending `ADR-0001/0002`; runtime half validated by [`SPIKE-12`](../spikes/12-postgres-production-validation.md).
-- [ ] Finalize and publish the **§5 deploy contract**; hand it to labs-hub LH-S3 (`BUD-S83`).
+- [x] Finalize and publish the **§5 deploy contract**; hand it to labs-hub LH-S3 (`BUD-S83`) —
+      done 2026-08-01: [`docs/DEPLOY_CONTRACT.md`](../DEPLOY_CONTRACT.md) + [`deploy/compose.yaml`](../../deploy/compose.yaml).

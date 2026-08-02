@@ -17,14 +17,14 @@ const del = (url: string) => ctx.app.inject({ method: "DELETE", url });
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeEnvelope(name: string): Promise<string> {
-  return (await post("/envelopes", { name })).json().envelope.id as string;
+  return (await post("/api/envelopes", { name })).json().envelope.id as string;
 }
 
 describe("templates API (FEAT-004)", () => {
   test("create a template with fixed lines, then list it", async () => {
     const rent = await makeEnvelope("Rent");
     const savings = await makeEnvelope("Savings");
-    const res = await post("/templates", {
+    const res = await post("/api/templates", {
       name: "Paycheck",
       lines: [
         { envelopeId: rent, amount: "1400.00" },
@@ -38,34 +38,34 @@ describe("templates API (FEAT-004)", () => {
     expect(tpl.lines[0].amountCents).toBe(140000);
     expect(tpl.lines[0].envelopeName).toBe("Rent");
 
-    expect((await get("/templates")).json().templates).toHaveLength(1);
+    expect((await get("/api/templates")).json().templates).toHaveLength(1);
   });
 
   test("duplicate name → 409; zero lines → 400; bad envelope → 400; amount ≤ 0 → 400", async () => {
     const rent = await makeEnvelope("Rent");
-    await post("/templates", {
+    await post("/api/templates", {
       name: "Paycheck",
       lines: [{ envelopeId: rent, amount: "1400.00" }],
     });
     expect(
       (
-        await post("/templates", {
+        await post("/api/templates", {
           name: "paycheck",
           lines: [{ envelopeId: rent, amount: "1.00" }],
         })
       ).statusCode,
     ).toBe(409);
-    expect((await post("/templates", { name: "Empty", lines: [] })).statusCode).toBe(400);
+    expect((await post("/api/templates", { name: "Empty", lines: [] })).statusCode).toBe(400);
     expect(
       (
-        await post("/templates", {
+        await post("/api/templates", {
           name: "Bad",
           lines: [{ envelopeId: "00000000-0000-0000-0000-0000000000aa", amount: "1.00" }],
         })
       ).statusCode,
     ).toBe(400);
     expect(
-      (await post("/templates", { name: "Zero", lines: [{ envelopeId: rent, amount: "0" }] }))
+      (await post("/api/templates", { name: "Zero", lines: [{ envelopeId: rent, amount: "0" }] }))
         .statusCode,
     ).toBe(400);
   });
@@ -74,10 +74,10 @@ describe("templates API (FEAT-004)", () => {
     const rent = await makeEnvelope("Rent");
     const gas = await makeEnvelope("Gas");
     const tpl = (
-      await post("/templates", { name: "P", lines: [{ envelopeId: rent, amount: "1400.00" }] })
+      await post("/api/templates", { name: "P", lines: [{ envelopeId: rent, amount: "1400.00" }] })
     ).json().template;
 
-    const upd = await put(`/templates/${tpl.id}`, {
+    const upd = await put(`/api/templates/${tpl.id}`, {
       name: "P2",
       lines: [{ envelopeId: gas, amount: "50.00" }],
     });
@@ -86,29 +86,29 @@ describe("templates API (FEAT-004)", () => {
     expect(upd.json().template.lines).toHaveLength(1);
     expect(upd.json().template.lines[0].envelopeName).toBe("Gas");
 
-    expect((await del(`/templates/${tpl.id}`)).statusCode).toBe(204);
-    expect((await get("/templates")).json().templates).toHaveLength(0);
+    expect((await del(`/api/templates/${tpl.id}`)).statusCode).toBe(204);
+    expect((await get("/api/templates")).json().templates).toHaveLength(0);
 
     const ghost = "00000000-0000-0000-0000-0000000000ff";
     expect(
       (
-        await put(`/templates/${ghost}`, {
+        await put(`/api/templates/${ghost}`, {
           name: "X",
           lines: [{ envelopeId: rent, amount: "1.00" }],
         })
       ).statusCode,
     ).toBe(404);
-    expect((await del(`/templates/${ghost}`)).statusCode).toBe(404);
+    expect((await del(`/api/templates/${ghost}`)).statusCode).toBe(404);
   });
 
   test("delete tolerates an application/json content-type with an empty body", async () => {
     const rent = await makeEnvelope("Rent");
     const tpl = (
-      await post("/templates", { name: "P", lines: [{ envelopeId: rent, amount: "1.00" }] })
+      await post("/api/templates", { name: "P", lines: [{ envelopeId: rent, amount: "1.00" }] })
     ).json().template;
     const res = await ctx.app.inject({
       method: "DELETE",
-      url: `/templates/${tpl.id}`,
+      url: `/api/templates/${tpl.id}`,
       headers: { "content-type": "application/json" },
     });
     expect(res.statusCode).toBe(204);

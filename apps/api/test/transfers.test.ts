@@ -16,11 +16,11 @@ const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeAccount(name: string, startingBalance = "0"): Promise<string> {
   return (
-    await post("/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
+    await post("/api/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
   ).json().account.id as string;
 }
 const balanceOf = async (id: string): Promise<number> => {
-  const accounts = (await get("/accounts")).json().accounts;
+  const accounts = (await get("/api/accounts")).json().accounts;
   return accounts.find((a: { id: string }) => a.id === id).balanceCents;
 };
 
@@ -29,7 +29,7 @@ describe("transfers API (FEAT-007 / ADR-0004)", () => {
     const checking = await makeAccount("Checking", "1000.00");
     const savings = await makeAccount("Savings", "0");
 
-    const res = await post("/transfers", {
+    const res = await post("/api/transfers", {
       fromAccountId: checking,
       toAccountId: savings,
       amount: "250.00",
@@ -51,7 +51,7 @@ describe("transfers API (FEAT-007 / ADR-0004)", () => {
   test("transfer legs surface in the register (labeled by counterpart) but NOT in needs-allocation", async () => {
     const checking = await makeAccount("Checking", "500.00");
     const savings = await makeAccount("Savings", "0");
-    await post("/transfers", {
+    await post("/api/transfers", {
       fromAccountId: checking,
       toAccountId: savings,
       amount: "100.00",
@@ -59,14 +59,14 @@ describe("transfers API (FEAT-007 / ADR-0004)", () => {
     });
 
     const register = (
-      await get(`/accounts/${checking}/transactions?from=2026-07-01&to=2026-07-31`)
+      await get(`/api/accounts/${checking}/transactions?from=2026-07-01&to=2026-07-31`)
     ).json().transactions;
     const leg = register.find((t: { kind: string }) => t.kind === "transfer");
     expect(leg).toBeTruthy();
     expect(leg.amountCents).toBe(-10000);
     expect(leg.transferCounterpartName).toBe("Savings");
 
-    const needs = (await get("/transactions/needs-allocation")).json().transactions;
+    const needs = (await get("/api/transactions/needs-allocation")).json().transactions;
     expect(needs.some((t: { kind: string }) => t.kind === "transfer")).toBe(false);
   });
 
@@ -74,7 +74,7 @@ describe("transfers API (FEAT-007 / ADR-0004)", () => {
     const checking = await makeAccount("Del Checking", "500.00");
     const savings = await makeAccount("Del Savings", "0");
     const transfer = (
-      await post("/transfers", {
+      await post("/api/transfers", {
         fromAccountId: checking,
         toAccountId: savings,
         amount: "200.00",
@@ -85,21 +85,21 @@ describe("transfers API (FEAT-007 / ADR-0004)", () => {
     expect(await balanceOf(checking)).toBe(30000); // 500 − 200
     expect(await balanceOf(savings)).toBe(20000); // 0 + 200
 
-    const res = await del(`/transfers/${transfer.id}`);
+    const res = await del(`/api/transfers/${transfer.id}`);
     expect(res.statusCode).toBe(204);
 
     expect(await balanceOf(checking)).toBe(50000); // restored
     expect(await balanceOf(savings)).toBe(0);
     // Neither leg should appear in either register.
     const checkingTxns = (
-      await get(`/accounts/${checking}/transactions?from=2026-07-01&to=2026-07-31`)
+      await get(`/api/accounts/${checking}/transactions?from=2026-07-01&to=2026-07-31`)
     ).json().transactions;
     expect(checkingTxns.some((t: { kind: string }) => t.kind === "transfer")).toBe(false);
   });
 
   test("DELETE /transfers/:id on unknown transfer → 404", async () => {
     const ghost = "00000000-0000-0000-0000-0000000000ff";
-    expect((await del(`/transfers/${ghost}`)).statusCode).toBe(404);
+    expect((await del(`/api/transfers/${ghost}`)).statusCode).toBe(404);
   });
 
   test("rejects same-account, non-positive, and missing-account transfers", async () => {
@@ -109,7 +109,7 @@ describe("transfers API (FEAT-007 / ADR-0004)", () => {
 
     expect(
       (
-        await post("/transfers", {
+        await post("/api/transfers", {
           fromAccountId: checking,
           toAccountId: checking,
           amount: "10.00",
@@ -119,7 +119,7 @@ describe("transfers API (FEAT-007 / ADR-0004)", () => {
     ).toBe(400);
     expect(
       (
-        await post("/transfers", {
+        await post("/api/transfers", {
           fromAccountId: checking,
           toAccountId: savings,
           amount: "0",
@@ -129,7 +129,7 @@ describe("transfers API (FEAT-007 / ADR-0004)", () => {
     ).toBe(400);
     expect(
       (
-        await post("/transfers", {
+        await post("/api/transfers", {
           fromAccountId: checking,
           toAccountId: ghost,
           amount: "10.00",
@@ -149,7 +149,7 @@ describe("transfers API (FEAT-007 / ADR-0004)", () => {
       .where("id", "=", savings)
       .execute();
 
-    const res = await post("/transfers", {
+    const res = await post("/api/transfers", {
       fromAccountId: checking,
       toAccountId: savings,
       amount: "10.00",
@@ -163,13 +163,13 @@ describe("transfers API (FEAT-007 / ADR-0004)", () => {
   test("a withdrawal still needs allocation, but the transfer it funds does not", async () => {
     const checking = await makeAccount("Checking", "300.00");
     const savings = await makeAccount("Savings", "0");
-    await post("/transfers", {
+    await post("/api/transfers", {
       fromAccountId: checking,
       toAccountId: savings,
       amount: "300.00",
       occurredOn: "2026-07-02",
     });
-    const needs = (await get("/transactions/needs-allocation")).json().transactions;
+    const needs = (await get("/api/transactions/needs-allocation")).json().transactions;
     // Only the two opening balances (one is 0 → excluded) — no transfer leg.
     expect(needs.every((t: { kind: string }) => t.kind !== "transfer")).toBe(true);
   });

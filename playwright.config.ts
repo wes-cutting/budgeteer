@@ -66,7 +66,7 @@ export default defineConfig({
   webServer: [
     {
       command: "npm run start --workspace @budgeteer/api",
-      url: `http://localhost:${API_PORT}/health`,
+      url: `http://localhost:${API_PORT}/api/health`,
       // Override PGLITE_DIR for the spawned API only; merged over process.env by Playwright. dotenv
       // (apps/api) won't override this real env var, so the e2e API uses the throwaway store.
       env: { PGLITE_DIR: E2E_PGLITE_DIR },

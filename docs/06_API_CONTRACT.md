@@ -18,7 +18,10 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
 
 ## 1. Conventions
 
-- **Base URL / port:** `http://localhost:3001` in dev (configurable via `PORT`).
+- **Base URL / port:** `http://localhost:3001/api` in dev (port configurable via `PORT`). In the
+  production container the SPA and the API share one origin, so the base is simply **`/api`**
+  (ADR-0008 §1). The web client composes this from the API **origin** (`VITE_API_BASE_URL`, empty in
+  the container) plus the `/api` namespace, which it never omits.
 - **Format:** JSON request/response; `content-type: application/json`. Money crosses the
   wire as **integer cents** (`balanceCents`) on output, and as a **decimal string**
   (`startingBalance`, e.g. `"2140.00"`) on input — parsed to integer cents at the boundary
@@ -32,7 +35,9 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
   (`apps/web/src/dates.ts`); a missing/malformed date fails loudly with `400`. The server
   clock (EH7) remains only for operational stamps (the backup filename).
 - **Versioning:** unversioned in V1 (single client). A `/v1` prefix will be introduced
-  before any second consumer (change policy §5).
+  before any second consumer (change policy §5). `/api` is a **namespace, not a version** — it
+  separates the API from the SPA's client routes on a shared origin; a future version would sit
+  inside it (`/api/v1`).
 - **CORS:** the browser app calls this API **cross-origin** (web on `:5173`, API on `:3001`),
   so the API sends CORS headers via `@fastify/cors`. The allowed origins are an **allowlist**
   (env `CORS_ORIGINS`, comma-separated; defaults to the Vite dev origins) — **never `*`**
@@ -41,9 +46,11 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
   otherwise defaults the preflight to `GET,HEAD,POST`, which silently blocks every cross-origin
   `PUT`/`PATCH`/`DELETE` in the browser (fixed with FEAT-012, which added the first browser write
   verbs that weren't covered by the prior POST-only e2e).
-- **Authz:** **none yet** — V1 is a single implicit household (`DEFAULT_HOUSEHOLD_ID`). When
-  multi-household lands it becomes **default-deny, household-scoped at the resource level**
-  (ADR-0002, SECURITY.md). Every resource already carries `householdId` server-side.
+- **Authz:** **default-deny, household-scoped at the resource level** (ADR-0009, SECURITY.md §3) —
+  shipped in BUD-S87–S89. Every request outside the public surface (`/api/health` and the public auth
+  routes) needs a valid session, and each request's services are bound to that session's household,
+  so a handler cannot reach another household's rows. See §3's authentication and user-management
+  sections for the full surface.
 
 ## 2. Error envelope
 
@@ -68,11 +75,24 @@ The error handler **preserves the original 4xx status** (e.g. a malformed/empty 
 
 ## 3. Resources / operations
 
-### `GET /health`
-- **Output:** `200 { "status": "ok" }`. Liveness only. Public.
+> **Every path below is relative to the `/api` prefix** — `GET /accounts` is served at
+> `GET /api/accounts` (BUD-S81 · [ADR-0008](adr/ADR-0008-containerized-production-runtime.md) §1).
+> The prefix exists because the production container serves the SPA and the API from **one origin**,
+> and seven client routes are spelled exactly like API paths (`/accounts`, `/envelopes`,
+> `/templates`, `/recurring`, `/users`, plus the two `:id` forms). Without separate namespaces a
+> browser refresh on the Accounts page was answered by the account-list endpoint — the user got JSON
+> instead of their app. The prefix applies in **every** environment, not just the container, so the
+> contract the tests exercise is the contract that ships.
+
+### `GET /api/health`
+- **Output:** `200 { "status": "ok", "db": "ok" }` — a **readiness** probe: it confirms the
+  datastore answers, not merely that the process is listening (BUD-S82, closing the gap
+  [SPIKE-12](spikes/12-postgres-production-validation.md) found).
+- **`503 { "status": "degraded", "db": "unreachable" }`** when the database does not respond within
+  2 s. The cause is logged; the response carries no detail. Public.
 
 ### Authentication (BUD-S87 · ADR-0009)
-**Default-deny:** every operation except `GET /health` and the public auth routes requires a valid
+**Default-deny:** every operation except `GET /api/health` and the public auth routes requires a valid
 session; without one the API returns `401 { "error": { "message" } }`. The session is an opaque,
 signed, **HttpOnly** `budgeteer_session` cookie (`SameSite=Strict`; `Secure` in production), and every
 request is scoped to the session's household (ADR-0009 §2). CORS is **credentialed against the

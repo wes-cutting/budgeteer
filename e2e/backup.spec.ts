@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { createAccount } from "./setup";
 
-const API = "http://localhost:3001";
+const API = "http://localhost:3001/api";
 
 test("Download backup link is visible on the dashboard", async ({ page }) => {
   await page.goto("/");

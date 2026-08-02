@@ -20,11 +20,11 @@ const del = (url: string) => ctx.app.inject({ method: "DELETE", url });
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeEnvelope(name: string): Promise<string> {
-  return (await post("/envelopes", { name })).json().envelope.id as string;
+  return (await post("/api/envelopes", { name })).json().envelope.id as string;
 }
 async function makeAccount(): Promise<string> {
   return (
-    await post("/accounts", {
+    await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "Checking",
       kind: "checking",
@@ -33,7 +33,7 @@ async function makeAccount(): Promise<string> {
   ).json().account.id as string;
 }
 const balanceOf = async (collection: "accounts" | "envelopes", id: string): Promise<number> => {
-  const items = (await get(`/${collection}`)).json()[collection];
+  const items = (await get(`/api/${collection}`)).json()[collection];
   return items.find((x: { id: string }) => x.id === id).balanceCents;
 };
 
@@ -41,7 +41,7 @@ describe("recurring transactions API (FEAT-009)", () => {
   test("create a rule → next occurrence = anchor, due count reflects the schedule", async () => {
     const accountId = await makeAccount();
     const rent = await makeEnvelope("Rent");
-    const res = await post("/recurring", {
+    const res = await post("/api/recurring", {
       accountId,
       kind: "withdrawal",
       amount: "1500.00",
@@ -63,7 +63,7 @@ describe("recurring transactions API (FEAT-009)", () => {
     const pay = await makeEnvelope("Paycheck");
     // Weekly, anchored 21 days before TODAY → occurrences Mar 7, 14, 21, 28 = 4, all inside
     // the register's default current-month window.
-    await post("/recurring", {
+    await post("/api/recurring", {
       accountId,
       kind: "deposit",
       amount: "10.00",
@@ -73,7 +73,7 @@ describe("recurring transactions API (FEAT-009)", () => {
       lines: [{ envelopeId: pay, amount: "10.00" }],
     });
 
-    const first = await post("/recurring/post-due", { today: TODAY });
+    const first = await post("/api/recurring/post-due", { today: TODAY });
     expect(first.statusCode).toBe(200);
     expect(first.json().result.posted).toBe(4);
     expect(await balanceOf("accounts", accountId)).toBe(4000); // 4 × $10
@@ -81,26 +81,26 @@ describe("recurring transactions API (FEAT-009)", () => {
 
     // Generated transactions are real register rows, linked to the rule.
     const register = (
-      await get(`/accounts/${accountId}/transactions?from=2026-03-01&to=2026-03-31`)
+      await get(`/api/accounts/${accountId}/transactions?from=2026-03-01&to=2026-03-31`)
     ).json().transactions;
     expect(
       register.filter((t: { recurringId: string | null }) => t.recurringId !== null),
     ).toHaveLength(4);
 
     // Re-running posts nothing (cursor parked in the future).
-    const second = await post("/recurring/post-due", { today: TODAY });
+    const second = await post("/api/recurring/post-due", { today: TODAY });
     expect(second.json().result.posted).toBe(0);
     expect(await balanceOf("accounts", accountId)).toBe(4000);
 
     // The rule's due count is now 0.
-    const rule = (await get(`/recurring?today=${TODAY}`)).json().recurring[0];
+    const rule = (await get(`/api/recurring?today=${TODAY}`)).json().recurring[0];
     expect(rule.dueCount).toBe(0);
   });
 
   test("a partially-allocated rule generates transactions that need allocation", async () => {
     const accountId = await makeAccount();
     const pay = await makeEnvelope("Paycheck");
-    await post("/recurring", {
+    await post("/api/recurring", {
       accountId,
       kind: "deposit",
       amount: "100.00",
@@ -109,8 +109,8 @@ describe("recurring transactions API (FEAT-009)", () => {
       today: TODAY,
       lines: [{ envelopeId: pay, amount: "60.00" }], // $40 unallocated
     });
-    await post("/recurring/post-due", { today: TODAY });
-    const needs = (await get("/transactions/needs-allocation")).json().transactions;
+    await post("/api/recurring/post-due", { today: TODAY });
+    const needs = (await get("/api/transactions/needs-allocation")).json().transactions;
     expect(needs.some((t: { unallocatedCents: number }) => t.unallocatedCents === 4000)).toBe(true);
   });
 
@@ -122,7 +122,7 @@ describe("recurring transactions API (FEAT-009)", () => {
 
     expect(
       (
-        await post("/recurring", {
+        await post("/api/recurring", {
           ...base,
           accountId,
           frequency: "yearly",
@@ -132,7 +132,7 @@ describe("recurring transactions API (FEAT-009)", () => {
     ).toBe(400);
     expect(
       (
-        await post("/recurring", {
+        await post("/api/recurring", {
           ...base,
           accountId: ghost,
           frequency: "monthly",
@@ -141,12 +141,12 @@ describe("recurring transactions API (FEAT-009)", () => {
       ).statusCode,
     ).toBe(404);
     expect(
-      (await post("/recurring", { ...base, accountId, frequency: "monthly", lines: [] }))
+      (await post("/api/recurring", { ...base, accountId, frequency: "monthly", lines: [] }))
         .statusCode,
     ).toBe(400);
     expect(
       (
-        await post("/recurring", {
+        await post("/api/recurring", {
           ...base,
           accountId,
           frequency: "monthly",
@@ -159,11 +159,11 @@ describe("recurring transactions API (FEAT-009)", () => {
   test("a missing today is rejected loudly on list, create, and post-due (EH8)", async () => {
     const accountId = await makeAccount();
     const rent = await makeEnvelope("Rent");
-    expect((await get("/recurring")).statusCode).toBe(400);
-    expect((await post("/recurring/post-due", {})).statusCode).toBe(400);
+    expect((await get("/api/recurring")).statusCode).toBe(400);
+    expect((await post("/api/recurring/post-due", {})).statusCode).toBe(400);
     expect(
       (
-        await post("/recurring", {
+        await post("/api/recurring", {
           accountId,
           kind: "withdrawal",
           amount: "100.00",
@@ -179,7 +179,7 @@ describe("recurring transactions API (FEAT-009)", () => {
     const accountId = await makeAccount();
     const pay = await makeEnvelope("Paycheck");
     const rule = (
-      await post("/recurring", {
+      await post("/api/recurring", {
         accountId,
         kind: "deposit",
         amount: "10.00",
@@ -189,7 +189,7 @@ describe("recurring transactions API (FEAT-009)", () => {
         lines: [{ envelopeId: pay, amount: "10.00" }],
       })
     ).json().recurring;
-    expect((await post("/recurring/post-due", { today: TODAY })).json().result.posted).toBe(4);
+    expect((await post("/api/recurring/post-due", { today: TODAY })).json().result.posted).toBe(4);
 
     // Simulate the losing side of a concurrent post-due race: its cursor read predates the
     // winner's commit. Rewinding the cursor recreates exactly that state.
@@ -199,7 +199,7 @@ describe("recurring transactions API (FEAT-009)", () => {
       .where("id", "=", rule.id)
       .execute();
 
-    const res = await post("/recurring/post-due", { today: TODAY });
+    const res = await post("/api/recurring/post-due", { today: TODAY });
     expect(res.statusCode).toBe(200);
     // Already-posted is success-shaped: 0 posted, no error surfaced for the rule.
     expect(res.json().result.posted).toBe(0);
@@ -211,15 +211,15 @@ describe("recurring transactions API (FEAT-009)", () => {
   test("the idempotency index is partial: manual transactions on the same account and date are unconstrained (EH14)", async () => {
     const accountId = await makeAccount();
     const twice = { kind: "deposit", amount: "5.00", occurredOn: TODAY, allocations: [] };
-    expect((await post(`/accounts/${accountId}/transactions`, twice)).statusCode).toBe(201);
-    expect((await post(`/accounts/${accountId}/transactions`, twice)).statusCode).toBe(201);
+    expect((await post(`/api/accounts/${accountId}/transactions`, twice)).statusCode).toBe(201);
+    expect((await post(`/api/accounts/${accountId}/transactions`, twice)).statusCode).toBe(201);
   });
 
   test("deleting a rule removes it but keeps already-generated transactions (history)", async () => {
     const accountId = await makeAccount();
     const pay = await makeEnvelope("Paycheck");
     const rule = (
-      await post("/recurring", {
+      await post("/api/recurring", {
         accountId,
         kind: "deposit",
         amount: "10.00",
@@ -229,11 +229,11 @@ describe("recurring transactions API (FEAT-009)", () => {
         lines: [{ envelopeId: pay, amount: "10.00" }],
       })
     ).json().recurring;
-    await post("/recurring/post-due", { today: TODAY });
-    expect((await del(`/recurring/${rule.id}`)).statusCode).toBe(204);
-    expect((await get(`/recurring?today=${TODAY}`)).json().recurring).toHaveLength(0);
+    await post("/api/recurring/post-due", { today: TODAY });
+    expect((await del(`/api/recurring/${rule.id}`)).statusCode).toBe(204);
+    expect((await get(`/api/recurring?today=${TODAY}`)).json().recurring).toHaveLength(0);
     // The generated transaction survives (recurring_id set null on delete).
     expect(await balanceOf("accounts", accountId)).toBe(1000);
-    expect((await del(`/recurring/${rule.id}`)).statusCode).toBe(404);
+    expect((await del(`/api/recurring/${rule.id}`)).statusCode).toBe(404);
   });
 });

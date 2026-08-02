@@ -170,7 +170,13 @@ export interface Api {
   resetUserPassword(userId: string, password: string): Promise<void>;
 }
 
-const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+// Where the API lives. `VITE_API_BASE_URL` is the ORIGIN only — dev points it at the separate API
+// server, and the production container sets it empty so the SPA calls its own origin (ADR-0008 §1).
+// The `/api` namespace is appended here rather than baked into the env var: the server owns that
+// prefix (see API_PREFIX in apps/api/src/http/server.ts), and it exists because the SPA's own client
+// routes are spelled like API paths — `/accounts` is a page, `/api/accounts` is the endpoint.
+const API_ORIGIN = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+const BASE = `${API_ORIGIN}/api`;
 
 /** Direct URL for the backup download — an anchor href, not a fetch call (no CORS needed). */
 export const exportUrl = `${BASE}/export`;

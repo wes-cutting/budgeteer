@@ -64,7 +64,11 @@ function assertPortFree(port: number): Promise<void> {
 
 function run(args: string[], env: NodeJS.ProcessEnv): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(TSX, args, { cwd: API_DIR, env: { ...process.env, ...env }, stdio: "inherit" });
+    const child = spawn(TSX, args, {
+      cwd: API_DIR,
+      env: { ...process.env, ...env },
+      stdio: "inherit",
+    });
     child.on("exit", (code) =>
       code === 0 ? resolve() : reject(new Error(`tsx ${args.join(" ")} exited with code ${code}`)),
     );
@@ -75,7 +79,13 @@ function run(args: string[], env: NodeJS.ProcessEnv): Promise<void> {
 function startApiServer() {
   const child = spawn(TSX, ["src/index.ts"], {
     cwd: API_DIR,
-    env: { ...process.env, PGLITE_DIR, PORT: String(API_PORT), HOST: "127.0.0.1", LOG_LEVEL: "warn" },
+    env: {
+      ...process.env,
+      PGLITE_DIR,
+      PORT: String(API_PORT),
+      HOST: "127.0.0.1",
+      LOG_LEVEL: "warn",
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let output = "";
@@ -91,11 +101,17 @@ function startApiServer() {
   return { child, crashed };
 }
 
-async function waitForReady(url: string, crashed: Promise<never>, timeoutMs = 15000): Promise<void> {
+async function waitForReady(
+  url: string,
+  crashed: Promise<never>,
+  timeoutMs = 15000,
+): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const ready = await Promise.race([
-      fetch(url).then((r) => r.ok).catch(() => false),
+      fetch(url)
+        .then((r) => r.ok)
+        .catch(() => false),
       new Promise<false>((r) => setTimeout(() => r(false), 200)),
     ]);
     if (ready) return;
@@ -108,7 +124,9 @@ const webReachable = await fetch(WEB_BASE)
   .then((r) => r.ok)
   .catch(() => false);
 if (!webReachable) {
-  throw new Error(`${WEB_BASE} is not reachable. Start the "web" dev server first (npm run dev --workspace apps/web).`);
+  throw new Error(
+    `${WEB_BASE} is not reachable. Start the "web" dev server first (npm run dev --workspace apps/web).`,
+  );
 }
 
 await assertPortFree(API_PORT);
@@ -121,7 +139,7 @@ console.log("Starting a throwaway api-demo server...");
 const { child: apiServer, crashed } = startApiServer();
 
 try {
-  await waitForReady(`${API_BASE}/health`, crashed);
+  await waitForReady(`${API_BASE}/api/health`, crashed);
 
   const browser = await chromium.launch();
 
@@ -192,14 +210,20 @@ try {
   // not a fresh page load, or the dialog never mounts.
   await page.goto(`${WEB_BASE}/`, { waitUntil: "networkidle" });
   await page.getByRole("link", { name: "Add transaction" }).click();
-  await page.getByRole("combobox", { name: "Account" }).selectOption({ label: "Everyday Checking" });
+  await page
+    .getByRole("combobox", { name: "Account" })
+    .selectOption({ label: "Everyday Checking" });
   await page.getByRole("textbox", { name: "Transaction amount" }).fill("126.40");
   await page.getByRole("textbox", { name: "Payee" }).fill("Trader Joe's");
   await page.getByRole("radio", { name: "Split" }).click();
-  await page.getByRole("combobox", { name: "Envelope for row 1" }).selectOption({ label: "Groceries" });
+  await page
+    .getByRole("combobox", { name: "Envelope for row 1" })
+    .selectOption({ label: "Groceries" });
   await page.getByRole("textbox", { name: "Amount for row 1" }).fill("80");
   await page.getByRole("button", { name: "Add row" }).click();
-  await page.getByRole("combobox", { name: "Envelope for row 2" }).selectOption({ label: "Household Supplies" });
+  await page
+    .getByRole("combobox", { name: "Envelope for row 2" })
+    .selectOption({ label: "Household Supplies" });
   await page.getByRole("button", { name: "use remaining" }).nth(1).click();
   await page.waitForTimeout(200);
   await page.screenshot({
@@ -223,7 +247,9 @@ try {
     await vp.waitForTimeout(800);
     await vp.getByRole("link", { name: "Add transaction" }).click();
     await vp.waitForTimeout(500);
-    await vp.getByRole("combobox", { name: "Account" }).selectOption({ label: "Everyday Checking" });
+    await vp
+      .getByRole("combobox", { name: "Account" })
+      .selectOption({ label: "Everyday Checking" });
     await vp.waitForTimeout(300);
     await vp.getByRole("textbox", { name: "Transaction amount" }).fill("126.40");
     await vp.waitForTimeout(300);
@@ -231,12 +257,16 @@ try {
     await vp.waitForTimeout(300);
     await vp.getByRole("radio", { name: "Split" }).click();
     await vp.waitForTimeout(400);
-    await vp.getByRole("combobox", { name: "Envelope for row 1" }).selectOption({ label: "Groceries" });
+    await vp
+      .getByRole("combobox", { name: "Envelope for row 1" })
+      .selectOption({ label: "Groceries" });
     await vp.getByRole("textbox", { name: "Amount for row 1" }).fill("80");
     await vp.waitForTimeout(400);
     await vp.getByRole("button", { name: "Add row" }).click();
     await vp.waitForTimeout(300);
-    await vp.getByRole("combobox", { name: "Envelope for row 2" }).selectOption({ label: "Household Supplies" });
+    await vp
+      .getByRole("combobox", { name: "Envelope for row 2" })
+      .selectOption({ label: "Household Supplies" });
     await vp.getByRole("button", { name: "use remaining" }).nth(1).click();
     await vp.waitForTimeout(1200);
     await vp.getByRole("button", { name: "Save transaction" }).click();

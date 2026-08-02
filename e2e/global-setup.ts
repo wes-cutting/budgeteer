@@ -7,7 +7,7 @@ import { request } from "@playwright/test";
 // the app as an authenticated user, so we sign in ONCE here and share the session via storageState
 // (config `use.storageState`). The store is a fresh throwaway per run (see playwright.config.ts), so
 // the first-run `POST /auth/setup` creates the admin; `POST /auth/login` mints the session cookie.
-const API = "http://localhost:3001";
+const API = "http://localhost:3001/api";
 const dir = path.dirname(fileURLToPath(import.meta.url));
 export const STORAGE_STATE = path.join(dir, ".auth", "state.json");
 /** The e2e admin. Exported so the auth spec can drive a real UI sign-in with its OWN session

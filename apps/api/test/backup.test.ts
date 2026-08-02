@@ -59,15 +59,15 @@ const EXPECTED_TABLES: (keyof BackupTables)[] = [
 
 describe("GET /export (FEAT-015a)", () => {
   test("returns 200 with Content-Disposition attachment and a valid JSON backup", async () => {
-    await post("/accounts", {
+    await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "Checking",
       kind: "checking",
       startingBalance: "500.00",
     });
-    await post("/envelopes", { name: "Rent" });
+    await post("/api/envelopes", { name: "Rent" });
 
-    const res = await get("/export");
+    const res = await get("/api/export");
 
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-disposition"]).toMatch(
@@ -89,14 +89,14 @@ describe("GET /export (FEAT-015a)", () => {
   });
 
   test("cents columns are numbers, not strings", async () => {
-    await post("/accounts", {
+    await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "Savings",
       kind: "savings",
       startingBalance: "1234.56",
     });
 
-    const body = (await get("/export")).json<BackupBody>();
+    const body = (await get("/api/export")).json<BackupBody>();
 
     // The opening-balance transaction carries amount_cents = 123456
     const txns = body.tables.transactions;
@@ -107,7 +107,7 @@ describe("GET /export (FEAT-015a)", () => {
   });
 
   test("empty database returns household row and empty arrays for all other tables", async () => {
-    const body = (await get("/export")).json<BackupBody>();
+    const body = (await get("/api/export")).json<BackupBody>();
 
     expect(body.tables.households).toHaveLength(1);
     expect(body.tables.accounts).toHaveLength(0);
@@ -117,24 +117,24 @@ describe("GET /export (FEAT-015a)", () => {
   });
 
   test("backup includes seeded accounts, envelopes and allocations", async () => {
-    const accountRes = await post("/accounts", {
+    const accountRes = await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "Checking",
       kind: "checking",
       startingBalance: "0",
     });
     const accountId = accountRes.json<{ account: { id: string } }>().account.id;
-    const envRes = await post("/envelopes", { name: "Groceries" });
+    const envRes = await post("/api/envelopes", { name: "Groceries" });
     const envId = envRes.json<{ envelope: { id: string } }>().envelope.id;
 
-    await post(`/accounts/${accountId}/transactions`, {
+    await post(`/api/accounts/${accountId}/transactions`, {
       kind: "deposit",
       amount: "100.00",
       occurredOn: "2026-07-02",
       allocations: [{ envelopeId: envId, amount: "100.00" }],
     });
 
-    const body = (await get("/export")).json<BackupBody>();
+    const body = (await get("/api/export")).json<BackupBody>();
 
     expect(body.tables.accounts.length).toBeGreaterThanOrEqual(1);
     expect(body.tables.transactions.length).toBeGreaterThanOrEqual(1);

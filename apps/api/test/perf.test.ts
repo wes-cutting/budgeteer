@@ -24,8 +24,15 @@ const get = (url: string) => ctx.app.inject({ method: "GET", url });
 const put = (url: string, body: Record<string, unknown>) =>
   ctx.app.inject({ method: "PUT", url, payload: body });
 
-/** Run fn N times, return sorted latencies and p95. */
+/**
+ * Run fn N times and report the p95 and max latencies.
+ *
+ * Warm up first: the opening calls through Fastify + PGlite pay one-off JIT and query-plan costs
+ * that a steady-state budget (07_NFR §1) is not about.
+ */
 async function measure(fn: () => Promise<unknown>, n = 20): Promise<{ p95: number; max: number }> {
+  for (let i = 0; i < 3; i++) await fn();
+
   const latencies: number[] = [];
   for (let i = 0; i < n; i++) {
     const t0 = performance.now();
@@ -33,7 +40,12 @@ async function measure(fn: () => Promise<unknown>, n = 20): Promise<{ p95: numbe
     latencies.push(performance.now() - t0);
   }
   latencies.sort((a, b) => a - b);
-  const p95 = latencies[Math.floor(n * 0.95)] ?? latencies[latencies.length - 1]!;
+  // Nearest-rank p95 — the smallest sample at or above the 95th percentile, index ceil(0.95n) - 1.
+  // The previous `floor(n * 0.95)` indexed 19 of 20, i.e. the MAXIMUM, so this reported max while
+  // asserting a p95 budget: one GC pause anywhere in twenty runs failed the whole suite. That is
+  // the long-standing intermittent perf.test.ts failure (a first-run flake — the cold first
+  // iteration is the usual outlier), fixed here by measuring the statistic the budget names.
+  const p95 = latencies[Math.ceil(n * 0.95) - 1]!;
   return { p95, max: latencies[latencies.length - 1]! };
 }
 
@@ -47,7 +59,7 @@ function uid(prefix: string) {
 async function seedAccounts(n: number, prefix = "Acct"): Promise<string[]> {
   const ids: string[] = [];
   for (let i = 0; i < n; i++) {
-    const r = await post("/accounts", {
+    const r = await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: uid(prefix),
       kind: "checking",
@@ -61,7 +73,7 @@ async function seedAccounts(n: number, prefix = "Acct"): Promise<string[]> {
 async function seedEnvelopes(n: number, prefix = "Env"): Promise<string[]> {
   const ids: string[] = [];
   for (let i = 0; i < n; i++) {
-    const r = await post("/envelopes", { name: uid(prefix) });
+    const r = await post("/api/envelopes", { name: uid(prefix) });
     ids.push((r.json() as { envelope: { id: string } }).envelope.id);
   }
   return ids;
@@ -79,7 +91,7 @@ async function seedTransactions(
     const month = m + Math.floor(i / 28);
     const date = `${y + Math.floor((month - 1) / 12)}-${String(((month - 1) % 12) + 1).padStart(2, "0")}-${String(d + dayOffset).padStart(2, "0")}`;
     const envelopeId = envelopeIds[i % envelopeIds.length]!;
-    const r = await post("/accounts/" + accountId + "/transactions", {
+    const r = await post("/api/accounts/" + accountId + "/transactions", {
       kind: "withdrawal",
       amount: "50.00",
       occurredOn: date.slice(0, 10),
@@ -88,7 +100,7 @@ async function seedTransactions(
     });
     const json = r.json() as { transaction: { id: string } };
     // mark as fully allocated
-    await put(`/transactions/${json.transaction.id}/allocations`, {
+    await put(`/api/transactions/${json.transaction.id}/allocations`, {
       allocations: [{ envelopeId, amount: "50.00" }],
     });
   }
@@ -101,7 +113,7 @@ describe("perf budgets (07_NFR.md §1)", () => {
     // Seed 50 accounts (the budget target volume).
     await seedAccounts(50, "AcctList");
 
-    const { p95, max } = await measure(() => get("/accounts"));
+    const { p95, max } = await measure(() => get("/api/accounts"));
 
     console.log(`GET /accounts (50 accounts): p95=${p95.toFixed(1)}ms max=${max.toFixed(1)}ms`);
     expect(p95).toBeLessThan(50);
@@ -116,7 +128,7 @@ describe("perf budgets (07_NFR.md §1)", () => {
     const envelopeIds = await seedEnvelopes(10, "SpendEnv");
     await seedTransactions(accountIds[0]!, envelopeIds, 120, "2024-01-01");
 
-    const { p95, max } = await measure(() => get("/analysis/envelope-spend?grain=month"));
+    const { p95, max } = await measure(() => get("/api/analysis/envelope-spend?grain=month"));
 
     console.log(
       `GET /analysis/envelope-spend (120 txns): p95=${p95.toFixed(1)}ms max=${max.toFixed(1)}ms`,
@@ -130,11 +142,11 @@ describe("perf budgets (07_NFR.md §1)", () => {
     await seedAccounts(5, "ExportAcct");
     const envIds = await seedEnvelopes(5, "ExportEnv");
     const acctIds = (
-      await get("/accounts").then((r) => (r.json() as { accounts: { id: string }[] }).accounts)
+      await get("/api/accounts").then((r) => (r.json() as { accounts: { id: string }[] }).accounts)
     ).map((a) => a.id);
     if (acctIds[0]) await seedTransactions(acctIds[0], envIds, 200, "2023-01-01");
 
-    const { p95, max } = await measure(() => get("/export"));
+    const { p95, max } = await measure(() => get("/api/export"));
 
     console.log(`GET /export (~accounts+txns): p95=${p95.toFixed(1)}ms max=${max.toFixed(1)}ms`);
     expect(p95).toBeLessThan(500);

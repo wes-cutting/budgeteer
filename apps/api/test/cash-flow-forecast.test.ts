@@ -25,11 +25,11 @@ const plus = (n: number): string => {
 
 async function makeAccount(name = "Checking", startingBalance = "0"): Promise<string> {
   return (
-    await post("/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
+    await post("/api/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
   ).json().account.id as string;
 }
 async function makeEnvelope(name: string): Promise<string> {
-  return (await post("/envelopes", { name, kind: "standard" })).json().envelope.id as string;
+  return (await post("/api/envelopes", { name, kind: "standard" })).json().envelope.id as string;
 }
 function makeRule(body: {
   accountId: string;
@@ -40,7 +40,7 @@ function makeRule(body: {
   payee?: string;
   lines: { envelopeId: string; amount: string }[];
 }) {
-  return post("/recurring", { ...body, today: TODAY });
+  return post("/api/recurring", { ...body, today: TODAY });
 }
 
 interface ForecastPoint {
@@ -65,7 +65,7 @@ interface Forecast {
   firstNegativeDate: string | null;
 }
 async function forecast(qs: string): Promise<Forecast> {
-  return (await get(`/analysis/cash-flow-forecast${qs}&today=${TODAY}`)).json()
+  return (await get(`/api/analysis/cash-flow-forecast${qs}&today=${TODAY}`)).json()
     .forecast as Forecast;
 }
 
@@ -114,7 +114,7 @@ describe("analysis — cash-flow forecast (FEAT-013)", () => {
   test("includeExpected folds in discretionary spend from targets — only ever lowering the balance", async () => {
     const acct = await makeAccount("Checking", "1000.00");
     const groceries = await makeEnvelope("Groceries");
-    await put(`/envelopes/${groceries}/target`, { amount: "400.00" }); // discretionary, not scheduled
+    await put(`/api/envelopes/${groceries}/target`, { amount: "400.00" }); // discretionary, not scheduled
 
     const scheduledOnly = await forecast(`?accountId=${acct}&horizonDays=60&includeExpected=false`);
     const withExpected = await forecast(`?accountId=${acct}&horizonDays=60&includeExpected=true`);
@@ -138,23 +138,23 @@ describe("analysis — cash-flow forecast (FEAT-013)", () => {
   test("validation: bad horizon → 400, missing accountId → 400, missing account → 404", async () => {
     const acct = await makeAccount();
     expect(
-      (await get(`/analysis/cash-flow-forecast?accountId=${acct}&horizonDays=5`)).statusCode,
+      (await get(`/api/analysis/cash-flow-forecast?accountId=${acct}&horizonDays=5`)).statusCode,
     ).toBe(400);
     expect(
-      (await get(`/analysis/cash-flow-forecast?accountId=${acct}&horizonDays=400`)).statusCode,
+      (await get(`/api/analysis/cash-flow-forecast?accountId=${acct}&horizonDays=400`)).statusCode,
     ).toBe(400);
     expect(
-      (await get(`/analysis/cash-flow-forecast?accountId=${acct}&horizonDays=abc`)).statusCode,
+      (await get(`/api/analysis/cash-flow-forecast?accountId=${acct}&horizonDays=abc`)).statusCode,
     ).toBe(400);
-    expect((await get(`/analysis/cash-flow-forecast`)).statusCode).toBe(400);
+    expect((await get(`/api/analysis/cash-flow-forecast`)).statusCode).toBe(400);
     // Missing today → 400: the caller supplies the projection's day zero (EH8).
     expect(
-      (await get(`/analysis/cash-flow-forecast?accountId=${acct}&horizonDays=20`)).statusCode,
+      (await get(`/api/analysis/cash-flow-forecast?accountId=${acct}&horizonDays=20`)).statusCode,
     ).toBe(400);
     expect(
       (
         await get(
-          `/analysis/cash-flow-forecast?accountId=00000000-0000-0000-0000-000000000000&today=${TODAY}`,
+          `/api/analysis/cash-flow-forecast?accountId=00000000-0000-0000-0000-000000000000&today=${TODAY}`,
         )
       ).statusCode,
     ).toBe(404);

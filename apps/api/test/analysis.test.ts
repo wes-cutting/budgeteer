@@ -17,11 +17,11 @@ const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeAccount(name = "Checking", startingBalance = "0"): Promise<string> {
   return (
-    await post("/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
+    await post("/api/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
   ).json().account.id as string;
 }
 async function makeEnvelope(name: string): Promise<string> {
-  return (await post("/envelopes", { name, kind: "standard" })).json().envelope.id as string;
+  return (await post("/api/envelopes", { name, kind: "standard" })).json().envelope.id as string;
 }
 interface Alloc {
   envelopeId: string;
@@ -36,7 +36,7 @@ async function addTxn(
     allocations: Alloc[];
   },
 ) {
-  return post(`/accounts/${accountId}/transactions`, body);
+  return post(`/api/accounts/${accountId}/transactions`, body);
 }
 
 interface SpendRow {
@@ -55,7 +55,7 @@ interface Rollup {
 }
 async function rollup(grain?: string): Promise<Rollup> {
   const q = grain ? `?grain=${grain}` : "";
-  return (await get(`/analysis/envelope-spend${q}`)).json().rollup as Rollup;
+  return (await get(`/api/analysis/envelope-spend${q}`)).json().rollup as Rollup;
 }
 const rowOf = (r: Rollup, name: string): SpendRow | undefined =>
   r.rows.find((x) => x.envelopeName === name);
@@ -114,7 +114,7 @@ describe("analysis — spend by envelope over time (FEAT-011)", () => {
       allocations: [{ envelopeId: rent, amount: "300.00" }],
     });
     // Archive Vacation AFTER its allocations — history must still appear in the rollup.
-    expect((await post(`/envelopes/${vacation}/archive`)).statusCode).toBe(200);
+    expect((await post(`/api/envelopes/${vacation}/archive`)).statusCode).toBe(200);
 
     const r = await rollup("month");
     expect(r.grain).toBe("month");
@@ -178,7 +178,7 @@ describe("analysis — spend by envelope over time (FEAT-011)", () => {
     // Move budget Groceries → Rent. This must NOT touch the rollup.
     expect(
       (
-        await post("/envelope-transfers", {
+        await post("/api/envelope-transfers", {
           fromEnvelopeId: groceries,
           toEnvelopeId: rent,
           amount: "100.00",
@@ -196,8 +196,9 @@ describe("analysis — spend by envelope over time (FEAT-011)", () => {
   test("opening-balance allocations are counted", async () => {
     const acct = await makeAccount("Savings", "200.00");
     const groceries = await makeEnvelope("Groceries");
-    const txns = (await get(`/accounts/${acct}/transactions?from=2026-07-01&to=2026-07-31`)).json()
-      .transactions as {
+    const txns = (
+      await get(`/api/accounts/${acct}/transactions?from=2026-07-01&to=2026-07-31`)
+    ).json().transactions as {
       id: string;
       kind: string;
     }[];
@@ -205,7 +206,7 @@ describe("analysis — spend by envelope over time (FEAT-011)", () => {
     expect(opening).toBeDefined();
     expect(
       (
-        await put(`/transactions/${opening!.id}/allocations`, {
+        await put(`/api/transactions/${opening!.id}/allocations`, {
           allocations: [{ envelopeId: groceries, amount: "200.00" }],
         })
       ).statusCode,
@@ -222,7 +223,7 @@ describe("analysis — spend by envelope over time (FEAT-011)", () => {
   });
 
   test("grain defaults to month; an unknown grain is a 400", async () => {
-    expect((await get("/analysis/envelope-spend")).json().rollup.grain).toBe("month");
-    expect((await get("/analysis/envelope-spend?grain=weekly")).statusCode).toBe(400);
+    expect((await get("/api/analysis/envelope-spend")).json().rollup.grain).toBe("month");
+    expect((await get("/api/analysis/envelope-spend?grain=weekly")).statusCode).toBe(400);
   });
 });
