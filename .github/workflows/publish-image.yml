@@ -1,0 +1,99 @@
+# ============================================================================
+# Publish the production image to GHCR (BUD-S84 · ADR-0008 §4)
+#
+# The hub PULLS a built image; it never builds on the Pi (slow, and a build that
+# depends on a toolchain present on the node is not reproducible). This workflow
+# is the only thing that produces `ghcr.io/wes-cutting/budgeteer`.
+#
+# Triggers on a version tag, plus manual dispatch for a one-off build. Note the
+# gate workflow is deliberately manual-only (the real gate runs locally), so this
+# does NOT gate on it — push a tag only from a commit whose gate you have run.
+# ============================================================================
+name: publish-image
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to publish (e.g. v0.3.0-rc1)"
+        required: true
+
+concurrency:
+  group: publish-image-${{ github.ref }}
+  cancel-in-progress: false # never abandon a half-finished push to the registry
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push to GHCR
+      id-token: write # sign the provenance attestation
+      attestations: write # ...and write it to the attestations store (attest-build-provenance
+      # needs BOTH of these; with only id-token the attest step fails on permissions)
+    steps:
+      - uses: actions/checkout@v4
+
+      # The runner is x86; the Pi is ARM64. QEMU emulates aarch64 for the build.
+      # It is slower than a native ARM runner — the trade is zero extra infrastructure,
+      # and this runs on release, not on every push.
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          # Provided by Actions — no long-lived registry credential in the repo.
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/budgeteer
+          # `latest` only ever follows a real semver tag, so a manual dispatch or a
+          # pre-release can't quietly become what the hub pulls by default.
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Signed provenance: lets the hub verify the image it pulls came from this
+      # repo and this workflow, rather than trusting the tag alone (ADR-0008 names
+      # the registry as a new supply-chain surface).
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/budgeteer
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: summary
+        run: |
+          {
+            echo "### Published"
+            echo
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            echo
+            echo "digest: \`${{ steps.build.outputs.digest }}\`"
+            echo
+            echo "Pin by digest in the hub's compose for a reproducible deploy."
+          } >> "$GITHUB_STEP_SUMMARY"
