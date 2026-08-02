@@ -70,7 +70,10 @@ in a fresh context window. Get your bearings before doing anything:
 - Read CLAUDE.md and docs/00_WAYS_OF_WORKING.md.
 - Read the NEWEST file in docs/status-reports/ — its "Resume here" says where things stand
   and what to do next, and its final section is the tailored kickoff prompt for the next item.
-- Read docs/03_ROADMAP.md for the current plan and the next slice.
+- Read the project's roadmap for the current plan and the next slice. It is normally
+  docs/03_ROADMAP.md — but check the file's `status:` first and follow any supersession
+  banner, since a restructured project may keep the plan of record elsewhere. (In THIS
+  repo it is docs/03_ROADMAP-v2.md; 03_ROADMAP.md is superseded.)
 
 Then confirm with me, in your own words, where things stand and what the next slice is —
 before building anything. Keep every slice vertical and gate-green, validate input at the

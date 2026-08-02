@@ -14,11 +14,11 @@ the id. Spikes keep SPIKE-##. Legacy ids preserved in every `Was` column and §2
 
 | Field         | Value          |
 | ------------- | -------------- |
-| Status        | Living (transitional — parallel to `03_ROADMAP.md`) |
+| Status        | **Living — the plan of record.** `03_ROADMAP.md` was demoted to `Superseded-in-place` 2026-08-02; only the file *rename* remains (`BUD-S94`) |
 | Owner         | Wesley Cutting |
 | Last updated  | 2026-07-12     |
 | Scheme        | `BUD-E##` epic · `BUD-S##` story · `BUD-T##` task · `SPIKE-##` spike |
-| Supersedes    | (at cutover) [`03_ROADMAP.md`](03_ROADMAP.md) |
+| Supersedes    | [`03_ROADMAP.md`](03_ROADMAP.md) — **superseded in place 2026-08-02**; the rename that deletes it is `BUD-S94` |
 | Restructure   | [2026-07-12 initiative](reviews/2026-07-12-roadmap-restructure-initiative.md) |
 
 ## 0. Current state
@@ -38,15 +38,20 @@ sheet parity (BUD-E9), hardening (BUD-E11), and the real data & history import (
 - `BUD-S92` **First-run setup UI** — 🚧 **`Ready`, and the one thing blocking launch.** Auth is default-deny and no UI creates the first user, so a fresh install (dev, container, or a restore onto a new box) is a `/login` page with no reachable credential. Owner-decided shape (2026-08-02): a dedicated **`/setup`** route reached by redirect from `/login` when a public `GET /api/auth/needs-setup` says the store is empty. Spec: [features/first-run-setup.md](features/first-run-setup.md). Lives under `BUD-E13` — it closes that epic's gap, exactly as `BUD-S91` closed its a11y one.
 - `BUD-S93` **Demo instance** — 🚧 **`Ready`.** A showcase deployment the owner can hand to anyone without exposing the real ledger. Owner-decided shape (2026-08-02): a **second container off the same image**, its own database + `SESSION_SECRET`, seeded with the existing `seed:demo`. **No app code** — deploy config plus a runbook, which is what keeps `seedDemo` out of the production image and the real ledger unreachable by construction. Lives under `BUD-E14`.
 
+**Housekeeping — the v2 cutover (2026-08-02):** `03_ROADMAP.md` is now **`Superseded-in-place`** with a banner, so there is no longer any question which file is the plan of record — **this one is.** The remaining rename is `BUD-S94`, **blocked** on `KIT_FEEDBACK` K30 Part B and deliberately *not* next: it is cosmetic once the ambiguity is gone, and it carries a real trap — [`scripts/check-docs.ts`](../scripts/check-docs.ts) hardcodes both `-v2` filenames, so renaming without editing it breaks the `docs:check` gate step. Content was never the blocker: all **88** legacy §4 ids are already here (verified).
+
 **In flight:**
 - `BUD-E14` **Hub deployment readiness** — deploy budgeteer as a self-hosted ARM64 container service on labs-hub. Brief: [2026-07-27 initiative](reviews/2026-07-27-hub-deployment-readiness-initiative.md); runtime shape: [ADR-0008](adr/ADR-0008-containerized-production-runtime.md) (**Accepted** 2026-08-01). **`BUD-S81`–`BUD-S84` + `BUD-S90` Done, `BUD-S85` partly done (2026-08-01/02)**: one ARM64 image (81.8 MB) serving the SPA + API on one origin, real-Postgres readiness probe, published [deploy contract](DEPLOY_CONTRACT.md), GHCR publish workflow, and a reset/restore recovery that no longer locks the household out of its own ledger. **labs-hub LH-S3 is unblocked** — and as of `v0.1.0` (2026-08-02) there is a **real published image to pull**: `sha256:ef0883…71da2`, public, provenance-attested. One thing remains: at-rest encryption (labs-hub SPIKE-03). The one design change: every API path moved under **`/api`**, because the SPA's client routes collided with it on a shared origin.
 
 **Recently completed:**
 - `BUD-E13` **Multi-user / household scoping** — ✅ **Done 2026-07-31.** Default-deny auth, opaque revocable sessions, scrypt, roles (admin/member), user management, and login hardening — shipped across `BUD-S86`–`BUD-S89` on shape **A** (one household, many members; multi-household via container-per-household). ADR-0009 Accepted; SEC3 closed. **Accessibility followed later than it should have:** the epic's two UI surfaces (`/login`, `/users`) shipped unscanned and were axe-gated only by `BUD-S91` (2026-08-02), which found a real dark-mode contrast defect on the sign-in error. **And the epic never built an onboarding path:** it delivered "you must log in" without "here is how the first person gets an account" — `POST /auth/setup` exists but no UI calls it, so a brand-new install is a `/login` page with no reachable credential. Caught 2026-08-02 by a README-vs-reality audit, not by the gate — every test provisions its admin out of band (`global-setup.ts`, `create-admin`), so the suite has never once exercised a first-run install. → `BUD-S92`.
 
-> **This is a transitional restructure.** Content is faithful to `03_ROADMAP.md`; only the
-> id scheme and grouping changed. `FEAT-*` spec names, `features/*` and `status-reports/*`
-> paths, and `ADR-*` keep their legacy names until the deferred spec-back-referencing pass.
+> **This file is the plan of record** (since 2026-08-02, when `03_ROADMAP.md` was demoted to
+> `Superseded-in-place`). Content is faithful to that file — only the id scheme and grouping
+> changed, and all **88** of its §4 ids appear here. What remains is cosmetic-but-not-free: the
+> `-v2` suffixes, which `scripts/check-docs.ts` hardcodes, and `FEAT-*` spec names, `features/*`
+> and `status-reports/*` paths, and `ADR-*`, which keep their legacy names until the deferred
+> spec-back-referencing pass. Both are `BUD-S94`, gated on `KIT_FEEDBACK` K30 Part B.
 
 ## 1. The id convention
 
@@ -104,6 +109,7 @@ in either doc (they appear only in the log/spike reports) and are omitted here.
 | `BUD-S33` | story | Share the DTO types; decide the client-boundary stance | `EH12` | Engineering health |
 | `BUD-S34` | story | Lint the layer boundaries | `EH13` | Engineering health |
 | `BUD-S35` | story | Make post-due idempotency structural | `EH14` | Engineering health |
+| `BUD-S94` | docs | Retire the legacy roadmap (the v2 cutover) | — | Engineering health |
 | `BUD-S36` | story | Retire vulnerable kysely + fix the SCA justification | `SEC1` | Security hardening |
 | `BUD-S37` | story | Dev-tool advisories | `SEC2` | Security hardening |
 | `BUD-S38` | story | Unauthenticated API, incl. one-request full-data /export | `SEC3` | Security hardening |
@@ -268,6 +274,12 @@ Cross-cutting cleanups and operational-readiness work from two reviews. No live 
 | **BUD-S33** | EH12 | **Share the DTO types; decide the client-boundary stance** — web `api.ts` hand-duplicates the service view interfaces (`AccountView` et al.) and trusts responses via one `as T` cast. Export view types from the api workspace (types-only) and import them in web; then either add a light runtime check on reads (measure vs. the ~2.7 KB bundle headroom) or record "client trusts the typed contract" in `06_API_CONTRACT`. | refactor | P3 | **✅ Done** | `@budgeteer/api/contract` (types-only module; the server's own view types + the domain-defined report types) replaces every hand-copy in web `api.ts` — zero drift found; the bundle is byte-identical (117.32 KB gz). Stance decided: **client trusts the typed contract on reads**, recorded in `06_API_CONTRACT` §4 (single first-party client; a client-side schema mirror = BUD-S22's two-sources-of-truth again). [status report](status-reports/2026-07-03-eh12-eh13.md) |
 | **BUD-S34** | EH13 | **Lint the layer boundaries** — ARCHITECTURE §2 prefers tooling-enforced boundaries; ESLint (BUD-S25) is syntactic only. Per-zone `no-restricted-imports`: domain bans fastify/kysely/pg/react/node:*; web bans kysely/pg; `http/routes/**` bans direct `db/*`. ~20 lines of config; erosion fails the gate instead of the next review. | tooling | P3 | **✅ Done** | Three zones in `eslint.config.js` as specced, plus a fourth ban the review didn't have: web may import `@budgeteer/api` **types-only** (`allowTypeImports`) — the lint that keeps BUD-S33's sharing honest. Zero pre-existing violations; every ban verified to fire. [status report](status-reports/2026-07-03-eh12-eh13.md) |
 | **BUD-S35** | EH14 | **Make post-due idempotency structural** — concurrent `postDue` calls can double-post (both read the cursor pre-commit). Add `unique (recurring_id, occurred_on) where recurring_id is not null`; treat the violation as already-posted via the BUD-S24 `dbErrors` shim. Bundle with BUD-S30's first migration file. | hardening | P3 | **✅ Done** | Migration `0002`: partial unique `(recurring_id, occurred_on)`; `postDue` treats the violation as already-posted (0 posted, no error — the concurrent winner advanced the cursor). Bundled with BUD-S30 as planned. [status report](status-reports/2026-07-03-eh9-eh14.md) |
+
+**Wave 3 — documentation infrastructure (2026-08-02)**
+
+| ID | Was | Item | Kind | Pri | Status | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| **BUD-S94** | — | **Retire the legacy roadmap (the v2 cutover)** — `03_ROADMAP-v2.md` / `03_ROADMAP-HISTORY-v2.md` take the unsuffixed names and `03_ROADMAP.md` is deleted, completing [Follow-up C](reviews/2026-07-12-roadmap-restructure-initiative.md) of the 2026-07-12 restructure. **Not a rename — four things move together:** (1) the rename itself; (2) **[`scripts/check-docs.ts`](../scripts/check-docs.ts) hardcodes both `-v2` filenames** (`V2`/`HIST`, plus three occurrences embedded in the text it *generates*), and `docs:check` is a wired gate step ([`gate.yml`](../.github/workflows/gate.yml)) — so a rename without this edit **breaks the gate**; (3) **Follow-up D** — [`CLAUDE.md`](../CLAUDE.md) mentions neither the frontmatter convention, `docs:check`, the `BUD-E/S/T` scheme, nor where the roadmap lives, and [`00_WAYS_OF_WORKING.md`](00_WAYS_OF_WORKING.md) §208 still points at the legacy path; (4) fold **`docs:check` into the documented gate/DoD lists** (it runs in CI but appears in no prose gate list). Retarget the remaining live back-links (`00_WAYS_OF_WORKING`, `01_INTAKE`, `02_PRD`, `07_NFR`, `docs/README` tree) — but **not** the ~65 dated status reports, which are point-in-time records. | docs | P2 | **Blocked** — gated on **`K30` Part B** (per-doc stable typed ids, referenced by id not filename), which [`KIT_FEEDBACK`](KIT_FEEDBACK.md) states must land *before* any cutover so `FEAT-*`/spec references decouple cleanly. Content is **not** a blocker: all **88** legacy §4 ids already appear in v2 (verified 2026-08-02). Interim mitigation shipped 2026-08-02 — the legacy file is **`Superseded-in-place`** with a banner, so the ambiguity is gone even while the rename waits |
 
 ### BUD-E5 — Security hardening
 

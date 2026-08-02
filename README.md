@@ -271,7 +271,10 @@ The [`docs/`](docs/) tree is the source of truth — start here:
 
 - [`CLAUDE.md`](CLAUDE.md) · [`docs/00_WAYS_OF_WORKING.md`](docs/00_WAYS_OF_WORKING.md) — how this project is built.
 - [`docs/02_PRD.md`](docs/02_PRD.md) — what it is and why.
-- [`docs/03_ROADMAP.md`](docs/03_ROADMAP.md) — the living plan of record.
+- [`docs/03_ROADMAP-v2.md`](docs/03_ROADMAP-v2.md) — the living plan of record (`BUD-*` ids), with
+  its append-only [history](docs/03_ROADMAP-HISTORY-v2.md). The unsuffixed
+  [`03_ROADMAP.md`](docs/03_ROADMAP.md) is **superseded** — kept only so the pre-restructure ids
+  cited by older status reports still resolve.
 - [`docs/04_DOMAIN_MODEL.md`](docs/04_DOMAIN_MODEL.md) · [`docs/05_DATA_MODEL.md`](docs/05_DATA_MODEL.md) · [`docs/06_API_CONTRACT.md`](docs/06_API_CONTRACT.md) — the model & interface.
 - [`docs/adr/`](docs/adr/) — architecture decisions · [`docs/features/`](docs/features/) · [`docs/ux/`](docs/ux/) — per-capability specs.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — workflow and conventions.

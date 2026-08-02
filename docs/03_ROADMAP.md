@@ -1,21 +1,39 @@
 ---
 type: roadmap
-status: Living
+status: Superseded-in-place
 ---
 <!--
-ROADMAP — copy of templates/ROADMAP-TEMPLATE.md, filled for Budgeteer. The living plan of
-record: spikes + vertical slices ordered by uncertainty × value (NOT by layer). Update
-statuses as work lands; re-sequence (and log it, §5) when a spike changes what we know.
-Sequencing model: docs/00_WAYS_OF_WORKING.md §7.
+ROADMAP (LEGACY) — copy of templates/ROADMAP-TEMPLATE.md, filled for Budgeteer. NO LONGER THE
+PLAN OF RECORD: superseded in place on 2026-08-02 by 03_ROADMAP-v2.md. Frozen at its 2026-07-10
+state and kept only so the pre-restructure ids (#N · R# · EH# · UX# · UXR# · S#) that ~65 dated
+status reports cite still resolve. Do NOT update statuses here. The file rename that retires it
+is BUD-S94, gated on KIT_FEEDBACK K30 Part B.
 -->
 
-# Roadmap — Budgeteer
+# Roadmap — Budgeteer (legacy, superseded)
+
+> ## ⛔ This is not the plan of record.
+>
+> **The live roadmap is [`03_ROADMAP-v2.md`](03_ROADMAP-v2.md)** (plan) +
+> [`03_ROADMAP-HISTORY-v2.md`](03_ROADMAP-HISTORY-v2.md) (re-sequencing log + shipped ledger).
+> Everything below is **frozen at 2026-07-10** and its statuses are stale — auth (`BUD-E13`),
+> hub deployment (`BUD-E14`) and everything since landed after this file stopped being updated.
+>
+> **Why it still exists:** roughly **65 dated status reports** cite the pre-restructure ids
+> (`#12`, `R6`, `EH13`, `UX12`, `UXR8`, `S7`…). Those are point-in-time records and are not
+> rewritten, so the id→item mapping has to stay resolvable. Use the
+> [artifact crosswalk](reviews/2026-07-12-roadmap-artifact-crosswalk.md) or
+> [`03_ROADMAP-v2.md`](03_ROADMAP-v2.md) §2 to translate an old id into its `BUD-*` handle.
+>
+> **Do not update this file.** Status changes go in v2. Retiring it — the rename, the
+> `check-docs.ts` paths, and the Follow-up D orientation-doc rewrite — is **`BUD-S94`**, gated on
+> [`KIT_FEEDBACK`](KIT_FEEDBACK.md) K30 Part B.
 
 | Field         | Value          |
 | ------------- | -------------- |
-| Status        | Living         |
+| Status        | **Superseded-in-place** 2026-08-02 (was `Living`; content frozen at 2026-07-10) |
 | Owner         | Wesley Cutting |
-| Last updated  | 2026-07-10     |
+| Last updated  | 2026-07-10 (content) · 2026-08-02 (superseded) |
 | Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [2026-06-15 repo review](reviews/2026-06-15-repo-review.md) · [2026-06-17 improvement review](reviews/2026-06-17-improvement-review.md) · [2026-06-25 UX uplift initiative](reviews/2026-06-25-ux-uplift-initiative.md) · [2026-07-02 architecture review](reviews/2026-07-02-architecture-review.md) · [2026-07-06 UX redesign initiative](reviews/2026-07-06-ux-redesign-initiative.md) · [SPIKE-08 sheet analysis](spikes/08-budgethome-sheet-analysis.md) — per-item sources (spike · feature/UX spec · status report) are linked from each item's row in §4 and the log in §5 |
 
 **Current focus:** **The V1 tracks and the entire UX Redesign (`UXR1`–`UXR8`) are complete; the owner-directed
