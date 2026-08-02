@@ -42,7 +42,7 @@ to another project, so breaking any of it is a coordinated change, not a refacto
 | --- | --- |
 | Digest | `sha256:ef088340334264d6ceb818e356de11224278c62c3d09626e70fd266161e71da2` |
 | Tags | `0.1.0` · `0.1` · `latest` — all three point at that digest |
-| Source | commit `1f478ab` (tag `v0.1.0`), built by [`publish-image.yml`](../.github/workflows/publish-image.yml) [run 30733049897](https://github.com/wes-cutting/budgeteer/actions/runs/30733049897) |
+| Source | commit `a5f2380` (tag `v0.1.0`), built by [`publish-image.yml`](../.github/workflows/publish-image.yml) [run 30733049897](https://github.com/wes-cutting/budgeteer/actions/runs/30733049897) |
 
 **Pin by digest, not by tag.** A tag can be repointed; a digest cannot. The compose file defaults to
 `:latest` for convenience, but a real deploy should pin:
@@ -55,6 +55,13 @@ gh attestation verify oci://ghcr.io/wes-cutting/budgeteer@sha256:ef0883… --own
 The attestation names the workflow and the source commit that produced the image, so the hub can
 check *what built this* rather than trusting the tag (ADR-0008 names the registry as a new
 supply-chain surface).
+
+> **Verifying `v0.1.0`'s provenance:** the attestation records the pre-rewrite SHA `1f478ab`, which
+> is no longer reachable from `main`. On 2026-08-02 the commit *messages* of four commits in that
+> range were rewritten (a stray `git commit -am "…"` wrapper), which re-hashed everything from
+> `db8d3d7` forward; `1f478ab` became `a5f2380`. **The trees are byte-identical** — same source, new
+> SHA — so the attestation still attests to this image's real source, it just names a commit id the
+> repository has retired. Later releases will not have this mismatch.
 
 **One image serves both halves.** The Fastify process serves the API *and* the built SPA, so there
 is one container, one port, one origin — no web container, no nginx sidecar.

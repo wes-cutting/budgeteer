@@ -18,7 +18,7 @@ a public, arm64, provenance-attested image that pulls, boots, and serves.
 | Author | Wesley Cutting + agent                                                 |
 | Scope  | `BUD-E14` front E: prove `publish-image.yml` end to end with a real tag, and verify the published image is actually consumable by the hub. |
 
-**Resume here:** **`BUD-S84` is executed, not merely written.** Tag `v0.1.0` on merge commit `1f478ab`
+**Resume here:** **`BUD-S84` is executed, not merely written.** Tag `v0.1.0` on merge commit `a5f2380`
 built and pushed `ghcr.io/wes-cutting/budgeteer@sha256:ef0883…71da2` — **linux/arm64, 81.8 MB
 compressed**, carried by tags `0.1.0`/`0.1`/`latest`. Verified **from outside CI, not inferred from a
 green check**: anonymous manifest fetch (the package is **public**, so no PAT is needed), `docker pull`
@@ -32,11 +32,18 @@ finding carried out of this slice — see §4.
 
 | Item | Notes | Source |
 | ---- | ----- | ------ |
-| **The first real release tag** | `v0.1.0`, annotated, on merge commit `1f478ab` — the commit that actually reached `main` via PR #1, not the branch tip. Verified before tagging that the merge commit's **tree hash was byte-identical** (`f41634e…`) to the commit the gate ran on, so the gate result carried over without a re-run rather than being assumed to. | tag `v0.1.0` |
+| **The first real release tag** | `v0.1.0`, annotated, on merge commit `a5f2380` (`1f478ab` when this report was written — see the note at the foot of §1) — the commit that actually reached `main` via PR #1, not the branch tip. Verified before tagging that the merge commit's **tree hash was byte-identical** (`f41634e…`) to the commit the gate ran on, so the gate result carried over without a re-run rather than being assumed to. | tag `v0.1.0` |
 | **`chore(release): 0.1.0`** | Root `package.json` moved off `0.0.0` so the tagged source states its own version; the three workspace manifests stay `0.0.0` (all `private: true`, never resolved by version). The version is surfaced nowhere in the app — `metadata-action` derives the OCI `image.version` label from the tag itself, which is what the image actually carries. | `package.json` |
 | **The workflow ran, and what reading could not settle is now settled** | Three things were unverifiable on paper and all three passed: **GHCR auth** via `GITHUB_TOKEN`; **`metadata-action`** did not choke on the `type=raw` entry whose value is empty on a tag push (`enable=false` skips it before value processing); and **`attest-build-provenance`** wrote to the attestation store — the permissions fix found by review (`attestations: write` alongside `id-token: write`) was correct and load-bearing. | [run 30733049897](https://github.com/wes-cutting/budgeteer/actions/runs/30733049897) |
 | **`DEPLOY_CONTRACT` §1 now names a real artifact** | Was a shape (`e.g. v0.3.0`); is now the actual digest, its three tags, the source commit, the run, and a **pin-by-digest** instruction with the `gh attestation verify` line — plus the fact that the package is public, which is what tells the hub it needs no credential. | [`DEPLOY_CONTRACT.md`](../DEPLOY_CONTRACT.md) §1 |
 | **The 82 MB figure disambiguated** | `docker images` reported **400 MB** against a contract that said ~82 MB. Neither was wrong: 81.8 MB is the **compressed wire/pull** size (summed from the manifest's 13 layers), 400 MB is uncompressed on disk. The contract said neither, which is the number a Pi operator most needs. Both are now stated. | [`DEPLOY_CONTRACT.md`](../DEPLOY_CONTRACT.md) §1 |
+
+> **Note added 2026-08-02 (after this report was written):** four commits in this range carried a
+> stray `git commit -am "…"` wrapper in their subject line and were rewritten to strip it. That
+> re-hashed everything from `db8d3d7` forward, so the merge commit named above moved `1f478ab` →
+> `a5f2380` and the `v0.1.0` tag was re-pointed. **Every tree is byte-identical** — no content
+> changed. The published image's SLSA attestation still records the old SHA; see
+> [`DEPLOY_CONTRACT.md`](../DEPLOY_CONTRACT.md) §1.
 
 ## 2. Definition of Done — current state
 
@@ -46,7 +53,7 @@ finding carried out of this slice — see §4.
 | Gate green (types/lint/format/tests/e2e/build) | ✅ | Run on the tagged tree: `typecheck` ✅ · `lint` ✅ · `format` ✅ · `docs:check` ✅ · **483 Vitest** ✅ (24.4 s) · **124 e2e** ✅ (5.8 min, colima stopped) · **build** ✅ both workspaces. The harness (`validate-deploy.sh`, 24/24) was **not** re-run — it builds its own local image, so it does not exercise the published one; the compose smoke test below is the stronger check for this slice. |
 | Usable end-to-end (data→API→UI) | ✅ | The published image was stood up with the **reference `deploy/compose.yaml`**, image pinned to the digest: `/api/health` → `{"status":"ok","db":"ok"}` (migrations ran against real Postgres 16), `GET /` → 200 (SPA served), and `/api/accounts`, `/api/envelopes`, `/api/transactions`, `/api/auth/me` all → **401** without a session, confirming default-deny is on in the artifact itself. Torn down with `down -v`; no containers or volumes left behind. |
 | Docs updated in same change | ✅ | `DEPLOY_CONTRACT` §1 (digest, tags, provenance, public registry, pin-by-digest, size split) · roadmap `BUD-S84` row (⚠ Unexecuted → ✅ proven, with the run link) · roadmap `BUD-E14` summary line (two remaining items → one). |
-| Security (input/authz/secrets) | ✅ | No credential was created or stored: GHCR auth used the ephemeral `GITHUB_TOKEN`, the pull needed **none at all** (public package), and the smoke test's `POSTGRES_PASSWORD`/`SESSION_SECRET` were `openssl rand` values that lived only in one shell invocation and went away with `down -v`. The provenance attestation is the security *gain* here: the hub can verify the image was built by this workflow from commit `1f478ab` rather than trusting a mutable tag. |
+| Security (input/authz/secrets) | ✅ | No credential was created or stored: GHCR auth used the ephemeral `GITHUB_TOKEN`, the pull needed **none at all** (public package), and the smoke test's `POSTGRES_PASSWORD`/`SESSION_SECRET` were `openssl rand` values that lived only in one shell invocation and went away with `down -v`. The provenance attestation is the security *gain* here: the hub can verify the image was built by this workflow from commit `1f478ab` rather than trusting a mutable tag. (That SHA is now `a5f2380`, same tree — see the note at the foot of §1.) |
 | Accessibility | n/a | No UI change in this slice. (An accessibility gap **inherited** from `BUD-S87`/`BUD-S88` is carried in §4 — it is not from this slice, but it is real and now recorded.) |
 
 ## 3. Test totals
