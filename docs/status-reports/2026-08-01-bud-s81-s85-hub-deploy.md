@@ -128,14 +128,38 @@ budgeteer is now deployable: one 82 MB ARM64 image serving the SPA + API on one 
 PostgreSQL 16, with docs/DEPLOY_CONTRACT.md published and labs-hub LH-S3 unblocked. Gate: 480
 Vitest + 124 e2e, plus ./scripts/validate-deploy.sh (24 checks, needs `colima start`).
 
-YOUR ONE ITEM THIS SESSION: fix the restore lockout (BUD-S90, see the report's §4/§5).
-A restore currently leaves the household with its whole ledger and NOBODY able to log in,
-because `db/reset.ts` truncates `households` CASCADE and `users.household_id` references it,
-while the backup carries no accounts. The likely fix is small and targeted: stop truncating
-`households` in reset (migrate re-inserts it anyway, and restoreService already upserts that
-row and already ignores it in its emptiness check), so user accounts survive reset→restore.
-Confirm that reading before you change anything. Add a test pinning it, and update
-DEPLOY_CONTRACT §7 — which currently documents the trap and must stop doing so once fixed.
+YOUR ONE ITEM THIS SESSION — BUD-S90: "a rebuilt store has a way in."
+
+Auth state and ledger state are on separate tracks, so EVERY path that rebuilds the ledger
+leaves the household locked out of its own data. Three symptoms, one root cause:
+
+1. RESTORE — `db/reset.ts` truncates `households` CASCADE and `users.household_id` references
+   it, so reset takes every account with it, and `/api/export` carries no users. A restored box
+   has its whole ledger and nobody who can log in. (Asserted today in validate-deploy.sh.)
+2. DEV/DEMO SEED — neither `db/seed.ts` nor `db/seedDemo.ts` creates a single user, so
+   `npm run db:fresh` yields a store you cannot log into.
+3. DEMO CAPTURE — `scripts/capture-demo-assets.ts` has NO authentication (no login, no
+   storageState, no cookie) while `src/index.ts` always enables auth, so it likely screenshots
+   the login page. NOT verified — verify it first, reality before paper.
+
+What the evidence already says about (1): stop truncating `households` in reset.
+`migrateToLatest` re-inserts that row anyway, and `services/restoreService.ts` ALREADY upserts
+households `on conflict (id) do update` and ALREADY excludes the default household from its
+"store must be empty" check — so restore keeps working and accounts survive. Confirm that
+reading yourself. Note the PGlite path in reset deletes the whole PGLITE_DIR, so dev users die
+there regardless; fine, but decide it deliberately rather than by accident.
+
+OWNER DECISION — ask, don't choose alone: (2) and (3) mean putting a known weak credential on a
+seed path. Options: a seeded dev admin, folding `create-admin` into `db:fresh` + the capture
+script, or leaving seeded stores to first-run `/api/auth/setup`. Whatever is chosen must be
+unreachable in production and must never become a fallback there.
+
+Done when: a test pins reset→restore preserving accounts; `scripts/validate-deploy.sh` INVERTS
+its current "restore leaves no user accounts" check (it is written to today's broken behaviour);
+DEPLOY_CONTRACT §7 stops documenting the trap; the seed decision is implemented and documented.
+
+Housekeeping: BUD-S90 is NOT in the roadmap yet — add it (the BUD-E14 section + the §2 id table)
+BEFORE writing the status report, or docs:check fails on an unknown `roadmap-item`.
 
 Build ONLY that, then write the status report and STOP for review — do not continue into the
 items below even if they look quick and you have context left (CLAUDE.md; 00_WAYS_OF_WORKING §9).
@@ -146,11 +170,19 @@ For CONTEXT only, not for this session — still open on BUD-E14:
 - At-rest encryption (BUD-S85's other half) belongs to labs-hub SPIKE-03.
 - TLS vs SESSION_COOKIE_SECURE=false is an owner decision before going live (DEPLOY_CONTRACT §5).
 
-Watch out for: run `colima stop` before e2e — an idle colima VM alone makes full e2e runs take
-7.5-34.8 min and flake a random spec on 30s timeouts; stopped, it is 5.8 min and 124/124.
-The API lives under /api as of BUD-S81.
+Watch out for:
+- Run `colima stop` BEFORE e2e — an idle colima VM alone makes full e2e runs take 7.5-34.8 min
+  and flake a random spec on 30s timeouts; stopped, it is 5.8 min and 124/124.
+- The API lives under /api as of BUD-S81; VITE_API_BASE_URL is the ORIGIN only.
+- e2e does NOT hit this gap, because e2e/global-setup.ts does its own setup+login. Don't let a
+  green e2e run convince you seeded stores are fine.
+
+Gate: npm run typecheck && npm run lint && npm run format && npm run docs:check && npm test &&
+npm run test:e2e  (floor: 480 Vitest + 124 e2e). The deployment harness is
+./scripts/validate-deploy.sh and needs `colima start` first.
 
 Confirm, in your own words, where things stand and the plan (and its risks) before building.
-Keep it vertical and gate-green; update docs in the same change; and at the end, leave the
-project handoff-ready with the next-session kickoff prompt in the status report.
+Keep it vertical and gate-green; update docs in the same change. Leave the work UNCOMMITTED with
+a proposed Conventional-Commit message — the owner reviews and commits. End handoff-ready with
+the next-session kickoff prompt (naming ONE item) in the status report.
 ```
