@@ -71,7 +71,12 @@ to do next.
 <!-- Required at a roadmap milestone. Paste-ready text to start the NEXT session on the NEXT
 item — a specialization of the "Resume" prompt in KICKOFF-PROMPT.md. Name the next item, its
 risks/unknowns, any new setup, and the current gate command. Omit only for a mid-block report
-where the next step is obvious and same-session. -->
+where the next step is obvious and same-session.
+
+NAME EXACTLY ONE ITEM, and say the session stops after it (00_WAYS_OF_WORKING.md §9). Listing
+several items "in a sensible order" reads as authorization to build them all in one unreviewed
+run — that is how a five-slice session with an unreviewed breaking change happens. Mentioning
+what comes next as CONTEXT is fine; sequencing work into the prompt is not. -->
 
 ```text
 You are resuming <PROJECT> (built from the baseline starter kit) in a fresh context window.
