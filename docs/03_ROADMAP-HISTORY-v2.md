@@ -142,8 +142,8 @@ newest linked status report. Full detail lives in the plan (`03_ROADMAP-v2.md` �
 
 | Shipped | ID | Was | Item | Report |
 | --- | --- | --- | --- | --- |
+| 2026-08-02 | `BUD-S84` | `—` | CI image publishing to GHCR (ARM64) | [report](../status-reports/2026-08-02-bud-s84-ghcr-publish.md) |
 | 2026-08-01 | `BUD-S90` | `—` | A rebuilt store has a way in (reset/seed/demo auth gap) | [report](../status-reports/2026-08-01-bud-s90-rebuilt-store-access.md) |
-| 2026-08-01 | `BUD-S84` | `—` | CI image publishing to GHCR (ARM64) | [report](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
 | 2026-08-01 | `BUD-S83` | `—` | Production config profile + deploy contract | [report](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
 | 2026-08-01 | `BUD-S82` | `—` | Production Postgres validation + `/health` DB readiness | [report](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
 | 2026-08-01 | `BUD-S81` | `—` | Containerization — multi-stage ARM64 image | [report](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |

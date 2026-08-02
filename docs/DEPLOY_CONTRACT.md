@@ -16,7 +16,7 @@ to another project, so breaking any of it is a coordinated change, not a refacto
 | Status       | Implemented — validated by `scripts/validate-deploy.sh` against PostgreSQL 16 (arm64) |
 | Owner        | Wesley Cutting                                                            |
 | Consumer     | labs-hub `LH-S3`                                                          |
-| Last updated | 2026-08-01                                                                |
+| Last updated | 2026-08-02                                                                |
 | Decisions    | [`ADR-0008`](adr/ADR-0008-containerized-production-runtime.md) (runtime) · [`ADR-0009`](adr/ADR-0009-authentication-household-scoping.md) (auth) |
 
 > budgeteer is a **single-household, LAN-only** self-hosted service. Not multi-tenant, not
@@ -27,13 +27,34 @@ to another project, so breaking any of it is a coordinated change, not a refacto
 
 | | |
 | --- | --- |
-| Registry | `ghcr.io/wes-cutting/budgeteer` |
+| Registry | `ghcr.io/wes-cutting/budgeteer` — **public**, so the hub pulls anonymously (no PAT, no `docker login`) |
 | Tags | a release tag (e.g. `v0.3.0`); pull by tag or digest |
 | Platform | `linux/arm64` (Raspberry Pi 5) |
-| Size | ~82 MB |
+| Size | **81.8 MB compressed** (what the Pi downloads) · ~400 MB uncompressed on disk |
 | Base | `node:22-bookworm-slim` |
 | User | runs as the non-root `node` user |
 | Build | GitHub Actions → GHCR. **Never built on the Pi** (ADR-0008 §4) |
+| Provenance | signed SLSA v1 attestation, pushed to the registry; verify before deploying (below) |
+
+**Current release — `v0.1.0`, the first published image** (2026-08-02):
+
+| | |
+| --- | --- |
+| Digest | `sha256:ef088340334264d6ceb818e356de11224278c62c3d09626e70fd266161e71da2` |
+| Tags | `0.1.0` · `0.1` · `latest` — all three point at that digest |
+| Source | commit `1f478ab` (tag `v0.1.0`), built by [`publish-image.yml`](../.github/workflows/publish-image.yml) [run 30733049897](https://github.com/wes-cutting/budgeteer/actions/runs/30733049897) |
+
+**Pin by digest, not by tag.** A tag can be repointed; a digest cannot. The compose file defaults to
+`:latest` for convenience, but a real deploy should pin:
+
+```sh
+docker pull ghcr.io/wes-cutting/budgeteer@sha256:ef088340334264d6ceb818e356de11224278c62c3d09626e70fd266161e71da2
+gh attestation verify oci://ghcr.io/wes-cutting/budgeteer@sha256:ef0883… --owner wes-cutting
+```
+
+The attestation names the workflow and the source commit that produced the image, so the hub can
+check *what built this* rather than trusting the tag (ADR-0008 names the registry as a new
+supply-chain surface).
 
 **One image serves both halves.** The Fastify process serves the API *and* the built SPA, so there
 is one container, one port, one origin — no web container, no nginx sidecar.

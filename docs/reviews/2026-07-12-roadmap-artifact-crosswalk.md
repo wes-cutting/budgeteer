@@ -115,7 +115,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | `BUD-S81` | `—` | Containerization — multi-stage ARM64 image | — | — | [2026-08-01-bud-s81-s85-hub-deploy.md](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
 | `BUD-S82` | `—` | Production Postgres validation + `/health` DB readiness | — | [12-postgres-production-validation.md](../spikes/12-postgres-production-validation.md) | [2026-08-01-bud-s81-s85-hub-deploy.md](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
 | `BUD-S83` | `—` | Production config profile + deploy contract | — | — | [2026-08-01-bud-s81-s85-hub-deploy.md](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
-| `BUD-S84` | `—` | CI image publishing to GHCR (ARM64) | — | — | [2026-08-01-bud-s81-s85-hub-deploy.md](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| `BUD-S84` | `—` | CI image publishing to GHCR (ARM64) | — | — | [2026-08-01-bud-s81-s85-hub-deploy.md](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) · [2026-08-02-bud-s84-ghcr-publish.md](../status-reports/2026-08-02-bud-s84-ghcr-publish.md) |
 | `BUD-S85` | `—` | Data-at-rest encryption + backup/restore validation | — | — | [2026-08-01-bud-s81-s85-hub-deploy.md](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
 | `BUD-S86` | `—` | Principal seam refactor | — | — | [2026-07-29-bud-s86-principal-seam.md](../status-reports/2026-07-29-bud-s86-principal-seam.md) |
 | `BUD-S87` | `—` | Auth core + login | — | — | [2026-07-29-bud-s87-auth-core.md](../status-reports/2026-07-29-bud-s87-auth-core.md) |
@@ -273,6 +273,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | [`status-reports/2026-07-31-bud-s89-login-hardening.md`](../status-reports/2026-07-31-bud-s89-login-hardening.md) | — | `BUD-S89` (—) |
 | [`status-reports/2026-08-01-bud-s81-s85-hub-deploy.md`](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) | — | `BUD-S81` (—) · `BUD-S82` (—) · `BUD-S83` (—) · `BUD-S84` (—) · `BUD-S85` (—) |
 | [`status-reports/2026-08-01-bud-s90-rebuilt-store-access.md`](../status-reports/2026-08-01-bud-s90-rebuilt-store-access.md) | — | `BUD-S90` (—) |
+| [`status-reports/2026-08-02-bud-s84-ghcr-publish.md`](../status-reports/2026-08-02-bud-s84-ghcr-publish.md) | — | `BUD-S84` (—) |
 | [`ux/analysis-envelope-spend.md`](../ux/analysis-envelope-spend.md) | Accepted | `BUD-S15` (#11) |
 | [`ux/app-shell-sidebar.md`](../ux/app-shell-sidebar.md) | Proposed | `BUD-S63` (UXR1) |
 | [`ux/archive-envelope.md`](../ux/archive-envelope.md) | Accepted | `BUD-S5` (#6) |
@@ -306,6 +307,6 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 
 ## 3. Coverage
 
-- **166** of **166** artifact files carry a `roadmap-item` in their frontmatter
+- **167** of **167** artifact files carry a `roadmap-item` in their frontmatter
   and appear above — **self-describing**, no supplement, no roadmap-link dependency.
 - **0** with a frontmatter problem (see `npm run docs:check`).
