@@ -18,7 +18,10 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
 
 ## 1. Conventions
 
-- **Base URL / port:** `http://localhost:3001` in dev (configurable via `PORT`).
+- **Base URL / port:** `http://localhost:3001/api` in dev (port configurable via `PORT`). In the
+  production container the SPA and the API share one origin, so the base is simply **`/api`**
+  (ADR-0008 §1). The web client composes this from the API **origin** (`VITE_API_BASE_URL`, empty in
+  the container) plus the `/api` namespace, which it never omits.
 - **Format:** JSON request/response; `content-type: application/json`. Money crosses the
   wire as **integer cents** (`balanceCents`) on output, and as a **decimal string**
   (`startingBalance`, e.g. `"2140.00"`) on input — parsed to integer cents at the boundary
@@ -32,7 +35,9 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
   (`apps/web/src/dates.ts`); a missing/malformed date fails loudly with `400`. The server
   clock (EH7) remains only for operational stamps (the backup filename).
 - **Versioning:** unversioned in V1 (single client). A `/v1` prefix will be introduced
-  before any second consumer (change policy §5).
+  before any second consumer (change policy §5). `/api` is a **namespace, not a version** — it
+  separates the API from the SPA's client routes on a shared origin; a future version would sit
+  inside it (`/api/v1`).
 - **CORS:** the browser app calls this API **cross-origin** (web on `:5173`, API on `:3001`),
   so the API sends CORS headers via `@fastify/cors`. The allowed origins are an **allowlist**
   (env `CORS_ORIGINS`, comma-separated; defaults to the Vite dev origins) — **never `*`**
@@ -41,9 +46,11 @@ API CONTRACT — copy of templates/API-CONTRACT-TEMPLATE.md, filled for Budgetee
   otherwise defaults the preflight to `GET,HEAD,POST`, which silently blocks every cross-origin
   `PUT`/`PATCH`/`DELETE` in the browser (fixed with FEAT-012, which added the first browser write
   verbs that weren't covered by the prior POST-only e2e).
-- **Authz:** **none yet** — V1 is a single implicit household (`DEFAULT_HOUSEHOLD_ID`). When
-  multi-household lands it becomes **default-deny, household-scoped at the resource level**
-  (ADR-0002, SECURITY.md). Every resource already carries `householdId` server-side.
+- **Authz:** **default-deny, household-scoped at the resource level** (ADR-0009, SECURITY.md §3) —
+  shipped in BUD-S87–S89. Every request outside the public surface (`/api/health` and the public auth
+  routes) needs a valid session, and each request's services are bound to that session's household,
+  so a handler cannot reach another household's rows. See §3's authentication and user-management
+  sections for the full surface.
 
 ## 2. Error envelope
 
@@ -68,8 +75,44 @@ The error handler **preserves the original 4xx status** (e.g. a malformed/empty 
 
 ## 3. Resources / operations
 
-### `GET /health`
-- **Output:** `200 { "status": "ok" }`. Liveness only.
+> **Every path below is relative to the `/api` prefix** — `GET /accounts` is served at
+> `GET /api/accounts` (BUD-S81 · [ADR-0008](adr/ADR-0008-containerized-production-runtime.md) §1).
+> The prefix exists because the production container serves the SPA and the API from **one origin**,
+> and seven client routes are spelled exactly like API paths (`/accounts`, `/envelopes`,
+> `/templates`, `/recurring`, `/users`, plus the two `:id` forms). Without separate namespaces a
+> browser refresh on the Accounts page was answered by the account-list endpoint — the user got JSON
+> instead of their app. The prefix applies in **every** environment, not just the container, so the
+> contract the tests exercise is the contract that ships.
+
+### `GET /api/health`
+- **Output:** `200 { "status": "ok", "db": "ok" }` — a **readiness** probe: it confirms the
+  datastore answers, not merely that the process is listening (BUD-S82, closing the gap
+  [SPIKE-12](spikes/12-postgres-production-validation.md) found).
+- **`503 { "status": "degraded", "db": "unreachable" }`** when the database does not respond within
+  2 s. The cause is logged; the response carries no detail. Public.
+
+### Authentication (BUD-S87 · ADR-0009)
+**Default-deny:** every operation except `GET /api/health` and the public auth routes requires a valid
+session; without one the API returns `401 { "error": { "message" } }`. The session is an opaque,
+signed, **HttpOnly** `budgeteer_session` cookie (`SameSite=Strict`; `Secure` in production), and every
+request is scoped to the session's household (ADR-0009 §2). CORS is **credentialed against the
+allowlist** (never `*`).
+- **`POST /auth/setup`** *(public, first-run only)* — `{ username, password }` → `201 { ok: true }`
+  while **zero** users exist; `409` once complete. Creates the first **admin** (min password length 8).
+- **`POST /auth/login`** *(public)* — `{ username, password }` → `200 { ok: true }` + `Set-Cookie`;
+  `401` on unknown user / wrong password / disabled account (an **identical** response — enumeration-safe);
+  `429` after repeated failures for the same `(IP, username)` (brute-force throttle, BUD-S89).
+- **`POST /auth/logout`** *(public)* — deletes the session row + clears the cookie → `200 { ok: true }`.
+- **`GET /auth/me`** *(gated)* — `200 { user: { userId, role } }` for the caller; `401` when logged out.
+
+### User management (BUD-S88 · ADR-0009 §7)
+**Admin-only within the caller's household** — a member gets `403`. `UserView = { id, username, role, disabledAt }` (never the password hash). Disable and reset **revoke the target's sessions** (SECURITY.md §3).
+- **`GET /users`** — `200 { users: UserView[] }`.
+- **`POST /users`** — `{ username, password, role? }` (`role` default `member`) → `201 { user }`; `409` on a taken username; `400` on a too-short password.
+- **`POST /users/:id/disable`** · **`/enable`** — `200 { user }`. Disable revokes sessions; an admin **cannot disable their own account** (`400`). `404` for an unknown user.
+- **`POST /users/:id/reset-password`** — `{ password }` → `200 { ok: true }`; revokes the user's sessions. `404`/`400` on unknown user / short password.
+
+> CLIs (no HTTP surface): `create-admin`, `reset-password`, `disable-user` (`npm run … --workspace @budgeteer/api`).
 
 ### `GET /accounts`
 - **Output:** `200 { "accounts": AccountView[] }`, ordered by creation.
@@ -444,18 +487,21 @@ BudgeteerBackup = {
 
 > **Security:** the backup contains the user's complete financial history. Do not commit a
 > real backup to the repo (`.gitignore` already excludes data files). Tests use synthetic
-> fixtures only. The endpoint has no auth in V1 — auth-gating is part of roadmap `#19`.
+> fixtures only. The endpoint is session-gated like every other resource route (`BUD-S87`).
 
 ### Restore (EH10 / `#15b`) — a CLI, not an endpoint
 
 `npm run db:restore -- <file>` (from `apps/api`) restores a `BudgeteerBackup` file into the
-configured store. Deliberately not exposed over HTTP in V1: `GET /export` has no auth, and a
-write-side counterpart would be a remote wipe-and-replace primitive — revisit with `#19`.
+configured store. Deliberately not exposed over HTTP: an import endpoint would be a remote
+wipe-and-replace primitive, so restore stays CLI-only (SEC3 / `BUD-S38`).
 Semantics (decided in [SPIKE-09](spikes/09-restore-roundtrip.md), proven by the
 `export → restore → export` equivalence gate test):
 
-- **Non-destructive:** refuses a store containing user data (anything beyond the untouched
-  seed household); the recovery flow is `db:reset` → restore. It never deletes rows.
+- **Non-destructive:** refuses a store containing ledger data (anything beyond the untouched
+  seed household); the recovery flow is `db:reset` → restore. It never deletes rows. **Sign-in
+  accounts are orthogonal:** `users`/`sessions` are not backup tables, so they neither block a
+  restore nor travel in one — and `db:reset` leaves them in place (`BUD-S90`), so an in-place
+  recovery keeps its logins.
 - **Insert order is the FK-safe topological order** owned by `restoreService` — not the
   file's key order (which lists `transactions` before the `recurring_transactions` they
   reference).

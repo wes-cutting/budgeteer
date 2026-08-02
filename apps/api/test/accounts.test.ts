@@ -17,7 +17,7 @@ const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 describe("accounts API (FEAT-001)", () => {
   test("create with a starting balance → 201 with that balance (opening txn)", async () => {
-    const res = await post("/accounts", {
+    const res = await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "Checking",
       kind: "checking",
@@ -33,7 +33,7 @@ describe("accounts API (FEAT-001)", () => {
   test("zero and negative starting balances are allowed", async () => {
     expect(
       (
-        await post("/accounts", {
+        await post("/api/accounts", {
           openedOn: "2026-07-02",
           name: "Wallet",
           kind: "cash",
@@ -43,7 +43,7 @@ describe("accounts API (FEAT-001)", () => {
     ).toBe(0);
     expect(
       (
-        await post("/accounts", {
+        await post("/api/accounts", {
           openedOn: "2026-07-02",
           name: "CapOne",
           kind: "credit",
@@ -54,20 +54,20 @@ describe("accounts API (FEAT-001)", () => {
   });
 
   test("invalid amount → 400 and nothing is created", async () => {
-    const res = await post("/accounts", {
+    const res = await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "Bad",
       kind: "checking",
       startingBalance: "12.345",
     });
     expect(res.statusCode).toBe(400);
-    expect((await get("/accounts")).json().accounts).toHaveLength(0);
+    expect((await get("/api/accounts")).json().accounts).toHaveLength(0);
   });
 
   test("empty name → 400; unknown kind → 400", async () => {
     expect(
       (
-        await post("/accounts", {
+        await post("/api/accounts", {
           openedOn: "2026-07-02",
           name: "   ",
           kind: "checking",
@@ -77,7 +77,7 @@ describe("accounts API (FEAT-001)", () => {
     ).toBe(400);
     expect(
       (
-        await post("/accounts", {
+        await post("/api/accounts", {
           openedOn: "2026-07-02",
           name: "X",
           kind: "crypto",
@@ -88,13 +88,13 @@ describe("accounts API (FEAT-001)", () => {
   });
 
   test("duplicate name (case-insensitive) → 409", async () => {
-    await post("/accounts", {
+    await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "Checking",
       kind: "checking",
       startingBalance: "0",
     });
-    const res = await post("/accounts", {
+    const res = await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "checking",
       kind: "savings",
@@ -104,19 +104,19 @@ describe("accounts API (FEAT-001)", () => {
   });
 
   test("list returns created accounts with derived balances", async () => {
-    await post("/accounts", {
+    await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "A",
       kind: "checking",
       startingBalance: "100.00",
     });
-    await post("/accounts", {
+    await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "B",
       kind: "savings",
       startingBalance: "50.00",
     });
-    const accounts = (await get("/accounts")).json().accounts;
+    const accounts = (await get("/api/accounts")).json().accounts;
     expect(accounts).toHaveLength(2);
     expect(
       accounts
@@ -127,7 +127,7 @@ describe("accounts API (FEAT-001)", () => {
 
   test("archive sets archivedAt; unarchive clears it; missing id → 404", async () => {
     const a = (
-      await post("/accounts", {
+      await post("/api/accounts", {
         openedOn: "2026-07-02",
         name: "A",
         kind: "checking",
@@ -135,42 +135,42 @@ describe("accounts API (FEAT-001)", () => {
       })
     ).json().account;
 
-    const archived = await post(`/accounts/${a.id}/archive`);
+    const archived = await post(`/api/accounts/${a.id}/archive`);
     expect(archived.statusCode).toBe(200);
     expect(archived.json().account.archivedAt).not.toBeNull();
 
-    const unarchived = await post(`/accounts/${a.id}/unarchive`);
+    const unarchived = await post(`/api/accounts/${a.id}/unarchive`);
     expect(unarchived.statusCode).toBe(200);
     expect(unarchived.json().account.archivedAt).toBeNull();
 
-    expect((await post("/accounts/00000000-0000-0000-0000-0000000000ff/archive")).statusCode).toBe(
-      404,
-    );
+    expect(
+      (await post("/api/accounts/00000000-0000-0000-0000-0000000000ff/archive")).statusCode,
+    ).toBe(404);
   });
 
   test("rename updates the name; duplicate rename → 409; missing → 404", async () => {
     const a = (
-      await post("/accounts", {
+      await post("/api/accounts", {
         openedOn: "2026-07-02",
         name: "A",
         kind: "checking",
         startingBalance: "0",
       })
     ).json().account;
-    await post("/accounts", {
+    await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "B",
       kind: "savings",
       startingBalance: "0",
     });
 
-    const ok = await patch(`/accounts/${a.id}`, { name: "A renamed" });
+    const ok = await patch(`/api/accounts/${a.id}`, { name: "A renamed" });
     expect(ok.statusCode).toBe(200);
     expect(ok.json().account.name).toBe("A renamed");
 
-    expect((await patch(`/accounts/${a.id}`, { name: "B" })).statusCode).toBe(409);
+    expect((await patch(`/api/accounts/${a.id}`, { name: "B" })).statusCode).toBe(409);
     expect(
-      (await patch(`/accounts/00000000-0000-0000-0000-0000000000ff`, { name: "Z" })).statusCode,
+      (await patch(`/api/accounts/00000000-0000-0000-0000-0000000000ff`, { name: "Z" })).statusCode,
     ).toBe(404);
   });
 });

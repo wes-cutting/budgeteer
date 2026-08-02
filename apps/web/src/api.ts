@@ -20,6 +20,8 @@ import type {
   EnvelopeView,
   LoanPrincipalView,
   NetWorthRollup,
+  Role,
+  UserView,
   PayPeriodPlanView,
   PostDueResult,
   ReconciliationView,
@@ -152,9 +154,29 @@ export interface Api {
   setOriginalPrincipal(accountId: string, amount: string): Promise<LoanPrincipalView>;
   clearOriginalPrincipal(accountId: string): Promise<void>;
   getNetWorth(grain: SpendGrain): Promise<NetWorthRollup>;
+
+  // Authentication (BUD-S87 / ADR-0009).
+  login(username: string, password: string): Promise<void>;
+  logout(): Promise<void>;
+  /** First-run only: create the first admin (succeeds while zero users exist). */
+  setup(username: string, password: string): Promise<void>;
+  /** The current user, or null if unauthenticated. */
+  me(): Promise<{ userId: string; role: string } | null>;
+
+  // User management (BUD-S88; admin-only — the API returns 403 for members).
+  listUsers(): Promise<UserView[]>;
+  createUser(username: string, password: string, role: Role): Promise<void>;
+  setUserDisabled(userId: string, disabled: boolean): Promise<void>;
+  resetUserPassword(userId: string, password: string): Promise<void>;
 }
 
-const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+// Where the API lives. `VITE_API_BASE_URL` is the ORIGIN only — dev points it at the separate API
+// server, and the production container sets it empty so the SPA calls its own origin (ADR-0008 §1).
+// The `/api` namespace is appended here rather than baked into the env var: the server owns that
+// prefix (see API_PREFIX in apps/api/src/http/server.ts), and it exists because the SPA's own client
+// routes are spelled like API paths — `/accounts` is a page, `/api/accounts` is the endpoint.
+const API_ORIGIN = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+const BASE = `${API_ORIGIN}/api`;
 
 /** Direct URL for the backup download — an anchor href, not a fetch call (no CORS needed). */
 export const exportUrl = `${BASE}/export`;
@@ -174,13 +196,59 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (init?.body !== undefined && headers["content-type"] === undefined) {
     headers["content-type"] = "application/json";
   }
-  const res = await fetch(`${BASE}${path}`, { ...init, headers });
+  // `credentials: "include"` sends the session cookie on cross-origin API calls (web:5173 →
+  // api:3001 in dev; same-origin in the prod container). The API's CORS allowlist + credentials
+  // flag (never `*`) makes this safe (ADR-0009 · SECURITY.md §2).
+  const res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: "include" });
   const data: unknown = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(errorMessage(data) ?? "Request failed.");
+  if (!res.ok) {
+    // Default-deny: a 401 on any non-auth call means the session is gone/expired → bounce to the
+    // login page (the reactive auth guard). The auth endpoints handle their own 401 (bad creds).
+    if (
+      res.status === 401 &&
+      !path.startsWith("/auth/") &&
+      typeof window !== "undefined" &&
+      window.location.pathname !== "/login"
+    ) {
+      window.location.assign("/login");
+    }
+    throw new ApiError(errorMessage(data) ?? "Request failed.");
+  }
   return data as T;
 }
 
 export const httpApi: Api = {
+  async login(username, password) {
+    await request("/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
+  },
+  async logout() {
+    await request("/auth/logout", { method: "POST" });
+  },
+  async setup(username, password) {
+    await request("/auth/setup", { method: "POST", body: JSON.stringify({ username, password }) });
+  },
+  async me() {
+    try {
+      return (await request<{ user: { userId: string; role: string } | null }>("/auth/me")).user;
+    } catch {
+      return null; // 401/any error → treat as logged out
+    }
+  },
+  async listUsers() {
+    return (await request<{ users: UserView[] }>("/users")).users;
+  },
+  async createUser(username, password, role) {
+    await request("/users", { method: "POST", body: JSON.stringify({ username, password, role }) });
+  },
+  async setUserDisabled(userId, disabled) {
+    await request(`/users/${userId}/${disabled ? "disable" : "enable"}`, { method: "POST" });
+  },
+  async resetUserPassword(userId, password) {
+    await request(`/users/${userId}/reset-password`, {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
+  },
   async listAccounts() {
     return (await request<{ accounts: AccountView[] }>("/accounts")).accounts;
   },

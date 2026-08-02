@@ -36,6 +36,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | --- | --- | --- | --- | --- | --- |
 | `BUD-E9` | `—` | Sheet parity | — | [08-budgethome-sheet-analysis.md](../spikes/08-budgethome-sheet-analysis.md) | — |
 | `BUD-E10` | `—` | UX Redesign | — | — | [2026-07-07-uxr-scoping.md](../status-reports/2026-07-07-uxr-scoping.md) |
+| `BUD-E13` | `#19` | Multi-user / household scoping | — | [13-auth-seam.md](../spikes/13-auth-seam.md) | — |
 | `BUD-S1` | `#1` | Foundation | [accounts.md](../features/accounts.md) · [envelopes.md](../features/envelopes.md) · [foundation.md](../ux/foundation.md) | — | [2026-06-13-foundation-slice.md](../status-reports/2026-06-13-foundation-slice.md) |
 | `BUD-S2` | `#3` | core enter→allocate loop — enter deposit/withdrawal → allocate in Sing… | [transactions.md](../features/transactions.md) · [transactions.md](../ux/transactions.md) | — | [2026-06-13-slice-1.md](../status-reports/2026-06-13-slice-1.md) |
 | `BUD-S3` | `#4` | accelerators — templates/presets | [templates.md](../features/templates.md) · [templates.md](../ux/templates.md) | [01-split-allocation-ux.md](../spikes/01-split-allocation-ux.md) | [2026-06-13-slice-2.md](../status-reports/2026-06-13-slice-2.md) |
@@ -111,6 +112,16 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | `BUD-S78` | `#16` | a11y pass | — | — | [2026-06-21-16.md](../status-reports/2026-06-21-16.md) |
 | `BUD-S79` | `#18` | Historical import | — | — | [2026-07-10-history-import.md](../status-reports/2026-07-10-history-import.md) |
 | `BUD-S80` | `#20` | Statement import | — | [11-statement-extraction.md](../spikes/11-statement-extraction.md) | [2026-07-10-statement-import.md](../status-reports/2026-07-10-statement-import.md) |
+| `BUD-S81` | `—` | Containerization — multi-stage ARM64 image | — | — | [2026-08-01-bud-s81-s85-hub-deploy.md](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| `BUD-S82` | `—` | Production Postgres validation + `/health` DB readiness | — | [12-postgres-production-validation.md](../spikes/12-postgres-production-validation.md) | [2026-08-01-bud-s81-s85-hub-deploy.md](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| `BUD-S83` | `—` | Production config profile + deploy contract | — | — | [2026-08-01-bud-s81-s85-hub-deploy.md](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| `BUD-S84` | `—` | CI image publishing to GHCR (ARM64) | — | — | [2026-08-01-bud-s81-s85-hub-deploy.md](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| `BUD-S85` | `—` | Data-at-rest encryption + backup/restore validation | — | — | [2026-08-01-bud-s81-s85-hub-deploy.md](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| `BUD-S86` | `—` | Principal seam refactor | — | — | [2026-07-29-bud-s86-principal-seam.md](../status-reports/2026-07-29-bud-s86-principal-seam.md) |
+| `BUD-S87` | `—` | Auth core + login | — | — | [2026-07-29-bud-s87-auth-core.md](../status-reports/2026-07-29-bud-s87-auth-core.md) |
+| `BUD-S88` | `—` | Roles + user management | — | — | [2026-07-31-bud-s88-roles-user-management.md](../status-reports/2026-07-31-bud-s88-roles-user-management.md) |
+| `BUD-S89` | `—` | Login hardening + threat-model tests | — | — | [2026-07-31-bud-s89-login-hardening.md](../status-reports/2026-07-31-bud-s89-login-hardening.md) |
+| `BUD-S90` | `—` | A rebuilt store has a way in (reset/seed/demo auth gap) | — | — | [2026-08-01-bud-s90-rebuilt-store-access.md](../status-reports/2026-08-01-bud-s90-rebuilt-store-access.md) |
 | `SPIKE-01` | `#0` | Split-allocation UX | — | [01-split-allocation-ux.md](../spikes/01-split-allocation-ux.md) | — |
 | `SPIKE-02` | `#2` | Technical feasibility / stack | — | [02-stack-feasibility.md](../spikes/02-stack-feasibility.md) | — |
 | `SPIKE-03` | `#17` | SPIKE-03 — data-profiling: | — | [03-history-extraction.md](../spikes/03-history-extraction.md) | [2026-07-10-history-import.md](../status-reports/2026-07-10-history-import.md) |
@@ -119,6 +130,8 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | `SPIKE-06` | `UX1` | Spike: design-system + routing foundation | — | [06-design-system-routing.md](../spikes/06-design-system-routing.md) | — |
 | `SPIKE-07` | `UX2` | Spike: accessible charting / viz a11y | — | [07-accessible-charting.md](../spikes/07-accessible-charting.md) | [2026-06-28-ux2.md](../status-reports/2026-06-28-ux2.md) |
 | `SPIKE-11` | `#21` | SPIKE-11 — data-profiling: | — | [11-statement-extraction.md](../spikes/11-statement-extraction.md) | [2026-07-10-spike-11-statement-profiling.md](../status-reports/2026-07-10-spike-11-statement-profiling.md) |
+| `SPIKE-12` | `—` | Postgres production-runtime validation | — | [12-postgres-production-validation.md](../spikes/12-postgres-production-validation.md) | — |
+| `SPIKE-13` | `—` | Auth vertical seam (BUD-E13 shape A) | — | [13-auth-seam.md](../spikes/13-auth-seam.md) | — |
 
 ## 2. Reverse — each artifact → its roadmap id (and its declared status)
 
@@ -173,6 +186,8 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | [`spikes/09-restore-roundtrip.md`](../spikes/09-restore-roundtrip.md) | Done | `BUD-S31` (EH10) |
 | [`spikes/10-payperiod-policy-validation.md`](../spikes/10-payperiod-policy-validation.md) | Done | `BUD-S61` (S7) |
 | [`spikes/11-statement-extraction.md`](../spikes/11-statement-extraction.md) | Done | `BUD-S80` (#20) · `SPIKE-11` (#21) |
+| [`spikes/12-postgres-production-validation.md`](../spikes/12-postgres-production-validation.md) | Done | `BUD-S82` (—) · `SPIKE-12` (—) |
+| [`spikes/13-auth-seam.md`](../spikes/13-auth-seam.md) | Done | `BUD-E13` (#19) · `SPIKE-13` (—) |
 | [`status-reports/2026-06-13-foundation-slice.md`](../status-reports/2026-06-13-foundation-slice.md) | Snapshot | `BUD-S1` (#1) |
 | [`status-reports/2026-06-13-slice-1.md`](../status-reports/2026-06-13-slice-1.md) | Snapshot | `BUD-S2` (#3) |
 | [`status-reports/2026-06-13-slice-2.md`](../status-reports/2026-06-13-slice-2.md) | Snapshot | `BUD-S3` (#4) |
@@ -252,6 +267,12 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | [`status-reports/2026-07-10-history-import.md`](../status-reports/2026-07-10-history-import.md) | — | `BUD-S79` (#18) · `SPIKE-03` (#17) |
 | [`status-reports/2026-07-10-spike-11-statement-profiling.md`](../status-reports/2026-07-10-spike-11-statement-profiling.md) | — | `SPIKE-11` (#21) |
 | [`status-reports/2026-07-10-statement-import.md`](../status-reports/2026-07-10-statement-import.md) | — | `BUD-S80` (#20) |
+| [`status-reports/2026-07-29-bud-s86-principal-seam.md`](../status-reports/2026-07-29-bud-s86-principal-seam.md) | — | `BUD-S86` (—) |
+| [`status-reports/2026-07-29-bud-s87-auth-core.md`](../status-reports/2026-07-29-bud-s87-auth-core.md) | — | `BUD-S87` (—) |
+| [`status-reports/2026-07-31-bud-s88-roles-user-management.md`](../status-reports/2026-07-31-bud-s88-roles-user-management.md) | — | `BUD-S88` (—) |
+| [`status-reports/2026-07-31-bud-s89-login-hardening.md`](../status-reports/2026-07-31-bud-s89-login-hardening.md) | — | `BUD-S89` (—) |
+| [`status-reports/2026-08-01-bud-s81-s85-hub-deploy.md`](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) | — | `BUD-S81` (—) · `BUD-S82` (—) · `BUD-S83` (—) · `BUD-S84` (—) · `BUD-S85` (—) |
+| [`status-reports/2026-08-01-bud-s90-rebuilt-store-access.md`](../status-reports/2026-08-01-bud-s90-rebuilt-store-access.md) | — | `BUD-S90` (—) |
 | [`ux/analysis-envelope-spend.md`](../ux/analysis-envelope-spend.md) | Accepted | `BUD-S15` (#11) |
 | [`ux/app-shell-sidebar.md`](../ux/app-shell-sidebar.md) | Proposed | `BUD-S63` (UXR1) |
 | [`ux/archive-envelope.md`](../ux/archive-envelope.md) | Accepted | `BUD-S5` (#6) |
@@ -285,6 +306,6 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 
 ## 3. Coverage
 
-- **158** of **158** artifact files carry a `roadmap-item` in their frontmatter
+- **166** of **166** artifact files carry a `roadmap-item` in their frontmatter
   and appear above — **self-describing**, no supplement, no roadmap-link dependency.
 - **0** with a frontmatter problem (see `npm run docs:check`).

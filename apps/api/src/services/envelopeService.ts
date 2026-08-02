@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 import { type EnvelopeKind, nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { toDateStr, toISO } from "../util/dates";
 import { asDuplicateName } from "./dbErrors";
 import { DuplicateNameError, NotFoundError } from "./errors";
@@ -26,7 +26,7 @@ export interface EnvelopeLedgerRow {
   amountCents: number;
 }
 
-export function makeEnvelopeService(db: Kysely<DB>) {
+export function makeEnvelopeService(db: Kysely<DB>, scope: Scope) {
   const selectView = (qb: Kysely<DB>) =>
     qb
       .selectFrom("envelopes as e")
@@ -50,7 +50,7 @@ export function makeEnvelopeService(db: Kysely<DB>) {
   return {
     async list(): Promise<EnvelopeView[]> {
       const rows = await selectView(db)
-        .where("e.household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .where("e.household_id", "=", scope.householdId)
         .orderBy("e.created_at")
         .execute();
       return rows.map(toView);
@@ -62,7 +62,7 @@ export function makeEnvelopeService(db: Kysely<DB>) {
           const names = await trx
             .selectFrom("envelopes")
             .select("name")
-            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .where("household_id", "=", scope.householdId)
             .execute();
           if (
             nameExists(
@@ -75,7 +75,7 @@ export function makeEnvelopeService(db: Kysely<DB>) {
           const envelope = await trx
             .insertInto("envelopes")
             .values({
-              household_id: DEFAULT_HOUSEHOLD_ID,
+              household_id: scope.householdId,
               name: input.name,
               kind: input.kind,
               archived_at: null,
@@ -96,13 +96,13 @@ export function makeEnvelopeService(db: Kysely<DB>) {
             .selectFrom("envelopes")
             .select("id")
             .where("id", "=", id)
-            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .where("household_id", "=", scope.householdId)
             .executeTakeFirst();
           if (!current) throw new NotFoundError("envelope");
           const others = await trx
             .selectFrom("envelopes")
             .select("name")
-            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .where("household_id", "=", scope.householdId)
             .where("id", "<>", id)
             .execute();
           if (
@@ -125,7 +125,7 @@ export function makeEnvelopeService(db: Kysely<DB>) {
         .selectFrom("envelopes")
         .select("id")
         .where("id", "=", id)
-        .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .where("household_id", "=", scope.householdId)
         .executeTakeFirst();
       if (!env) throw new NotFoundError("envelope");
 
@@ -145,7 +145,7 @@ export function makeEnvelopeService(db: Kysely<DB>) {
           "a.amount_cents",
         ])
         .where("a.envelope_id", "=", id)
-        .where("t.household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .where("t.household_id", "=", scope.householdId)
         .orderBy("t.occurred_on", "desc")
         .orderBy("t.created_at", "desc")
         .execute();
@@ -169,14 +169,14 @@ export function makeEnvelopeService(db: Kysely<DB>) {
         .selectFrom("envelopes")
         .select("id")
         .where("id", "=", id)
-        .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .where("household_id", "=", scope.householdId)
         .executeTakeFirst();
       if (!current) throw new NotFoundError("envelope");
       await db
         .updateTable("envelopes")
         .set({ archived_at: archived ? new Date() : null })
         .where("id", "=", id)
-        .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .where("household_id", "=", scope.householdId)
         .execute();
       const row = await selectView(db).where("e.id", "=", id).executeTakeFirstOrThrow();
       return toView(row);

@@ -3,6 +3,7 @@ import { DEFAULT_HOUSEHOLD_ID } from "../constants";
 import type { DB } from "./schema";
 import * as baseline from "./migrations/0001-baseline";
 import * as recurringOccurrenceIdempotency from "./migrations/0002-recurring-occurrence-idempotency";
+import * as auth from "./migrations/0003-auth";
 
 /**
  * The versioned migration registry (EH9). In-code (not FileMigrationProvider) so the registry is
@@ -15,6 +16,7 @@ import * as recurringOccurrenceIdempotency from "./migrations/0002-recurring-occ
 const migrations: Record<string, Migration> = {
   "0001-baseline": baseline,
   "0002-recurring-occurrence-idempotency": recurringOccurrenceIdempotency,
+  "0003-auth": auth,
 };
 
 const provider: MigrationProvider = {
@@ -29,9 +31,11 @@ const provider: MigrationProvider = {
  * idempotent migration function frozen verbatim, so re-running it against the existing schema is
  * a no-op that records the baseline as executed.
  *
- * The household insert runs on every call (not inside a run-once migration) because `db:reset`'s
- * PostgreSQL path truncates `households` but not `kysely_migration` — the next startup/seed must
- * restore the row even though no migration is pending.
+ * The household insert runs on every call (not inside a run-once migration) so that any store
+ * reaching this function has the row, whatever route it took to get here — a pre-migrator store
+ * adopting 0001, or a restore whose backup carries its own household values to upsert over it.
+ * (Until BUD-S90 `db:reset` truncated `households` but not `kysely_migration`, so this insert was
+ * also the only thing putting the row back; it no longer truncates it.)
  */
 export async function migrateToLatest(db: Kysely<DB>): Promise<void> {
   const migrator = new Migrator({ db, provider });

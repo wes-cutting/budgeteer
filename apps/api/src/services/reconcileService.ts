@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 import { reconciliationDelta } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { toDateStr } from "../util/dates";
 import { NotFoundError } from "./errors";
 
@@ -19,8 +19,6 @@ export interface CreateReconciliationInput {
   statementBalanceCents: number; // signed; an account balance can be negative
   reconciledOn: string; // YYYY-MM-DD
 }
-
-const HH = DEFAULT_HOUSEHOLD_ID;
 
 function toView(r: {
   id: string;
@@ -43,7 +41,8 @@ function toView(r: {
   };
 }
 
-export function makeReconcileService(db: Kysely<DB>) {
+export function makeReconcileService(db: Kysely<DB>, scope: Scope) {
+  const HH = scope.householdId;
   async function assertAccount(exec: Kysely<DB>, accountId: string): Promise<void> {
     const account = await exec
       .selectFrom("accounts")

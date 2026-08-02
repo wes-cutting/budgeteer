@@ -42,6 +42,10 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${WEB_PORT}`,
     trace: "on-first-retry",
+    // BUD-S87 — auth is ON for the e2e API. global-setup.ts signs in once and writes this session
+    // state; every spec runs authenticated. A spec that needs the logged-out state overrides it
+    // (`test.use({ storageState: { cookies: [], origins: [] } })`).
+    storageState: "./e2e/.auth/state.json",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   // Playwright owns the stack for the run: it starts both servers, waits for each to answer, runs
@@ -57,11 +61,12 @@ export default defineConfig({
   // wrote fixtures into the dev store. With reuse off, Playwright FAILS FAST if either port is held
   // (telling the developer to free it) and otherwise always starts its own isolated stack. CI
   // already ran with reuse off (PGLITE_DIR unset → in-memory); this makes local runs match.
+  globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
   webServer: [
     {
       command: "npm run start --workspace @budgeteer/api",
-      url: `http://localhost:${API_PORT}/health`,
+      url: `http://localhost:${API_PORT}/api/health`,
       // Override PGLITE_DIR for the spawned API only; merged over process.env by Playwright. dotenv
       // (apps/api) won't override this real env var, so the e2e API uses the throwaway store.
       env: { PGLITE_DIR: E2E_PGLITE_DIR },

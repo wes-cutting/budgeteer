@@ -8,6 +8,11 @@
  * without a reset first, re-running this script would pile up duplicate transactions and
  * the demo numbers would drift further from the clean baseline on every run.
  *
+ * Auth is always on and the seed creates no users, so the run also provisions its own admin
+ * through first-run `/api/auth/setup`, with a password generated per run and never stored
+ * (`provisionSession` below). The reset is what keeps that repeatable: it deletes the PGlite
+ * directory, so every run starts from zero users and `/auth/setup` is live again.
+ *
  * Each run writes into its own datetime-stamped folder under data/demo-assets/ (gitignored)
  * so past captures stay around as history instead of being overwritten.
  *
@@ -22,6 +27,7 @@
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import net from "node:net";
 import path from "node:path";
 
@@ -64,7 +70,11 @@ function assertPortFree(port: number): Promise<void> {
 
 function run(args: string[], env: NodeJS.ProcessEnv): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(TSX, args, { cwd: API_DIR, env: { ...process.env, ...env }, stdio: "inherit" });
+    const child = spawn(TSX, args, {
+      cwd: API_DIR,
+      env: { ...process.env, ...env },
+      stdio: "inherit",
+    });
     child.on("exit", (code) =>
       code === 0 ? resolve() : reject(new Error(`tsx ${args.join(" ")} exited with code ${code}`)),
     );
@@ -75,7 +85,13 @@ function run(args: string[], env: NodeJS.ProcessEnv): Promise<void> {
 function startApiServer() {
   const child = spawn(TSX, ["src/index.ts"], {
     cwd: API_DIR,
-    env: { ...process.env, PGLITE_DIR, PORT: String(API_PORT), HOST: "127.0.0.1", LOG_LEVEL: "warn" },
+    env: {
+      ...process.env,
+      PGLITE_DIR,
+      PORT: String(API_PORT),
+      HOST: "127.0.0.1",
+      LOG_LEVEL: "warn",
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let output = "";
@@ -91,11 +107,61 @@ function startApiServer() {
   return { child, crashed };
 }
 
-async function waitForReady(url: string, crashed: Promise<never>, timeoutMs = 15000): Promise<void> {
+/**
+ * Give the throwaway demo store its one user and return the session cookie (BUD-S90).
+ *
+ * The seed scripts create no users and `src/index.ts` always enables auth, so without this every
+ * page here answered 401 and the SPA bounced to `/login` — the capture silently produced 20
+ * screenshots of the login screen. The credential is generated per run and never written down:
+ * `/auth/setup` is a dead endpoint once a user exists, so this works exactly once, against the
+ * store this script just reset. Nothing about it is reachable from a production image (`seedDemo`
+ * is not even bundled into it).
+ *
+ * The cookie is server-signed, so it is lifted verbatim from the login response rather than
+ * constructed. Cookies ignore the port, so a `localhost` cookie set by the API on :3001 is sent to
+ * the web dev server's own origin on :5173 as well.
+ */
+async function provisionSession(): Promise<{ name: string; value: string }> {
+  const credentials = {
+    username: "demo",
+    password: `demo-${randomBytes(24).toString("base64url")}`,
+  };
+  const post = (endpoint: string) =>
+    fetch(`${API_BASE}/api/auth/${endpoint}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+
+  const setup = await post("setup");
+  if (!setup.ok) {
+    throw new Error(
+      `POST /api/auth/setup returned ${setup.status} — the demo store should have had zero users ` +
+        `after the reset+reseed above. ${await setup.text()}`,
+    );
+  }
+  const login = await post("login");
+  if (!login.ok) throw new Error(`POST /api/auth/login returned ${login.status}.`);
+
+  const header = login.headers.get("set-cookie");
+  if (header === null) throw new Error("Login succeeded but sent no Set-Cookie.");
+  const [pair] = header.split(";");
+  const separator = pair.indexOf("=");
+  if (separator < 1) throw new Error(`Could not parse the session cookie from "${pair}".`);
+  return { name: pair.slice(0, separator), value: pair.slice(separator + 1) };
+}
+
+async function waitForReady(
+  url: string,
+  crashed: Promise<never>,
+  timeoutMs = 15000,
+): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const ready = await Promise.race([
-      fetch(url).then((r) => r.ok).catch(() => false),
+      fetch(url)
+        .then((r) => r.ok)
+        .catch(() => false),
       new Promise<false>((r) => setTimeout(() => r(false), 200)),
     ]);
     if (ready) return;
@@ -108,7 +174,9 @@ const webReachable = await fetch(WEB_BASE)
   .then((r) => r.ok)
   .catch(() => false);
 if (!webReachable) {
-  throw new Error(`${WEB_BASE} is not reachable. Start the "web" dev server first (npm run dev --workspace apps/web).`);
+  throw new Error(
+    `${WEB_BASE} is not reachable. Start the "web" dev server first (npm run dev --workspace apps/web).`,
+  );
 }
 
 await assertPortFree(API_PORT);
@@ -121,12 +189,22 @@ console.log("Starting a throwaway api-demo server...");
 const { child: apiServer, crashed } = startApiServer();
 
 try {
-  await waitForReady(`${API_BASE}/health`, crashed);
+  await waitForReady(`${API_BASE}/api/health`, crashed);
+
+  console.log("Creating the demo store's throwaway admin...");
+  const sessionCookie = {
+    ...(await provisionSession()),
+    domain: "localhost",
+    path: "/",
+    httpOnly: true,
+    sameSite: "Strict" as const,
+  };
 
   const browser = await chromium.launch();
 
   // --- Static screens (2x device scale for crisp/retina output) ---
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
+  await context.addCookies([sessionCookie]);
   const page = await context.newPage();
 
   async function shot(route: string, file: string) {
@@ -192,14 +270,20 @@ try {
   // not a fresh page load, or the dialog never mounts.
   await page.goto(`${WEB_BASE}/`, { waitUntil: "networkidle" });
   await page.getByRole("link", { name: "Add transaction" }).click();
-  await page.getByRole("combobox", { name: "Account" }).selectOption({ label: "Everyday Checking" });
+  await page
+    .getByRole("combobox", { name: "Account" })
+    .selectOption({ label: "Everyday Checking" });
   await page.getByRole("textbox", { name: "Transaction amount" }).fill("126.40");
   await page.getByRole("textbox", { name: "Payee" }).fill("Trader Joe's");
   await page.getByRole("radio", { name: "Split" }).click();
-  await page.getByRole("combobox", { name: "Envelope for row 1" }).selectOption({ label: "Groceries" });
+  await page
+    .getByRole("combobox", { name: "Envelope for row 1" })
+    .selectOption({ label: "Groceries" });
   await page.getByRole("textbox", { name: "Amount for row 1" }).fill("80");
   await page.getByRole("button", { name: "Add row" }).click();
-  await page.getByRole("combobox", { name: "Envelope for row 2" }).selectOption({ label: "Household Supplies" });
+  await page
+    .getByRole("combobox", { name: "Envelope for row 2" })
+    .selectOption({ label: "Household Supplies" });
   await page.getByRole("button", { name: "use remaining" }).nth(1).click();
   await page.waitForTimeout(200);
   await page.screenshot({
@@ -218,12 +302,15 @@ try {
       viewport: VIEWPORT,
       recordVideo: { dir: path.join(OUT, "video"), size: VIEWPORT },
     });
+    await videoContext.addCookies([sessionCookie]);
     const vp = await videoContext.newPage();
     await vp.goto(`${WEB_BASE}/`, { waitUntil: "networkidle" });
     await vp.waitForTimeout(800);
     await vp.getByRole("link", { name: "Add transaction" }).click();
     await vp.waitForTimeout(500);
-    await vp.getByRole("combobox", { name: "Account" }).selectOption({ label: "Everyday Checking" });
+    await vp
+      .getByRole("combobox", { name: "Account" })
+      .selectOption({ label: "Everyday Checking" });
     await vp.waitForTimeout(300);
     await vp.getByRole("textbox", { name: "Transaction amount" }).fill("126.40");
     await vp.waitForTimeout(300);
@@ -231,12 +318,16 @@ try {
     await vp.waitForTimeout(300);
     await vp.getByRole("radio", { name: "Split" }).click();
     await vp.waitForTimeout(400);
-    await vp.getByRole("combobox", { name: "Envelope for row 1" }).selectOption({ label: "Groceries" });
+    await vp
+      .getByRole("combobox", { name: "Envelope for row 1" })
+      .selectOption({ label: "Groceries" });
     await vp.getByRole("textbox", { name: "Amount for row 1" }).fill("80");
     await vp.waitForTimeout(400);
     await vp.getByRole("button", { name: "Add row" }).click();
     await vp.waitForTimeout(300);
-    await vp.getByRole("combobox", { name: "Envelope for row 2" }).selectOption({ label: "Household Supplies" });
+    await vp
+      .getByRole("combobox", { name: "Envelope for row 2" })
+      .selectOption({ label: "Household Supplies" });
     await vp.getByRole("button", { name: "use remaining" }).nth(1).click();
     await vp.waitForTimeout(1200);
     await vp.getByRole("button", { name: "Save transaction" }).click();

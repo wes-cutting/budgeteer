@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 import { type AccountKind, nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { toISO } from "../util/dates";
 import { asDuplicateName } from "./dbErrors";
 import { DuplicateNameError, NotFoundError } from "./errors";
@@ -14,7 +14,7 @@ export interface AccountView {
   archivedAt: string | null;
 }
 
-export function makeAccountService(db: Kysely<DB>) {
+export function makeAccountService(db: Kysely<DB>, scope: Scope) {
   const selectView = (qb: Kysely<DB>) =>
     qb
       .selectFrom("accounts as a")
@@ -38,7 +38,7 @@ export function makeAccountService(db: Kysely<DB>) {
   return {
     async list(): Promise<AccountView[]> {
       const rows = await selectView(db)
-        .where("a.household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .where("a.household_id", "=", scope.householdId)
         .orderBy("a.created_at")
         .execute();
       return rows.map(toView);
@@ -56,7 +56,7 @@ export function makeAccountService(db: Kysely<DB>) {
           const names = await trx
             .selectFrom("accounts")
             .select("name")
-            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .where("household_id", "=", scope.householdId)
             .execute();
           if (
             nameExists(
@@ -69,7 +69,7 @@ export function makeAccountService(db: Kysely<DB>) {
           const account = await trx
             .insertInto("accounts")
             .values({
-              household_id: DEFAULT_HOUSEHOLD_ID,
+              household_id: scope.householdId,
               name: input.name,
               kind: input.kind,
               archived_at: null,
@@ -79,7 +79,7 @@ export function makeAccountService(db: Kysely<DB>) {
           await trx
             .insertInto("transactions")
             .values({
-              household_id: DEFAULT_HOUSEHOLD_ID,
+              household_id: scope.householdId,
               account_id: account.id,
               amount_cents: input.startingBalanceCents,
               kind: "opening",
@@ -102,13 +102,13 @@ export function makeAccountService(db: Kysely<DB>) {
             .selectFrom("accounts")
             .select("id")
             .where("id", "=", id)
-            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .where("household_id", "=", scope.householdId)
             .executeTakeFirst();
           if (!current) throw new NotFoundError("account");
           const others = await trx
             .selectFrom("accounts")
             .select("name")
-            .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+            .where("household_id", "=", scope.householdId)
             .where("id", "<>", id)
             .execute();
           if (
@@ -131,14 +131,14 @@ export function makeAccountService(db: Kysely<DB>) {
         .selectFrom("accounts")
         .select("id")
         .where("id", "=", id)
-        .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .where("household_id", "=", scope.householdId)
         .executeTakeFirst();
       if (!current) throw new NotFoundError("account");
       await db
         .updateTable("accounts")
         .set({ archived_at: archived ? new Date() : null })
         .where("id", "=", id)
-        .where("household_id", "=", DEFAULT_HOUSEHOLD_ID)
+        .where("household_id", "=", scope.householdId)
         .execute();
       const row = await selectView(db).where("a.id", "=", id).executeTakeFirstOrThrow();
       return toView(row);

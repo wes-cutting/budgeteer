@@ -17,8 +17,9 @@ const del = (url: string) => ctx.app.inject({ method: "DELETE", url });
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeAccount(name: string, kind: string, startingBalance = "0"): Promise<string> {
-  return (await post("/accounts", { openedOn: "2026-07-02", name, kind, startingBalance })).json()
-    .account.id as string;
+  return (
+    await post("/api/accounts", { openedOn: "2026-07-02", name, kind, startingBalance })
+  ).json().account.id as string;
 }
 /** A dated withdrawal/deposit with no allocation — only the account balance (= Σ txns) matters here. */
 function addTxn(
@@ -27,7 +28,12 @@ function addTxn(
   amount: string,
   occurredOn: string,
 ) {
-  return post(`/accounts/${accountId}/transactions`, { kind, amount, occurredOn, allocations: [] });
+  return post(`/api/accounts/${accountId}/transactions`, {
+    kind,
+    amount,
+    occurredOn,
+    allocations: [],
+  });
 }
 
 interface CuPoint {
@@ -52,7 +58,7 @@ interface CuReport {
   utilizationBps: number | null;
 }
 async function report(): Promise<CuReport> {
-  return (await get("/analysis/credit-utilization")).json().report as CuReport;
+  return (await get("/api/analysis/credit-utilization")).json().report as CuReport;
 }
 const acctOf = (r: CuReport, name: string): CuAccount | undefined =>
   r.accounts.find((a) => a.accountName === name);
@@ -61,9 +67,9 @@ describe("analysis — credit utilization (FEAT-014a)", () => {
   test("owed = −balance; utilization = owed/limit in basis points; available = limit − owed", async () => {
     // Open a card already owing $1,500 (a negative opening balance), limit $5,000.
     const card = await makeAccount("Visa", "credit", "-1500.00");
-    expect((await put(`/accounts/${card}/credit-limit`, { amount: "5000.00" })).statusCode).toBe(
-      200,
-    );
+    expect(
+      (await put(`/api/accounts/${card}/credit-limit`, { amount: "5000.00" })).statusCode,
+    ).toBe(200);
 
     const a = acctOf(await report(), "Visa");
     expect(a).toMatchObject({
@@ -79,8 +85,8 @@ describe("analysis — credit utilization (FEAT-014a)", () => {
     const visa = await makeAccount("Visa", "credit", "-1500.00");
     const amex = await makeAccount("Amex", "credit", "-500.00");
     await makeAccount("Store card", "credit", "-200.00"); // no limit → excluded from the roll-up
-    await put(`/accounts/${visa}/credit-limit`, { amount: "5000.00" });
-    await put(`/accounts/${amex}/credit-limit`, { amount: "5000.00" });
+    await put(`/api/accounts/${visa}/credit-limit`, { amount: "5000.00" });
+    await put(`/api/accounts/${amex}/credit-limit`, { amount: "5000.00" });
     // `Store card` has no limit → excluded from the roll-up, utilization null.
 
     const r = await report();
@@ -93,7 +99,7 @@ describe("analysis — credit utilization (FEAT-014a)", () => {
 
   test("over-limit reads above 100% (not clamped) with a negative available", async () => {
     const card = await makeAccount("Visa", "credit", "-6000.00");
-    await put(`/accounts/${card}/credit-limit`, { amount: "5000.00" });
+    await put(`/api/accounts/${card}/credit-limit`, { amount: "5000.00" });
     expect(acctOf(await report(), "Visa")).toMatchObject({
       owedCents: 600000,
       utilizationBps: 12000, // 120.00%
@@ -103,7 +109,7 @@ describe("analysis — credit utilization (FEAT-014a)", () => {
 
   test("a credit balance (overpayment) reads as 0% used, never negative", async () => {
     const card = await makeAccount("Visa", "credit", "200.00"); // +$200 credit balance
-    await put(`/accounts/${card}/credit-limit`, { amount: "5000.00" });
+    await put(`/api/accounts/${card}/credit-limit`, { amount: "5000.00" });
     const a = acctOf(await report(), "Visa");
     expect(a?.owedCents).toBe(-20000); // owed is signed (negative = a credit balance)
     expect(a?.utilizationBps).toBe(0); // floored at 0, not negative
@@ -116,7 +122,7 @@ describe("analysis — credit utilization (FEAT-014a)", () => {
 
   test("the trend cumulates monthly flows into period-end utilization; last point = current owed", async () => {
     const card = await makeAccount("Visa", "credit", "0"); // opens at $0 today
-    await put(`/accounts/${card}/credit-limit`, { amount: "1000.00" });
+    await put(`/api/accounts/${card}/credit-limit`, { amount: "1000.00" });
     await addTxn(card, "withdrawal", "200.00", "2026-01-15"); // owe 200 after Jan
     await addTxn(card, "withdrawal", "300.00", "2026-02-15"); // owe 500 after Feb
     await addTxn(card, "withdrawal", "100.00", "2026-03-15"); // owe 600 after Mar
@@ -148,31 +154,35 @@ describe("analysis — credit utilization (FEAT-014a)", () => {
 
   test("set replaces, clear removes (idempotent); a limit on a non-credit account is rejected", async () => {
     const card = await makeAccount("Visa", "credit", "-1000.00");
-    await put(`/accounts/${card}/credit-limit`, { amount: "2000.00" });
+    await put(`/api/accounts/${card}/credit-limit`, { amount: "2000.00" });
     expect(acctOf(await report(), "Visa")?.limitCents).toBe(200000);
     // Replace.
-    await put(`/accounts/${card}/credit-limit`, { amount: "2500.00" });
+    await put(`/api/accounts/${card}/credit-limit`, { amount: "2500.00" });
     expect(acctOf(await report(), "Visa")?.limitCents).toBe(250000);
     // Clear (204), and clearing again is idempotent.
-    expect((await del(`/accounts/${card}/credit-limit`)).statusCode).toBe(204);
+    expect((await del(`/api/accounts/${card}/credit-limit`)).statusCode).toBe(204);
     expect(acctOf(await report(), "Visa")?.limitCents).toBeNull();
-    expect((await del(`/accounts/${card}/credit-limit`)).statusCode).toBe(204);
+    expect((await del(`/api/accounts/${card}/credit-limit`)).statusCode).toBe(204);
 
     // A limit on a checking account is a category error → 400.
     const checking = await makeAccount("Checking", "checking", "0");
     expect(
-      (await put(`/accounts/${checking}/credit-limit`, { amount: "1000.00" })).statusCode,
+      (await put(`/api/accounts/${checking}/credit-limit`, { amount: "1000.00" })).statusCode,
     ).toBe(400);
   });
 
   test("validation: bad amount → 400; missing account → 404", async () => {
     const card = await makeAccount("Visa", "credit", "0");
-    expect((await put(`/accounts/${card}/credit-limit`, { amount: "0" })).statusCode).toBe(400);
-    expect((await put(`/accounts/${card}/credit-limit`, { amount: "-5" })).statusCode).toBe(400);
-    expect((await put(`/accounts/${card}/credit-limit`, { amount: "abc" })).statusCode).toBe(400);
+    expect((await put(`/api/accounts/${card}/credit-limit`, { amount: "0" })).statusCode).toBe(400);
+    expect((await put(`/api/accounts/${card}/credit-limit`, { amount: "-5" })).statusCode).toBe(
+      400,
+    );
+    expect((await put(`/api/accounts/${card}/credit-limit`, { amount: "abc" })).statusCode).toBe(
+      400,
+    );
     expect(
       (
-        await put(`/accounts/00000000-0000-0000-0000-000000000000/credit-limit`, {
+        await put(`/api/accounts/00000000-0000-0000-0000-000000000000/credit-limit`, {
           amount: "10.00",
         })
       ).statusCode,

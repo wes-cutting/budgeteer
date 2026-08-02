@@ -17,8 +17,9 @@ const del = (url: string) => ctx.app.inject({ method: "DELETE", url });
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeAccount(name: string, kind: string, startingBalance = "0"): Promise<string> {
-  return (await post("/accounts", { openedOn: "2026-07-02", name, kind, startingBalance })).json()
-    .account.id as string;
+  return (
+    await post("/api/accounts", { openedOn: "2026-07-02", name, kind, startingBalance })
+  ).json().account.id as string;
 }
 /** A dated withdrawal/deposit with no allocation — only the account balance (= Σ txns) matters here. */
 function addTxn(
@@ -27,7 +28,12 @@ function addTxn(
   amount: string,
   occurredOn: string,
 ) {
-  return post(`/accounts/${accountId}/transactions`, { kind, amount, occurredOn, allocations: [] });
+  return post(`/api/accounts/${accountId}/transactions`, {
+    kind,
+    amount,
+    occurredOn,
+    allocations: [],
+  });
 }
 
 interface PayoffPoint {
@@ -53,7 +59,7 @@ interface PayoffReport {
   payoffBps: number | null;
 }
 async function report(): Promise<PayoffReport> {
-  return (await get("/analysis/debt-payoff")).json().report as PayoffReport;
+  return (await get("/api/analysis/debt-payoff")).json().report as PayoffReport;
 }
 const acctOf = (r: PayoffReport, name: string): PayoffAccount | undefined =>
   r.accounts.find((a) => a.accountName === name);
@@ -63,7 +69,7 @@ describe("analysis — debt payoff (FEAT-014b)", () => {
     // A car loan with $10,000 original, currently owing $7,500 (a negative balance).
     const loan = await makeAccount("Car loan", "loan", "-7500.00");
     expect(
-      (await put(`/accounts/${loan}/original-principal`, { amount: "10000.00" })).statusCode,
+      (await put(`/api/accounts/${loan}/original-principal`, { amount: "10000.00" })).statusCode,
     ).toBe(200);
 
     expect(acctOf(await report(), "Car loan")).toMatchObject({
@@ -78,8 +84,8 @@ describe("analysis — debt payoff (FEAT-014b)", () => {
   test("a brand-new loan reads 0%; a settled loan reads 100%", async () => {
     const fresh = await makeAccount("Fresh loan", "loan", "-10000.00"); // owe the full principal
     const settled = await makeAccount("Settled loan", "loan", "0"); // balance 0 = nothing owed
-    await put(`/accounts/${fresh}/original-principal`, { amount: "10000.00" });
-    await put(`/accounts/${settled}/original-principal`, { amount: "10000.00" });
+    await put(`/api/accounts/${fresh}/original-principal`, { amount: "10000.00" });
+    await put(`/api/accounts/${settled}/original-principal`, { amount: "10000.00" });
 
     const r = await report();
     expect(acctOf(r, "Fresh loan")).toMatchObject({ owedCents: 1000000, payoffBps: 0 });
@@ -90,8 +96,8 @@ describe("analysis — debt payoff (FEAT-014b)", () => {
     const car = await makeAccount("Car loan", "loan", "-5000.00"); // owe 5000 of 10000
     const student = await makeAccount("Student loan", "loan", "-15000.00"); // owe 15000 of 20000
     await makeAccount("Personal loan", "loan", "-1000.00"); // no principal → excluded from roll-up
-    await put(`/accounts/${car}/original-principal`, { amount: "10000.00" });
-    await put(`/accounts/${student}/original-principal`, { amount: "20000.00" });
+    await put(`/api/accounts/${car}/original-principal`, { amount: "10000.00" });
+    await put(`/api/accounts/${student}/original-principal`, { amount: "20000.00" });
 
     const r = await report();
     expect(acctOf(r, "Personal loan")).toMatchObject({ payoffBps: null, paidDownCents: null });
@@ -104,7 +110,7 @@ describe("analysis — debt payoff (FEAT-014b)", () => {
 
   test("overpayment reads above 100% (not clamped) with paid-down beyond the original", async () => {
     const loan = await makeAccount("Car loan", "loan", "500.00"); // overpaid: +$500 balance
-    await put(`/accounts/${loan}/original-principal`, { amount: "10000.00" });
+    await put(`/api/accounts/${loan}/original-principal`, { amount: "10000.00" });
     expect(acctOf(await report(), "Car loan")).toMatchObject({
       owedCents: -50000, // a credit (overpaid)
       paidDownCents: 1050000, // 10000 − (−500)
@@ -114,7 +120,7 @@ describe("analysis — debt payoff (FEAT-014b)", () => {
 
   test("the trend cumulates monthly flows into period-end payoff; last point = current owed", async () => {
     const loan = await makeAccount("Car loan", "loan", "0"); // opens at $0 today
-    await put(`/accounts/${loan}/original-principal`, { amount: "10000.00" });
+    await put(`/api/accounts/${loan}/original-principal`, { amount: "10000.00" });
     await addTxn(loan, "withdrawal", "10000.00", "2026-01-15"); // draw the loan: owe 10000
     await addTxn(loan, "deposit", "2000.00", "2026-02-15"); // pay 2000: owe 8000
     await addTxn(loan, "deposit", "3000.00", "2026-03-15"); // pay 3000: owe 5000
@@ -147,37 +153,37 @@ describe("analysis — debt payoff (FEAT-014b)", () => {
 
   test("set replaces, clear removes (idempotent); a principal on a non-loan account is rejected", async () => {
     const loan = await makeAccount("Car loan", "loan", "-8000.00");
-    await put(`/accounts/${loan}/original-principal`, { amount: "10000.00" });
+    await put(`/api/accounts/${loan}/original-principal`, { amount: "10000.00" });
     expect(acctOf(await report(), "Car loan")?.originalPrincipalCents).toBe(1000000);
     // Replace.
-    await put(`/accounts/${loan}/original-principal`, { amount: "12000.00" });
+    await put(`/api/accounts/${loan}/original-principal`, { amount: "12000.00" });
     expect(acctOf(await report(), "Car loan")?.originalPrincipalCents).toBe(1200000);
     // Clear (204), and clearing again is idempotent.
-    expect((await del(`/accounts/${loan}/original-principal`)).statusCode).toBe(204);
+    expect((await del(`/api/accounts/${loan}/original-principal`)).statusCode).toBe(204);
     expect(acctOf(await report(), "Car loan")?.originalPrincipalCents).toBeNull();
-    expect((await del(`/accounts/${loan}/original-principal`)).statusCode).toBe(204);
+    expect((await del(`/api/accounts/${loan}/original-principal`)).statusCode).toBe(204);
 
     // A principal on a credit account is a category error → 400.
     const card = await makeAccount("Visa", "credit", "0");
     expect(
-      (await put(`/accounts/${card}/original-principal`, { amount: "1000.00" })).statusCode,
+      (await put(`/api/accounts/${card}/original-principal`, { amount: "1000.00" })).statusCode,
     ).toBe(400);
   });
 
   test("validation: bad amount → 400; missing account → 404", async () => {
     const loan = await makeAccount("Car loan", "loan", "0");
-    expect((await put(`/accounts/${loan}/original-principal`, { amount: "0" })).statusCode).toBe(
-      400,
-    );
-    expect((await put(`/accounts/${loan}/original-principal`, { amount: "-5" })).statusCode).toBe(
-      400,
-    );
-    expect((await put(`/accounts/${loan}/original-principal`, { amount: "abc" })).statusCode).toBe(
-      400,
-    );
+    expect(
+      (await put(`/api/accounts/${loan}/original-principal`, { amount: "0" })).statusCode,
+    ).toBe(400);
+    expect(
+      (await put(`/api/accounts/${loan}/original-principal`, { amount: "-5" })).statusCode,
+    ).toBe(400);
+    expect(
+      (await put(`/api/accounts/${loan}/original-principal`, { amount: "abc" })).statusCode,
+    ).toBe(400);
     expect(
       (
-        await put(`/accounts/00000000-0000-0000-0000-000000000000/original-principal`, {
+        await put(`/api/accounts/00000000-0000-0000-0000-000000000000/original-principal`, {
           amount: "10.00",
         })
       ).statusCode,

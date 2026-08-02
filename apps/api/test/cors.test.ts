@@ -17,7 +17,7 @@ describe("CORS", () => {
   test("an allowed origin gets access-control-allow-origin on a normal request", async () => {
     const res = await ctx.app.inject({
       method: "GET",
-      url: "/accounts",
+      url: "/api/accounts",
       headers: { origin: ORIGIN },
     });
     expect(res.statusCode).toBe(200);
@@ -27,7 +27,7 @@ describe("CORS", () => {
   test("a preflight (OPTIONS) for a JSON POST is answered with the allow headers", async () => {
     const res = await ctx.app.inject({
       method: "OPTIONS",
-      url: "/accounts",
+      url: "/api/accounts",
       headers: {
         origin: ORIGIN,
         "access-control-request-method": "POST",
@@ -42,7 +42,7 @@ describe("CORS", () => {
   test("a disallowed origin is not granted access", async () => {
     const res = await ctx.app.inject({
       method: "GET",
-      url: "/accounts",
+      url: "/api/accounts",
       headers: { origin: "http://evil.example" },
     });
     // The request still returns data server-side, but the browser-facing allow header is absent

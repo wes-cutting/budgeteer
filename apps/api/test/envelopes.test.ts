@@ -15,7 +15,7 @@ const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 describe("envelopes API (FEAT-002)", () => {
   test("create → 201 with a $0.00 balance and default kind 'standard'", async () => {
-    const res = await post("/envelopes", { name: "Groceries" });
+    const res = await post("/api/envelopes", { name: "Groceries" });
     expect(res.statusCode).toBe(201);
     const { envelope } = res.json();
     expect(envelope.name).toBe("Groceries");
@@ -24,48 +24,48 @@ describe("envelopes API (FEAT-002)", () => {
   });
 
   test("a sinking fund can be created", async () => {
-    const res = await post("/envelopes", { name: "Vacation", kind: "sinking_fund" });
+    const res = await post("/api/envelopes", { name: "Vacation", kind: "sinking_fund" });
     expect(res.statusCode).toBe(201);
     expect(res.json().envelope.kind).toBe("sinking_fund");
   });
 
   test("empty name → 400; unknown kind → 400", async () => {
-    expect((await post("/envelopes", { name: " " })).statusCode).toBe(400);
-    expect((await post("/envelopes", { name: "X", kind: "bogus" })).statusCode).toBe(400);
+    expect((await post("/api/envelopes", { name: " " })).statusCode).toBe(400);
+    expect((await post("/api/envelopes", { name: "X", kind: "bogus" })).statusCode).toBe(400);
   });
 
   test("duplicate name (case-insensitive) → 409", async () => {
-    await post("/envelopes", { name: "Groceries" });
-    expect((await post("/envelopes", { name: "groceries" })).statusCode).toBe(409);
+    await post("/api/envelopes", { name: "Groceries" });
+    expect((await post("/api/envelopes", { name: "groceries" })).statusCode).toBe(409);
   });
 
   test("list returns created envelopes at $0.00", async () => {
-    await post("/envelopes", { name: "Rent" });
-    await post("/envelopes", { name: "Gas" });
-    const envelopes = (await get("/envelopes")).json().envelopes;
+    await post("/api/envelopes", { name: "Rent" });
+    await post("/api/envelopes", { name: "Gas" });
+    const envelopes = (await get("/api/envelopes")).json().envelopes;
     expect(envelopes).toHaveLength(2);
     expect(envelopes.every((e: { balanceCents: number }) => e.balanceCents === 0)).toBe(true);
   });
 
   test("archive then unarchive an envelope (FEAT-006); missing → 404", async () => {
-    const env = (await post("/envelopes", { name: "Vacation", kind: "sinking_fund" })).json()
+    const env = (await post("/api/envelopes", { name: "Vacation", kind: "sinking_fund" })).json()
       .envelope;
 
-    const archived = await post(`/envelopes/${env.id}/archive`, {});
+    const archived = await post(`/api/envelopes/${env.id}/archive`, {});
     expect(archived.statusCode).toBe(200);
     expect(archived.json().envelope.archivedAt).not.toBeNull();
 
-    const listed = (await get("/envelopes"))
+    const listed = (await get("/api/envelopes"))
       .json()
       .envelopes.find((e: { id: string }) => e.id === env.id);
     expect(listed.archivedAt).not.toBeNull(); // still listed; history preserved
 
-    const unarchived = await post(`/envelopes/${env.id}/unarchive`, {});
+    const unarchived = await post(`/api/envelopes/${env.id}/unarchive`, {});
     expect(unarchived.statusCode).toBe(200);
     expect(unarchived.json().envelope.archivedAt).toBeNull();
 
     const ghost = "00000000-0000-0000-0000-0000000000ff";
-    expect((await post(`/envelopes/${ghost}/archive`, {})).statusCode).toBe(404);
-    expect((await post(`/envelopes/${ghost}/unarchive`, {})).statusCode).toBe(404);
+    expect((await post(`/api/envelopes/${ghost}/archive`, {})).statusCode).toBe(404);
+    expect((await post(`/api/envelopes/${ghost}/unarchive`, {})).statusCode).toBe(404);
   });
 });

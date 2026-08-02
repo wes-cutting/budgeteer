@@ -248,6 +248,19 @@ executes a flawed plan flawlessly:
   summary. Anything not done stays visible (⚠ + reason + owner) so a snapshot never
   overstates "done." This is what makes hand-offs between sessions/context windows clean and
   honest — and it doubles as the per-block review record.
+- **One slice per session — stop at the slice boundary and report.** A session builds **exactly
+  one** roadmap item, then writes its status report and **stops for review**, even when the next
+  item is obvious, unblocked, and the agent has plenty of context left. Finishing early is not a
+  reason to start the next one. The point is that the human sees each slice while it is still
+  cheap to redirect: a session that lands five slices has made four decisions nobody reviewed,
+  and unwinding the first one now means unwinding all five. If a slice turns out to be trivial,
+  the right move is to report it and let the human say "keep going" — not to assume it.
+  *(Learned 2026-08-01: a kickoff prompt that listed `BUD-S81`→`BUD-S85` "in a sensible order"
+  was read as authorization to build all five, including a breaking API-path change, in one
+  unreviewed run.)*
+- **A kickoff prompt names ONE next item.** It may mention what is likely to follow, as
+  context — but it must say plainly that the session ends after the named item. Sequencing
+  several items into one prompt is how the rule above gets broken by accident.
 - **End each milestone handoff-ready, with the next session's kickoff prompt.** When a
   roadmap item reaches `Done`, the project must be resumable cold: gate green, docs updated,
   the status report's **Resume here** current. Close that report with a **copy-pasteable

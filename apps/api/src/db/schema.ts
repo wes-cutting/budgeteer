@@ -24,6 +24,8 @@ export interface DB {
   envelope_targets: EnvelopeTargetsTable;
   credit_limits: CreditLimitsTable;
   loan_principals: LoanPrincipalsTable;
+  users: UsersTable;
+  sessions: SessionsTable;
   v_account_balances: AccountBalancesView;
   v_envelope_balances: EnvelopeBalancesView;
 }
@@ -174,6 +176,25 @@ interface LoanPrincipalsTable {
   original_principal_cents: IntCents; // positive magnitude (the loan's original principal)
   created_at: Generated<Date>;
   updated_at: ColumnType<Date, Date | undefined, Date>;
+}
+
+/** A household member who can sign in (BUD-E13 / ADR-0009). One household per user (shape A). */
+interface UsersTable {
+  id: Generated<string>;
+  household_id: string;
+  username: string; // the login handle; unique on lower(username) (see 0003-auth)
+  password_hash: string; // scrypt$N$r$p$salt$hash (util/password.ts)
+  role: string; // 'admin' | 'member' (DB check constraint)
+  created_at: Generated<Date>;
+  disabled_at: ColumnType<Date | null, Date | null | undefined, Date | null>;
+}
+
+/** An opaque, server-side, revocable session (ADR-0009 §4). The cookie carries only `id`. */
+interface SessionsTable {
+  id: string; // opaque high-entropy token = the cookie value; PK
+  user_id: string;
+  created_at: Generated<Date>;
+  expires_at: ColumnType<Date, Date, Date>;
 }
 
 interface AccountBalancesView {

@@ -24,11 +24,10 @@ const postDueBody = z.object({ today: z.string() });
 type TodayQuery = { Querystring: { today?: string } };
 
 // --- Recurring transactions (FEAT-009) ---
-export const recurringRoutes: RoutePlugin = async (app, opts) => {
-  const { recurring } = opts.services;
-
+export const recurringRoutes: RoutePlugin = async (app) => {
   // Calendar dates are user-local (EH8): due-ness is relative to the caller's `today`.
   app.get<TodayQuery>("/recurring", async (req, reply) => {
+    const { recurring } = req.services;
     const today = req.query.today;
     if (today === undefined || !DATE_RE.test(today))
       return fail(reply, 400, "today is required, YYYY-MM-DD.");
@@ -36,6 +35,7 @@ export const recurringRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.post("/recurring", async (req, reply) => {
+    const { recurring } = req.services;
     const parsed = createRecurringBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const magnitude = parsePositiveMagnitude(parsed.data.amount);
@@ -74,6 +74,7 @@ export const recurringRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.delete<IdParams>("/recurring/:id", async (req, reply) => {
+    const { recurring } = req.services;
     const { id } = req.params;
     try {
       await recurring.remove(id);
@@ -86,6 +87,7 @@ export const recurringRoutes: RoutePlugin = async (app, opts) => {
 
   // Posts every occurrence due through the caller's local `today` (EH8).
   app.post("/recurring/post-due", async (req, reply) => {
+    const { recurring } = req.services;
     const parsed = postDueBody.safeParse(req.body);
     if (!parsed.success || !DATE_RE.test(parsed.data.today))
       return fail(reply, 400, "today is required, YYYY-MM-DD.");

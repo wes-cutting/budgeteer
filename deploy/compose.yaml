@@ -1,0 +1,70 @@
+# ============================================================================
+# budgeteer on labs-hub — the reference deployment (BUD-S82/S83 · ADR-0008)
+#
+# This is the artifact the hub's LH-S3 consumes: the app image plus the
+# PostgreSQL 16 service it depends on. The same file is what `scripts/validate-deploy.sh`
+# runs against a locally built image, so what is validated here is what deploys.
+#
+#   Required env (no defaults — the stack refuses to start without them):
+#     POSTGRES_PASSWORD   the database password
+#     SESSION_SECRET      signs the session cookie; `openssl rand -base64 48`
+#
+#   Optional:
+#     BUDGETEER_IMAGE     defaults to the GHCR image (BUD-S84); the validation
+#                         harness overrides it with a locally built tag
+#     BUDGETEER_PORT      host port to publish (default 3001)
+#
+#   docker compose -f deploy/compose.yaml up -d
+#
+# LAN-only by design: no public internet, behind CGNAT (initiative §8).
+# ============================================================================
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: budgeteer
+      POSTGRES_USER: budgeteer
+      # `:?` — fail fast with a named error rather than booting a database with a blank password.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      # The stateful half of the deployment. The app image owns no volume (ADR-0008 §6), so this
+      # is the single thing to back up and the single thing to encrypt at rest (BUD-S85).
+      - budgeteer-db:/var/lib/postgresql/data
+    # No published port: the app reaches the database over the compose network. Nothing on the LAN
+    # can open a Postgres connection to the household ledger.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U budgeteer -d budgeteer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  app:
+    image: ${BUDGETEER_IMAGE:-ghcr.io/wes-cutting/budgeteer:latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        # Wait for Postgres to accept queries, not merely for the container to exist — the app
+        # migrates on boot and would otherwise race the database's own start-up.
+        condition: service_healthy
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgres://budgeteer:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/budgeteer
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+      # Same-origin: one process serves the SPA and the API, so there is no cross-origin caller to
+      # allowlist. Empty is the accurate value — not a wildcard (SECURITY.md §2).
+      CORS_ORIGINS: ""
+      LOG_LEVEL: info
+      # `Secure` session cookies (HTTPS only) — the default, and the right answer when the hub
+      # terminates TLS. Serving this stack over plain http:// on the LAN REQUIRES setting this to
+      # false, because the browser silently discards a Secure cookie that arrives over HTTP and the
+      # user is bounced back to the login page. See docs/DEPLOY_CONTRACT.md §5 before changing it.
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+    ports:
+      - "${BUDGETEER_PORT:-3001}:3001"
+    # The image's own HEALTHCHECK covers DB readiness (BUD-S82); compose inherits it.
+
+volumes:
+  budgeteer-db:

@@ -1,9 +1,7 @@
 import type { Kysely } from "kysely";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { NotFoundError, ValidationError } from "./errors";
-
-const HH = DEFAULT_HOUSEHOLD_ID;
 
 export interface CreditLimitView {
   accountId: string;
@@ -19,7 +17,8 @@ export interface CreditLimitView {
  * (a limit on a checking account is a category error → ValidationError → 400). Installment-loan
  * payoff (original principal) is the deferred sibling #14b.
  */
-export function makeCreditLimitService(db: Kysely<DB>) {
+export function makeCreditLimitService(db: Kysely<DB>, scope: Scope) {
+  const HH = scope.householdId;
   async function assertCreditAccount(trx: Kysely<DB>, accountId: string): Promise<void> {
     const account = await trx
       .selectFrom("accounts")

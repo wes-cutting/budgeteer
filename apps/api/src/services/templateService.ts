@@ -1,13 +1,11 @@
 import type { Kysely } from "kysely";
 import { nameExists } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { groupBy } from "../util/groupBy";
 import { asDuplicateName } from "./dbErrors";
 import { DuplicateNameError, NotFoundError } from "./errors";
 import { assertEnvelopesUsable } from "./envelopeGuards";
-
-const HH = DEFAULT_HOUSEHOLD_ID;
 
 export interface TemplateLineView {
   id: string;
@@ -31,7 +29,8 @@ interface TemplateRow {
   name: string;
 }
 
-export function makeTemplateService(db: Kysely<DB>) {
+export function makeTemplateService(db: Kysely<DB>, scope: Scope) {
+  const HH = scope.householdId;
   async function attachLines(exec: Kysely<DB>, templates: TemplateRow[]): Promise<TemplateView[]> {
     const ids = templates.map((t) => t.id);
     const lineRows = ids.length

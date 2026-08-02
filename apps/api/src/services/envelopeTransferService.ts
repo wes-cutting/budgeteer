@@ -1,7 +1,7 @@
 import type { Kysely } from "kysely";
 import { cents, validateEnvelopeTransfer } from "@budgeteer/domain";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { toDateStr } from "../util/dates";
 import { NotFoundError, ValidationError } from "./errors";
 
@@ -27,9 +27,8 @@ export interface CreateEnvelopeTransferInput {
   memo: string | null;
 }
 
-const HH = DEFAULT_HOUSEHOLD_ID;
-
-export function makeEnvelopeTransferService(db: Kysely<DB>) {
+export function makeEnvelopeTransferService(db: Kysely<DB>, scope: Scope) {
+  const HH = scope.householdId;
   async function getView(exec: Kysely<DB>, id: string): Promise<EnvelopeTransferView> {
     const row = await exec
       .selectFrom("envelope_transfers as et")

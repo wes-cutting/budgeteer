@@ -31,11 +31,10 @@ type ForecastQuery = {
 type PayPeriodsQuery = { Querystring: { accountId?: string; today?: string } };
 
 // --- Analysis (FEAT-011 … FEAT-014b, R9) + the reference-number setters those reports read ---
-export const analysisRoutes: RoutePlugin = async (app, opts) => {
-  const { analysis, creditLimits, loanPrincipals, targets } = opts.services;
-
+export const analysisRoutes: RoutePlugin = async (app) => {
   // --- Analysis: spend by envelope over time (FEAT-011) ---
   app.get<SpendQuery>("/analysis/envelope-spend", async (req, reply) => {
+    const { analysis } = req.services;
     const grain = req.query.grain ?? "month";
     if (grain !== "month" && grain !== "year")
       return fail(reply, 400, "grain must be 'month' or 'year'.");
@@ -45,6 +44,7 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
   // --- Analysis: budget vs. actual (FEAT-012) ---
   // Calendar dates are user-local (EH8): the caller supplies the month; no server-derived default.
   app.get<MonthQuery>("/analysis/budget-vs-actual", async (req, reply) => {
+    const { analysis } = req.services;
     const month = req.query.month;
     if (month === undefined || !MONTH_RE.test(month))
       return fail(reply, 400, "month is required, 'YYYY-MM'.");
@@ -53,6 +53,7 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
 
   // --- Analysis: cash-flow forecast (FEAT-013) ---
   app.get<ForecastQuery>("/analysis/cash-flow-forecast", async (req, reply) => {
+    const { analysis } = req.services;
     const accountId = req.query.accountId;
     if (!accountId) return fail(reply, 400, "accountId is required.");
     const horizonDays =
@@ -91,6 +92,7 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
   // --- Analysis: pay-period plan (FEAT-S7) ---
   // Horizon is fixed at the forecast's default in V1 (FEAT-S7 §6); `today` is required (EH8).
   app.get<PayPeriodsQuery>("/analysis/pay-periods", async (req, reply) => {
+    const { analysis } = req.services;
     const accountId = req.query.accountId;
     if (!accountId) return fail(reply, 400, "accountId is required.");
     const today = req.query.today;
@@ -110,12 +112,14 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
   });
 
   // --- Analysis: credit utilization (FEAT-014a) ---
-  app.get("/analysis/credit-utilization", async () => ({
-    report: await analysis.creditUtilization(),
-  }));
+  app.get("/analysis/credit-utilization", async (req) => {
+    const { analysis } = req.services;
+    return { report: await analysis.creditUtilization() };
+  });
 
   // Set / clear a credit account's limit (the reference number for FEAT-014a utilization).
   app.put<IdParams>("/accounts/:id/credit-limit", async (req, reply) => {
+    const { creditLimits } = req.services;
     const parsed = setCreditLimitBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const magnitude = parsePositiveMagnitude(parsed.data.amount);
@@ -132,6 +136,7 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.delete<IdParams>("/accounts/:id/credit-limit", async (req, reply) => {
+    const { creditLimits } = req.services;
     const { id } = req.params;
     try {
       await creditLimits.clear(id);
@@ -144,12 +149,14 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
   });
 
   // --- Analysis: debt payoff (FEAT-014b) ---
-  app.get("/analysis/debt-payoff", async () => ({
-    report: await analysis.debtPayoff(),
-  }));
+  app.get("/analysis/debt-payoff", async (req) => {
+    const { analysis } = req.services;
+    return { report: await analysis.debtPayoff() };
+  });
 
   // --- Analysis: net worth over time (FEAT-R9) ---
   app.get<SpendQuery>("/analysis/net-worth", async (req, reply) => {
+    const { analysis } = req.services;
     const grain = req.query.grain ?? "month";
     if (grain !== "month" && grain !== "year")
       return fail(reply, 400, "grain must be 'month' or 'year'.");
@@ -158,6 +165,7 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
 
   // Set / clear a loan account's original principal (the reference number for FEAT-014b payoff).
   app.put<IdParams>("/accounts/:id/original-principal", async (req, reply) => {
+    const { loanPrincipals } = req.services;
     const parsed = setOriginalPrincipalBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const magnitude = parsePositiveMagnitude(parsed.data.amount);
@@ -174,6 +182,7 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.delete<IdParams>("/accounts/:id/original-principal", async (req, reply) => {
+    const { loanPrincipals } = req.services;
     const { id } = req.params;
     try {
       await loanPrincipals.clear(id);
@@ -187,6 +196,7 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
 
   // Set / clear an envelope's recurring monthly budget target (the "budget" half of FEAT-012).
   app.put<IdParams>("/envelopes/:id/target", async (req, reply) => {
+    const { targets } = req.services;
     const parsed = setTargetBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const magnitude = parsePositiveMagnitude(parsed.data.amount);
@@ -202,6 +212,7 @@ export const analysisRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.delete<IdParams>("/envelopes/:id/target", async (req, reply) => {
+    const { targets } = req.services;
     const { id } = req.params;
     try {
       await targets.clear(id);

@@ -41,7 +41,7 @@ async function created<T>(res: Promise<{ statusCode: number; json: <U>() => U }>
 /** Populate every one of the 15 backup tables through the real API (no raw inserts). */
 async function populateAllTables(ctx: TestApp) {
   const { account: checking } = await created<{ account: { id: string } }>(
-    post(ctx, "/accounts", {
+    post(ctx, "/api/accounts", {
       openedOn: "2026-07-01",
       name: "Checking",
       kind: "checking",
@@ -49,7 +49,7 @@ async function populateAllTables(ctx: TestApp) {
     }),
   );
   const { account: visa } = await created<{ account: { id: string } }>(
-    post(ctx, "/accounts", {
+    post(ctx, "/api/accounts", {
       openedOn: "2026-07-01",
       name: "Visa",
       kind: "credit",
@@ -57,7 +57,7 @@ async function populateAllTables(ctx: TestApp) {
     }),
   );
   const { account: loan } = await created<{ account: { id: string } }>(
-    post(ctx, "/accounts", {
+    post(ctx, "/api/accounts", {
       openedOn: "2026-07-01",
       name: "Car loan",
       kind: "loan",
@@ -65,14 +65,14 @@ async function populateAllTables(ctx: TestApp) {
     }),
   );
   const { envelope: groceries } = await created<{ envelope: { id: string } }>(
-    post(ctx, "/envelopes", { name: "Groceries" }),
+    post(ctx, "/api/envelopes", { name: "Groceries" }),
   );
   const { envelope: vacation } = await created<{ envelope: { id: string } }>(
-    post(ctx, "/envelopes", { name: "Vacation" }),
+    post(ctx, "/api/envelopes", { name: "Vacation" }),
   );
 
   await created(
-    post(ctx, `/accounts/${checking.id}/transactions`, {
+    post(ctx, `/api/accounts/${checking.id}/transactions`, {
       kind: "deposit",
       amount: "100.00",
       occurredOn: "2026-07-01",
@@ -80,7 +80,7 @@ async function populateAllTables(ctx: TestApp) {
     }),
   );
   await created(
-    post(ctx, "/transfers", {
+    post(ctx, "/api/transfers", {
       fromAccountId: checking.id,
       toAccountId: visa.id,
       amount: "25.00",
@@ -89,7 +89,7 @@ async function populateAllTables(ctx: TestApp) {
     }),
   );
   await created(
-    post(ctx, "/envelope-transfers", {
+    post(ctx, "/api/envelope-transfers", {
       fromEnvelopeId: groceries.id,
       toEnvelopeId: vacation.id,
       amount: "10.00",
@@ -97,13 +97,13 @@ async function populateAllTables(ctx: TestApp) {
     }),
   );
   await created(
-    post(ctx, "/templates", {
+    post(ctx, "/api/templates", {
       name: "Payday",
       lines: [{ envelopeId: groceries.id, amount: "200.00" }],
     }),
   );
   await created(
-    post(ctx, "/recurring", {
+    post(ctx, "/api/recurring", {
       accountId: checking.id,
       kind: "withdrawal",
       amount: "50.00",
@@ -115,22 +115,22 @@ async function populateAllTables(ctx: TestApp) {
     }),
   );
   // Generates transactions carrying recurring_id (the transactions→recurring FK edge).
-  await created(post(ctx, "/recurring/post-due", { today: "2026-07-03" }));
+  await created(post(ctx, "/api/recurring/post-due", { today: "2026-07-03" }));
   await created(
-    post(ctx, `/accounts/${checking.id}/reconciliations`, {
+    post(ctx, `/api/accounts/${checking.id}/reconciliations`, {
       statementBalance: "525.00",
       reconciledOn: "2026-07-03",
     }),
   );
-  await created(put(ctx, `/envelopes/${groceries.id}/target`, { amount: "400.00" }));
-  await created(put(ctx, `/accounts/${visa.id}/credit-limit`, { amount: "5000.00" }));
-  await created(put(ctx, `/accounts/${loan.id}/original-principal`, { amount: "20000.00" }));
+  await created(put(ctx, `/api/envelopes/${groceries.id}/target`, { amount: "400.00" }));
+  await created(put(ctx, `/api/accounts/${visa.id}/credit-limit`, { amount: "5000.00" }));
+  await created(put(ctx, `/api/accounts/${loan.id}/original-principal`, { amount: "20000.00" }));
   // An archived account (archived_at set) must survive the round-trip too.
-  await created(post(ctx, `/accounts/${visa.id}/archive`, {}));
+  await created(post(ctx, `/api/accounts/${visa.id}/archive`, {}));
 }
 
 const exportBackup = async (ctx: TestApp): Promise<BudgeteerBackup> =>
-  (await ctx.app.inject({ method: "GET", url: "/export" })).json<BudgeteerBackup>();
+  (await ctx.app.inject({ method: "GET", url: "/api/export" })).json<BudgeteerBackup>();
 
 /** Comparable form: the export timestamp is the only value allowed to differ. */
 const comparable = (backup: BudgeteerBackup) => ({ ...backup, exportedAt: null });
@@ -160,7 +160,7 @@ describe("restore (EH10 / #15b)", () => {
     const backup = parseBackupFile(await exportBackup(src));
 
     const target = await freshTarget();
-    await post(target, "/accounts", {
+    await post(target, "/api/accounts", {
       openedOn: "2026-07-01",
       name: "Existing",
       kind: "checking",

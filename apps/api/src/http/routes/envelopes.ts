@@ -10,12 +10,14 @@ const createEnvelopeBody = z.object({
 const renameBody = z.object({ name: z.string() });
 
 // --- Envelopes (FEAT-002) ---
-export const envelopeRoutes: RoutePlugin = async (app, opts) => {
-  const { envelopes } = opts.services;
-
-  app.get("/envelopes", async () => ({ envelopes: await envelopes.list() }));
+export const envelopeRoutes: RoutePlugin = async (app) => {
+  app.get("/envelopes", async (req) => {
+    const { envelopes } = req.services;
+    return { envelopes: await envelopes.list() };
+  });
 
   app.post("/envelopes", async (req, reply) => {
+    const { envelopes } = req.services;
     const parsed = createEnvelopeBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const nameCheck = validateEnvelopeName(parsed.data.name);
@@ -31,6 +33,7 @@ export const envelopeRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.patch<IdParams>("/envelopes/:id", async (req, reply) => {
+    const { envelopes } = req.services;
     const parsed = renameBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const nameCheck = validateEnvelopeName(parsed.data.name);
@@ -47,6 +50,7 @@ export const envelopeRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.get<IdParams>("/envelopes/:id/ledger", async (req, reply) => {
+    const { envelopes } = req.services;
     const { id } = req.params;
     try {
       return { rows: await envelopes.ledger(id) };
@@ -57,6 +61,7 @@ export const envelopeRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.post<IdParams>("/envelopes/:id/archive", async (req, reply) => {
+    const { envelopes } = req.services;
     const { id } = req.params;
     try {
       return { envelope: await envelopes.setArchived(id, true) };
@@ -67,6 +72,7 @@ export const envelopeRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.post<IdParams>("/envelopes/:id/unarchive", async (req, reply) => {
+    const { envelopes } = req.services;
     const { id } = req.params;
     try {
       return { envelope: await envelopes.setArchived(id, false) };

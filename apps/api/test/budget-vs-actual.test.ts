@@ -18,11 +18,11 @@ const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeAccount(name = "Checking", startingBalance = "0"): Promise<string> {
   return (
-    await post("/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
+    await post("/api/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
   ).json().account.id as string;
 }
 async function makeEnvelope(name: string): Promise<string> {
-  return (await post("/envelopes", { name, kind: "standard" })).json().envelope.id as string;
+  return (await post("/api/envelopes", { name, kind: "standard" })).json().envelope.id as string;
 }
 interface Alloc {
   envelopeId: string;
@@ -38,7 +38,7 @@ function addTxn(
     allocations: Alloc[];
   },
 ) {
-  return post(`/accounts/${accountId}/transactions`, body);
+  return post(`/api/accounts/${accountId}/transactions`, body);
 }
 
 interface BvaRow {
@@ -58,7 +58,7 @@ interface BvaReport {
 }
 async function report(month?: string): Promise<BvaReport> {
   const q = month ? `?month=${month}` : "";
-  return (await get(`/analysis/budget-vs-actual${q}`)).json().report as BvaReport;
+  return (await get(`/api/analysis/budget-vs-actual${q}`)).json().report as BvaReport;
 }
 const rowOf = (r: BvaReport, name: string): BvaRow | undefined =>
   r.rows.find((x) => x.envelopeName === name);
@@ -69,7 +69,7 @@ describe("analysis — budget vs. actual (FEAT-012)", () => {
     const groceries = await makeEnvelope("Groceries");
 
     // Budget $400/mo for Groceries.
-    expect((await put(`/envelopes/${groceries}/target`, { amount: "400.00" })).statusCode).toBe(
+    expect((await put(`/api/envelopes/${groceries}/target`, { amount: "400.00" })).statusCode).toBe(
       200,
     );
 
@@ -104,7 +104,7 @@ describe("analysis — budget vs. actual (FEAT-012)", () => {
   test("overspending shows a negative remaining", async () => {
     const acct = await makeAccount();
     const dining = await makeEnvelope("Dining");
-    await put(`/envelopes/${dining}/target`, { amount: "100.00" });
+    await put(`/api/envelopes/${dining}/target`, { amount: "100.00" });
     await addTxn(acct, {
       kind: "withdrawal",
       amount: "150.00",
@@ -121,7 +121,7 @@ describe("analysis — budget vs. actual (FEAT-012)", () => {
   test("a refund row nets down the actual spend (FEAT-008)", async () => {
     const acct = await makeAccount();
     const groceries = await makeEnvelope("Groceries");
-    await put(`/envelopes/${groceries}/target`, { amount: "200.00" });
+    await put(`/api/envelopes/${groceries}/target`, { amount: "200.00" });
     // A −$70 withdrawal split as −$100 spend + $30 refund row ⇒ net spend $70.
     await addTxn(acct, {
       kind: "withdrawal",
@@ -142,7 +142,7 @@ describe("analysis — budget vs. actual (FEAT-012)", () => {
     const acct = await makeAccount();
     const groceries = await makeEnvelope("Groceries");
     const rent = await makeEnvelope("Rent");
-    await put(`/envelopes/${groceries}/target`, { amount: "300.00" });
+    await put(`/api/envelopes/${groceries}/target`, { amount: "300.00" });
     await addTxn(acct, {
       kind: "deposit",
       amount: "300.00",
@@ -151,7 +151,7 @@ describe("analysis — budget vs. actual (FEAT-012)", () => {
     });
     expect(
       (
-        await post("/envelope-transfers", {
+        await post("/api/envelope-transfers", {
           fromEnvelopeId: groceries,
           toEnvelopeId: rent,
           amount: "100.00",
@@ -169,7 +169,7 @@ describe("analysis — budget vs. actual (FEAT-012)", () => {
   test("month filter: spend in another month is excluded", async () => {
     const acct = await makeAccount();
     const groceries = await makeEnvelope("Groceries");
-    await put(`/envelopes/${groceries}/target`, { amount: "400.00" });
+    await put(`/api/envelopes/${groceries}/target`, { amount: "400.00" });
     await addTxn(acct, {
       kind: "withdrawal",
       amount: "100.00",
@@ -222,8 +222,8 @@ describe("analysis — budget vs. actual (FEAT-012)", () => {
       occurredOn: "2026-03-18",
       allocations: [{ envelopeId: vacation, amount: "80.00" }],
     });
-    await post(`/envelopes/${vacation}/archive`);
-    await post(`/envelopes/${idle}/archive`);
+    await post(`/api/envelopes/${vacation}/archive`);
+    await post(`/api/envelopes/${idle}/archive`);
 
     const r = await report("2026-03");
     // Vacation: archived but had spend this month ⇒ shown, flagged.
@@ -234,32 +234,36 @@ describe("analysis — budget vs. actual (FEAT-012)", () => {
 
   test("clearing a target removes it; setting replaces it", async () => {
     const groceries = await makeEnvelope("Groceries");
-    await put(`/envelopes/${groceries}/target`, { amount: "400.00" });
+    await put(`/api/envelopes/${groceries}/target`, { amount: "400.00" });
     expect(rowOf(await report("2026-03"), "Groceries")?.targetCents).toBe(40000);
     // Replace.
-    await put(`/envelopes/${groceries}/target`, { amount: "450.00" });
+    await put(`/api/envelopes/${groceries}/target`, { amount: "450.00" });
     expect(rowOf(await report("2026-03"), "Groceries")?.targetCents).toBe(45000);
     // Clear.
-    expect((await del(`/envelopes/${groceries}/target`)).statusCode).toBe(204);
+    expect((await del(`/api/envelopes/${groceries}/target`)).statusCode).toBe(204);
     expect(rowOf(await report("2026-03"), "Groceries")?.targetCents).toBeNull();
     // Clearing an already-absent target is idempotent.
-    expect((await del(`/envelopes/${groceries}/target`)).statusCode).toBe(204);
+    expect((await del(`/api/envelopes/${groceries}/target`)).statusCode).toBe(204);
   });
 
   test("a missing month is rejected — the caller supplies its local month (EH8)", async () => {
-    expect((await get("/analysis/budget-vs-actual")).statusCode).toBe(400);
+    expect((await get("/api/analysis/budget-vs-actual")).statusCode).toBe(400);
   });
 
   test("validation: bad month → 400; target on a missing envelope → 404; bad amount → 400", async () => {
-    expect((await get("/analysis/budget-vs-actual?month=2026-13")).statusCode).toBe(400);
-    expect((await get("/analysis/budget-vs-actual?month=nope")).statusCode).toBe(400);
+    expect((await get("/api/analysis/budget-vs-actual?month=2026-13")).statusCode).toBe(400);
+    expect((await get("/api/analysis/budget-vs-actual?month=nope")).statusCode).toBe(400);
     expect(
-      (await put(`/envelopes/00000000-0000-0000-0000-000000000000/target`, { amount: "10.00" }))
+      (await put(`/api/envelopes/00000000-0000-0000-0000-000000000000/target`, { amount: "10.00" }))
         .statusCode,
     ).toBe(404);
     const groceries = await makeEnvelope("Groceries");
-    expect((await put(`/envelopes/${groceries}/target`, { amount: "0" })).statusCode).toBe(400);
-    expect((await put(`/envelopes/${groceries}/target`, { amount: "-5" })).statusCode).toBe(400);
-    expect((await put(`/envelopes/${groceries}/target`, { amount: "abc" })).statusCode).toBe(400);
+    expect((await put(`/api/envelopes/${groceries}/target`, { amount: "0" })).statusCode).toBe(400);
+    expect((await put(`/api/envelopes/${groceries}/target`, { amount: "-5" })).statusCode).toBe(
+      400,
+    );
+    expect((await put(`/api/envelopes/${groceries}/target`, { amount: "abc" })).statusCode).toBe(
+      400,
+    );
   });
 });

@@ -132,7 +132,8 @@ Then, from the `apps/api/` directory:
 #   8 envelope targets · credit limit · loan principal · 2 recurring rules
 npm run seed
 
-# Wipe the dev store completely (irreversible):
+# Empty the store (irreversible). With PGLITE_DIR it deletes the directory, user accounts
+# included; against DATABASE_URL it empties the ledger and KEEPS the household + accounts:
 npm run db:reset
 
 # Reset + re-seed in one shot (the usual "start fresh" command):
@@ -147,6 +148,11 @@ npm run db:reset && npm run seed:demo
 # refuses a store that already contains data; see docs/06_API_CONTRACT.md):
 npm run db:restore -- path/to/budgeteer-backup-YYYY-MM-DD.json
 ```
+
+**A seeded store has no way into it.** Seeding fills the ledger and deliberately never creates a
+credential, and auth is always on — so a fresh `db:fresh` against a PGlite store answers `401` to
+everything and the app bounces to `/login`. The seed scripts say so when they finish; take either
+route they offer (`create-admin`, or first-run onboarding in the browser).
 
 `seed` is **idempotent** — it exits quietly if data already exists. Run `db:fresh` if you want
 to replace existing data. `seed:demo` is a **separate, deterministic** dev tool (fixed-seed

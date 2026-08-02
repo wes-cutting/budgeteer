@@ -31,6 +31,12 @@ Discovery names the first spike.
 - **Usable at every step.** Ask "is it usable yet?" each increment.
 - **Challenge the plan.** Before a phase, name the riskiest assumptions and sequencing
   risks; propose a spike if warranted. Don't execute a flawed plan flawlessly.
+- **One slice per session — then stop.** Build **exactly one** roadmap item, write its status
+  report, and **stop for review**, even if the next item is obvious, unblocked, and there is
+  context to spare. A kickoff prompt that lists several items is describing the *order*, not
+  granting permission to do them all. Ask before continuing past the slice boundary — the
+  human needs to see each slice while redirecting it is still cheap
+  ([`00_WAYS_OF_WORKING.md`](docs/00_WAYS_OF_WORKING.md) §9).
 - **Right-size the ceremony.** Match process weight to the work's risk and reach
   ([`00_WAYS_OF_WORKING.md`](docs/00_WAYS_OF_WORKING.md) §11): compress for small/low-risk
   slices, scale back up for money/auth/multi-tenant data, integrations, or anything

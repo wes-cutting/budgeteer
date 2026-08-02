@@ -24,11 +24,11 @@ const plus = (n: number): string => {
 
 async function makeAccount(name = "Checking", startingBalance = "0"): Promise<string> {
   return (
-    await post("/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
+    await post("/api/accounts", { openedOn: "2026-07-02", name, kind: "checking", startingBalance })
   ).json().account.id as string;
 }
 async function makeEnvelope(name: string): Promise<string> {
-  return (await post("/envelopes", { name, kind: "standard" })).json().envelope.id as string;
+  return (await post("/api/envelopes", { name, kind: "standard" })).json().envelope.id as string;
 }
 function makeRule(body: {
   accountId: string;
@@ -39,11 +39,11 @@ function makeRule(body: {
   payee?: string;
   lines: { envelopeId: string; amount: string }[];
 }) {
-  return post("/recurring", { ...body, today: TODAY });
+  return post("/api/recurring", { ...body, today: TODAY });
 }
 
 async function planFor(accountId: string): Promise<PayPeriodPlanView> {
-  return (await get(`/analysis/pay-periods?accountId=${accountId}&today=${TODAY}`)).json()
+  return (await get(`/api/analysis/pay-periods?accountId=${accountId}&today=${TODAY}`)).json()
     .plan as PayPeriodPlanView;
 }
 
@@ -110,7 +110,7 @@ describe("analysis — pay-period plan (FEAT-S7)", () => {
     // Projected balance reconciles with the cash-flow-forecast endpoint (same account/date/horizon,
     // the forecast's evenDaily + includeExpected defaults) — read off as of each commitment date.
     const forecast = (
-      await get(`/analysis/cash-flow-forecast?accountId=${acct}&today=${TODAY}`)
+      await get(`/api/analysis/cash-flow-forecast?accountId=${acct}&today=${TODAY}`)
     ).json().forecast as {
       startingBalanceCents: number;
       points: { date: string; balanceCents: number }[];
@@ -151,15 +151,15 @@ describe("analysis — pay-period plan (FEAT-S7)", () => {
 
   test("validation: missing accountId → 400, missing/bad today → 400, unknown account → 404", async () => {
     const acct = await makeAccount();
-    expect((await get(`/analysis/pay-periods`)).statusCode).toBe(400);
-    expect((await get(`/analysis/pay-periods?accountId=${acct}`)).statusCode).toBe(400);
-    expect((await get(`/analysis/pay-periods?accountId=${acct}&today=07/03/2026`)).statusCode).toBe(
-      400,
-    );
+    expect((await get(`/api/analysis/pay-periods`)).statusCode).toBe(400);
+    expect((await get(`/api/analysis/pay-periods?accountId=${acct}`)).statusCode).toBe(400);
+    expect(
+      (await get(`/api/analysis/pay-periods?accountId=${acct}&today=07/03/2026`)).statusCode,
+    ).toBe(400);
     expect(
       (
         await get(
-          `/analysis/pay-periods?accountId=00000000-0000-0000-0000-000000000000&today=${TODAY}`,
+          `/api/analysis/pay-periods?accountId=00000000-0000-0000-0000-000000000000&today=${TODAY}`,
         )
       ).statusCode,
     ).toBe(404);

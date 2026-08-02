@@ -1,9 +1,7 @@
 import type { Kysely } from "kysely";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { NotFoundError } from "./errors";
-
-const HH = DEFAULT_HOUSEHOLD_ID;
 
 export interface EnvelopeTargetView {
   envelopeId: string;
@@ -15,7 +13,8 @@ export interface EnvelopeTargetView {
  * single amount per envelope (no row = no target), stored, mutable config — not a ledger row.
  * Writes only; the read (target vs. actual spend) lives in analysisService.budgetVsActual.
  */
-export function makeTargetService(db: Kysely<DB>) {
+export function makeTargetService(db: Kysely<DB>, scope: Scope) {
+  const HH = scope.householdId;
   async function assertEnvelope(trx: Kysely<DB>, envelopeId: string): Promise<void> {
     const env = await trx
       .selectFrom("envelopes")

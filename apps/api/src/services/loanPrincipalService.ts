@@ -1,9 +1,7 @@
 import type { Kysely } from "kysely";
 import type { DB } from "../db/schema";
-import { DEFAULT_HOUSEHOLD_ID } from "../constants";
+import type { Scope } from "./scope";
 import { NotFoundError, ValidationError } from "./errors";
-
-const HH = DEFAULT_HOUSEHOLD_ID;
 
 export interface LoanPrincipalView {
   accountId: string;
@@ -19,7 +17,8 @@ export interface LoanPrincipalView {
  * kind='loan' (a principal on a checking/credit account is a category error → ValidationError → 400),
  * mirroring how a credit limit is restricted to kind='credit' (FEAT-014a).
  */
-export function makeLoanPrincipalService(db: Kysely<DB>) {
+export function makeLoanPrincipalService(db: Kysely<DB>, scope: Scope) {
+  const HH = scope.householdId;
   async function assertLoanAccount(trx: Kysely<DB>, accountId: string): Promise<void> {
     const account = await trx
       .selectFrom("accounts")

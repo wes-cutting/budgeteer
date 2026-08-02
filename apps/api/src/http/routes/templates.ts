@@ -10,12 +10,14 @@ const upsertTemplateBody = z.object({
 });
 
 // --- Allocation templates (FEAT-004) ---
-export const templateRoutes: RoutePlugin = async (app, opts) => {
-  const { templates } = opts.services;
-
-  app.get("/templates", async () => ({ templates: await templates.list() }));
+export const templateRoutes: RoutePlugin = async (app) => {
+  app.get("/templates", async (req) => {
+    const { templates } = req.services;
+    return { templates: await templates.list() };
+  });
 
   app.post("/templates", async (req, reply) => {
+    const { templates } = req.services;
     const parsed = upsertTemplateBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const nameCheck = validateName(parsed.data.name, "Template");
@@ -35,6 +37,7 @@ export const templateRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.put<IdParams>("/templates/:id", async (req, reply) => {
+    const { templates } = req.services;
     const parsed = upsertTemplateBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const nameCheck = validateName(parsed.data.name, "Template");
@@ -56,6 +59,7 @@ export const templateRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.delete<IdParams>("/templates/:id", async (req, reply) => {
+    const { templates } = req.services;
     const { id } = req.params;
     try {
       await templates.remove(id);

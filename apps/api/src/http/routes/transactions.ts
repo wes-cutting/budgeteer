@@ -30,14 +30,14 @@ type AccountTxnsRoute = {
 };
 
 // --- Transactions & allocation (FEAT-003) ---
-export const transactionRoutes: RoutePlugin = async (app, opts) => {
-  const { transactions } = opts.services;
-
-  app.get("/transactions/needs-allocation", async () => ({
-    transactions: await transactions.needsAllocation(),
-  }));
+export const transactionRoutes: RoutePlugin = async (app) => {
+  app.get("/transactions/needs-allocation", async (req) => {
+    const { transactions } = req.services;
+    return { transactions: await transactions.needsAllocation() };
+  });
 
   app.get<AccountTxnsRoute>("/accounts/:accountId/transactions", async (req, reply) => {
+    const { transactions } = req.services;
     const { accountId } = req.params;
     // Calendar dates are user-local (EH8): the caller supplies the window — the client derives
     // its default month locally (R8); the server never derives "this month".
@@ -53,6 +53,7 @@ export const transactionRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.post<AccountIdParams>("/accounts/:accountId/transactions", async (req, reply) => {
+    const { transactions } = req.services;
     const parsed = createTransactionBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const magnitude = parsePositiveMagnitude(parsed.data.amount);
@@ -84,6 +85,7 @@ export const transactionRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.delete<IdParams>("/transactions/:id", async (req, reply) => {
+    const { transactions } = req.services;
     const { id } = req.params;
     try {
       await transactions.remove(id);
@@ -96,6 +98,7 @@ export const transactionRoutes: RoutePlugin = async (app, opts) => {
   });
 
   app.put<IdParams>("/transactions/:id/allocations", async (req, reply) => {
+    const { transactions } = req.services;
     const parsed = setAllocationsBody.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, "Invalid request body.");
     const allocations: { envelopeId: string; magnitudeCents: number; refund: boolean }[] = [];

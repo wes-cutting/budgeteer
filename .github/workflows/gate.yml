@@ -58,7 +58,12 @@ jobs:
           CI: "true"
 
       - name: build
-        run: npm run build --workspace @budgeteer/web
+        # Both workspaces: the API has a real build step since BUD-S81 (esbuild → the ESM the
+        # container runs), and a build that only CI's deploy job exercises is one that breaks
+        # in the deploy job.
+        run: |
+          npm run build --workspace @budgeteer/web
+          npm run build --workspace @budgeteer/api
 
       - name: dependency / vulnerability scan (SCA)
         # --omit=dev: exclude dev-only tools (vitest UI server vulnerability, esbuild dev-server

@@ -28,6 +28,22 @@ export async function createTestApp(opts: { today?: string } = {}): Promise<Test
   return { app, db };
 }
 
+/**
+ * Like {@link createTestApp} but with authentication ENABLED (ADR-0009 · BUD-S87) — every route
+ * except the public auth/health endpoints is default-deny. Used only by the auth suite; the rest of
+ * the suites stay on the open `createTestApp` (they test business logic, not the gate).
+ */
+export async function createAuthTestApp(opts: { today?: string } = {}): Promise<TestApp> {
+  const db = await createDb();
+  await migrateToLatest(db);
+  const app = buildServer(db, {
+    auth: { sessionSecret: "test-only-session-secret-16+chars" },
+    ...(opts.today ? { clock: () => new Date(`${opts.today}T12:00:00Z`) } : {}),
+  });
+  await app.ready();
+  return { app, db };
+}
+
 export async function closeTestApp({ app, db }: TestApp): Promise<void> {
   await app.close();
   await db.destroy();

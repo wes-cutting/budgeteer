@@ -14,17 +14,17 @@ const post = (url: string, body: Record<string, unknown>) =>
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeEnvelope(name: string): Promise<string> {
-  return (await post("/envelopes", { name })).json().envelope.id as string;
+  return (await post("/api/envelopes", { name })).json().envelope.id as string;
 }
 const balanceOf = async (collection: "accounts" | "envelopes", id: string): Promise<number> => {
-  const items = (await get(`/${collection}`)).json()[collection];
+  const items = (await get(`/api/${collection}`)).json()[collection];
   return items.find((x: { id: string }) => x.id === id).balanceCents;
 };
 
 /** Seed: a funded account split across two envelopes, so they have real balances to move. */
 async function seed() {
   const accountId = (
-    await post("/accounts", {
+    await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "Checking",
       kind: "checking",
@@ -33,7 +33,7 @@ async function seed() {
   ).json().account.id as string;
   const groceries = await makeEnvelope("Groceries");
   const vacation = await makeEnvelope("Vacation");
-  await post(`/accounts/${accountId}/transactions`, {
+  await post(`/api/accounts/${accountId}/transactions`, {
     kind: "deposit",
     amount: "1000.00",
     occurredOn: "2026-07-02",
@@ -49,7 +49,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
   test("moves budgeted money between envelopes, conserves the total, leaves accounts untouched", async () => {
     const { accountId, groceries, vacation } = await seed();
 
-    const res = await post("/envelope-transfers", {
+    const res = await post("/api/envelope-transfers", {
       fromEnvelopeId: groceries,
       toEnvelopeId: vacation,
       amount: "150.00",
@@ -72,7 +72,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
     const ghost = "00000000-0000-0000-0000-0000000000ff";
     expect(
       (
-        await post("/envelope-transfers", {
+        await post("/api/envelope-transfers", {
           fromEnvelopeId: groceries,
           toEnvelopeId: groceries,
           amount: "10.00",
@@ -82,7 +82,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
     ).toBe(400);
     expect(
       (
-        await post("/envelope-transfers", {
+        await post("/api/envelope-transfers", {
           fromEnvelopeId: groceries,
           toEnvelopeId: vacation,
           amount: "0",
@@ -92,7 +92,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
     ).toBe(400);
     expect(
       (
-        await post("/envelope-transfers", {
+        await post("/api/envelope-transfers", {
           fromEnvelopeId: groceries,
           toEnvelopeId: ghost,
           amount: "10.00",
@@ -104,12 +104,12 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
 
   test("can't move INTO an archived envelope, but draining FROM one is allowed", async () => {
     const { groceries, vacation } = await seed();
-    await post(`/envelopes/${vacation}/archive`, {});
+    await post(`/api/envelopes/${vacation}/archive`, {});
 
     // INTO archived → 400
     expect(
       (
-        await post("/envelope-transfers", {
+        await post("/api/envelope-transfers", {
           fromEnvelopeId: groceries,
           toEnvelopeId: vacation,
           amount: "10.00",
@@ -119,7 +119,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
     ).toBe(400);
 
     // FROM archived → allowed (drain remaining balance out before/after archiving)
-    const drain = await post("/envelope-transfers", {
+    const drain = await post("/api/envelope-transfers", {
       fromEnvelopeId: vacation,
       toEnvelopeId: groceries,
       amount: "400.00",
@@ -132,7 +132,7 @@ describe("envelope reallocation API (FEAT-007 #7b / ADR-0004 B)", () => {
 
   test("overdrawing an envelope is allowed → it goes negative (consistent with over-spending)", async () => {
     const { groceries, vacation } = await seed();
-    const res = await post("/envelope-transfers", {
+    const res = await post("/api/envelope-transfers", {
       fromEnvelopeId: vacation,
       toEnvelopeId: groceries,
       amount: "500.00", // vacation only has $400

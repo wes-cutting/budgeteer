@@ -15,7 +15,7 @@ const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeAccount(startingBalance = "0"): Promise<string> {
   return (
-    await post("/accounts", {
+    await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "Checking",
       kind: "checking",
@@ -28,7 +28,7 @@ describe("reconcile-to-bank API (FEAT-010)", () => {
   test("records a reconciliation: snapshots the derived balance and computes the difference", async () => {
     const accountId = await makeAccount("750.00");
 
-    const res = await post(`/accounts/${accountId}/reconciliations`, {
+    const res = await post(`/api/accounts/${accountId}/reconciliations`, {
       statementBalance: "800.00", // bank shows $50 more than the book
       reconciledOn: "2026-06-15",
     });
@@ -44,7 +44,7 @@ describe("reconcile-to-bank API (FEAT-010)", () => {
   test("matched when the entered balance equals the derived balance", async () => {
     const accountId = await makeAccount("200.00");
     const rec = (
-      await post(`/accounts/${accountId}/reconciliations`, {
+      await post(`/api/accounts/${accountId}/reconciliations`, {
         statementBalance: "200.00",
         reconciledOn: "2026-07-02",
       })
@@ -56,7 +56,7 @@ describe("reconcile-to-bank API (FEAT-010)", () => {
   test("accepts a negative statement balance (e.g. a credit account)", async () => {
     const accountId = await makeAccount("0");
     const rec = (
-      await post(`/accounts/${accountId}/reconciliations`, {
+      await post(`/api/accounts/${accountId}/reconciliations`, {
         statementBalance: "-125.50",
         reconciledOn: "2026-07-02",
       })
@@ -67,15 +67,16 @@ describe("reconcile-to-bank API (FEAT-010)", () => {
 
   test("lists reconciliation history newest-first", async () => {
     const accountId = await makeAccount("100.00");
-    await post(`/accounts/${accountId}/reconciliations`, {
+    await post(`/api/accounts/${accountId}/reconciliations`, {
       statementBalance: "100.00",
       reconciledOn: "2026-05-15",
     });
-    await post(`/accounts/${accountId}/reconciliations`, {
+    await post(`/api/accounts/${accountId}/reconciliations`, {
       statementBalance: "120.00",
       reconciledOn: "2026-06-15",
     });
-    const history = (await get(`/accounts/${accountId}/reconciliations`)).json().reconciliations;
+    const history = (await get(`/api/accounts/${accountId}/reconciliations`)).json()
+      .reconciliations;
     expect(history).toHaveLength(2);
     expect(history[0].reconciledOn).toBe("2026-06-15");
     expect(history[1].reconciledOn).toBe("2026-05-15");
@@ -84,7 +85,7 @@ describe("reconcile-to-bank API (FEAT-010)", () => {
   test("a missing reconciledOn is rejected — the caller supplies the date (EH8)", async () => {
     const accountId = await makeAccount("0");
     expect(
-      (await post(`/accounts/${accountId}/reconciliations`, { statementBalance: "10.00" }))
+      (await post(`/api/accounts/${accountId}/reconciliations`, { statementBalance: "10.00" }))
         .statusCode,
     ).toBe(400);
   });
@@ -94,7 +95,7 @@ describe("reconcile-to-bank API (FEAT-010)", () => {
     const ghost = "00000000-0000-0000-0000-0000000000ff";
     expect(
       (
-        await post(`/accounts/${accountId}/reconciliations`, {
+        await post(`/api/accounts/${accountId}/reconciliations`, {
           statementBalance: "abc",
           reconciledOn: "2026-07-02",
         })
@@ -102,12 +103,12 @@ describe("reconcile-to-bank API (FEAT-010)", () => {
     ).toBe(400);
     expect(
       (
-        await post(`/accounts/${ghost}/reconciliations`, {
+        await post(`/api/accounts/${ghost}/reconciliations`, {
           statementBalance: "10.00",
           reconciledOn: "2026-07-02",
         })
       ).statusCode,
     ).toBe(404);
-    expect((await get(`/accounts/${ghost}/reconciliations`)).statusCode).toBe(404);
+    expect((await get(`/api/accounts/${ghost}/reconciliations`)).statusCode).toBe(404);
   });
 });

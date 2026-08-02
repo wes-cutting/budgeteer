@@ -17,11 +17,11 @@ const del = (url: string) => ctx.app.inject({ method: "DELETE", url });
 const get = (url: string) => ctx.app.inject({ method: "GET", url });
 
 async function makeEnvelope(name: string): Promise<string> {
-  return (await post("/envelopes", { name })).json().envelope.id as string;
+  return (await post("/api/envelopes", { name })).json().envelope.id as string;
 }
 async function seed(startingBalance = "0") {
   const account = (
-    await post("/accounts", {
+    await post("/api/accounts", {
       openedOn: "2026-07-02",
       name: "Checking",
       kind: "checking",
@@ -38,14 +38,14 @@ async function seed(startingBalance = "0") {
 }
 
 const balanceOf = async (collection: "accounts" | "envelopes", id: string): Promise<number> => {
-  const items = (await get(`/${collection}`)).json()[collection];
+  const items = (await get(`/api/${collection}`)).json()[collection];
   return items.find((x: { id: string }) => x.id === id).balanceCents;
 };
 
 describe("transactions & allocation API (FEAT-003)", () => {
   test("deposit with a partial split: remainder is exact and shows in needs-allocation", async () => {
     const { accountId, env } = await seed();
-    const res = await post(`/accounts/${accountId}/transactions`, {
+    const res = await post(`/api/accounts/${accountId}/transactions`, {
       kind: "deposit",
       amount: "3200.00",
       occurredOn: "2026-07-02",
@@ -64,14 +64,14 @@ describe("transactions & allocation API (FEAT-003)", () => {
     expect(await balanceOf("accounts", accountId)).toBe(320000);
     expect(await balanceOf("envelopes", env.Rent)).toBe(140000);
 
-    const needs = (await get("/transactions/needs-allocation")).json().transactions;
+    const needs = (await get("/api/transactions/needs-allocation")).json().transactions;
     expect(needs.some((t: { id: string }) => t.id === txn.id)).toBe(true);
   });
 
   test("allocate-later (PUT) completes the split and leaves the needs list", async () => {
     const { accountId, env } = await seed();
     const txn = (
-      await post(`/accounts/${accountId}/transactions`, {
+      await post(`/api/accounts/${accountId}/transactions`, {
         kind: "deposit",
         amount: "3200.00",
         occurredOn: "2026-07-02",
@@ -79,7 +79,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
       })
     ).json().transaction;
 
-    const done = await put(`/transactions/${txn.id}/allocations`, {
+    const done = await put(`/api/transactions/${txn.id}/allocations`, {
       allocations: [
         { envelopeId: env.Rent, amount: "1400.00" },
         { envelopeId: env.Groceries, amount: "600.00" },
@@ -90,13 +90,13 @@ describe("transactions & allocation API (FEAT-003)", () => {
     expect(done.json().transaction.unallocatedCents).toBe(0);
     expect(await balanceOf("envelopes", env.Savings)).toBe(120000);
 
-    const needs = (await get("/transactions/needs-allocation")).json().transactions;
+    const needs = (await get("/api/transactions/needs-allocation")).json().transactions;
     expect(needs.some((t: { id: string }) => t.id === txn.id)).toBe(false);
   });
 
   test("withdrawal fully allocated updates account and envelope balances (signed)", async () => {
     const { accountId, env } = await seed("200.00");
-    const res = await post(`/accounts/${accountId}/transactions`, {
+    const res = await post(`/api/accounts/${accountId}/transactions`, {
       kind: "withdrawal",
       amount: "48.20",
       occurredOn: "2026-07-02",
@@ -113,7 +113,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
     const { accountId, env } = await seed();
     expect(
       (
-        await post(`/accounts/${accountId}/transactions`, {
+        await post(`/api/accounts/${accountId}/transactions`, {
           kind: "deposit",
           amount: "100.00",
           occurredOn: "2026-07-02",
@@ -123,7 +123,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
     ).toBe(400);
     expect(
       (
-        await post(`/accounts/${accountId}/transactions`, {
+        await post(`/api/accounts/${accountId}/transactions`, {
           kind: "deposit",
           amount: "100.00",
           occurredOn: "2026-07-02",
@@ -133,7 +133,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
     ).toBe(400);
     expect(
       (
-        await post(`/accounts/${accountId}/transactions`, {
+        await post(`/api/accounts/${accountId}/transactions`, {
           kind: "deposit",
           amount: "0",
           occurredOn: "2026-07-02",
@@ -146,7 +146,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
     const ghost = "00000000-0000-0000-0000-0000000000ff";
     expect(
       (
-        await post(`/accounts/${ghost}/transactions`, {
+        await post(`/api/accounts/${ghost}/transactions`, {
           kind: "deposit",
           amount: "10.00",
           occurredOn: "2026-07-02",
@@ -154,16 +154,16 @@ describe("transactions & allocation API (FEAT-003)", () => {
       ).statusCode,
     ).toBe(404);
     expect(
-      (await get(`/accounts/${ghost}/transactions?from=2026-07-01&to=2026-07-31`)).statusCode,
+      (await get(`/api/accounts/${ghost}/transactions?from=2026-07-01&to=2026-07-31`)).statusCode,
     ).toBe(404);
-    expect((await put(`/transactions/${ghost}/allocations`, { allocations: [] })).statusCode).toBe(
-      404,
-    );
+    expect(
+      (await put(`/api/transactions/${ghost}/allocations`, { allocations: [] })).statusCode,
+    ).toBe(404);
   });
 
   test("a create without occurredOn is rejected — the caller supplies the date (EH8)", async () => {
     const { accountId, env } = await seed("0");
-    const res = await post(`/accounts/${accountId}/transactions`, {
+    const res = await post(`/api/accounts/${accountId}/transactions`, {
       kind: "deposit",
       amount: "10.00",
       allocations: [{ envelopeId: env.Rent, amount: "10.00" }],
@@ -173,19 +173,19 @@ describe("transactions & allocation API (FEAT-003)", () => {
 
   test("an opening balance shows up as a transaction needing allocation", async () => {
     await seed("100.00");
-    const needs = (await get("/transactions/needs-allocation")).json().transactions;
+    const needs = (await get("/api/transactions/needs-allocation")).json().transactions;
     expect(needs.some((t: { kind: string }) => t.kind === "opening")).toBe(true);
   });
 
   test("the account register lists transactions newest-first", async () => {
     const { accountId, env } = await seed("0");
-    await post(`/accounts/${accountId}/transactions`, {
+    await post(`/api/accounts/${accountId}/transactions`, {
       kind: "withdrawal",
       amount: "10.00",
       occurredOn: "2026-06-10",
       allocations: [{ envelopeId: env.Gas, amount: "10.00" }],
     });
-    await post(`/accounts/${accountId}/transactions`, {
+    await post(`/api/accounts/${accountId}/transactions`, {
       kind: "deposit",
       amount: "20.00",
       occurredOn: "2026-06-12",
@@ -193,7 +193,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
     });
     // Explicit wide window so the assertion is independent of the run-date default (R8).
     const register = (
-      await get(`/accounts/${accountId}/transactions?from=2000-01-01&to=2100-12-31`)
+      await get(`/api/accounts/${accountId}/transactions?from=2000-01-01&to=2100-12-31`)
     ).json().transactions;
     expect(register).toHaveLength(3); // opening(0) + two
     expect(register[0].occurredOn >= register[1].occurredOn).toBe(true);
@@ -201,24 +201,26 @@ describe("transactions & allocation API (FEAT-003)", () => {
 
   test("the register requires an explicit window — the caller's month, never the server's (EH8)", async () => {
     const { accountId, env } = await seed("0");
-    await post(`/accounts/${accountId}/transactions`, {
+    await post(`/api/accounts/${accountId}/transactions`, {
       kind: "deposit",
       amount: "20.00",
       occurredOn: "2026-07-15",
       allocations: [{ envelopeId: env.Rent, amount: "20.00" }],
     });
-    await post(`/accounts/${accountId}/transactions`, {
+    await post(`/api/accounts/${accountId}/transactions`, {
       kind: "withdrawal",
       amount: "10.00",
       occurredOn: "2020-01-15",
       allocations: [{ envelopeId: env.Gas, amount: "10.00" }],
     });
     // Missing (or half-missing) window → 400, loudly: the server derives no default month.
-    expect((await get(`/accounts/${accountId}/transactions`)).statusCode).toBe(400);
-    expect((await get(`/accounts/${accountId}/transactions?from=2026-07-01`)).statusCode).toBe(400);
+    expect((await get(`/api/accounts/${accountId}/transactions`)).statusCode).toBe(400);
+    expect((await get(`/api/accounts/${accountId}/transactions?from=2026-07-01`)).statusCode).toBe(
+      400,
+    );
     // The caller's window filters rows; the opening anchor row always shows (R8).
     const register = (
-      await get(`/accounts/${accountId}/transactions?from=2026-07-01&to=2026-07-31`)
+      await get(`/api/accounts/${accountId}/transactions?from=2026-07-01&to=2026-07-31`)
     ).json().transactions;
     const dates = register.map((t: { occurredOn: string }) => t.occurredOn);
     expect(register.some((t: { kind: string }) => t.kind === "opening")).toBe(true); // anchor kept
@@ -228,14 +230,14 @@ describe("transactions & allocation API (FEAT-003)", () => {
 
   test("an explicit ?from&to window filters rows but always keeps the opening balance (R8)", async () => {
     const { accountId, env } = await seed("100.00");
-    await post(`/accounts/${accountId}/transactions`, {
+    await post(`/api/accounts/${accountId}/transactions`, {
       kind: "withdrawal",
       amount: "10.00",
       occurredOn: "2020-06-15",
       allocations: [{ envelopeId: env.Gas, amount: "10.00" }],
     });
     const register = (
-      await get(`/accounts/${accountId}/transactions?from=2020-01-01&to=2020-12-31`)
+      await get(`/api/accounts/${accountId}/transactions?from=2020-01-01&to=2020-12-31`)
     ).json().transactions;
     // The 2020 row is in-window; the opening row (dated today) is out-of-window yet still shown.
     expect(register).toHaveLength(2);
@@ -246,17 +248,17 @@ describe("transactions & allocation API (FEAT-003)", () => {
   test("a malformed from/to query param is rejected with 400 (R8)", async () => {
     const { accountId } = await seed("0");
     expect(
-      (await get(`/accounts/${accountId}/transactions?from=2020-1-1&to=2020-12-31`)).statusCode,
+      (await get(`/api/accounts/${accountId}/transactions?from=2020-1-1&to=2020-12-31`)).statusCode,
     ).toBe(400);
     expect(
-      (await get(`/accounts/${accountId}/transactions?from=2020-01-01&to=nonsense`)).statusCode,
+      (await get(`/api/accounts/${accountId}/transactions?from=2020-01-01&to=nonsense`)).statusCode,
     ).toBe(400);
   });
 
   test("editing a fully-allocated split (FEAT-005) replaces it and re-derives balances", async () => {
     const { accountId, env } = await seed();
     const txn = (
-      await post(`/accounts/${accountId}/transactions`, {
+      await post(`/api/accounts/${accountId}/transactions`, {
         kind: "deposit",
         amount: "100.00",
         occurredOn: "2026-07-02",
@@ -265,7 +267,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
     ).json().transaction;
     expect(txn.unallocatedCents).toBe(0);
 
-    const upd = await put(`/transactions/${txn.id}/allocations`, {
+    const upd = await put(`/api/transactions/${txn.id}/allocations`, {
       allocations: [
         { envelopeId: env.Rent, amount: "30.00" },
         { envelopeId: env.Groceries, amount: "70.00" },
@@ -279,8 +281,8 @@ describe("transactions & allocation API (FEAT-003)", () => {
 
   test("allocating to an archived envelope is rejected (FEAT-006)", async () => {
     const { accountId, env } = await seed();
-    await post(`/envelopes/${env.Rent}/archive`, {});
-    const res = await post(`/accounts/${accountId}/transactions`, {
+    await post(`/api/envelopes/${env.Rent}/archive`, {});
+    const res = await post(`/api/accounts/${accountId}/transactions`, {
       kind: "deposit",
       amount: "100.00",
       occurredOn: "2026-07-02",
@@ -291,20 +293,20 @@ describe("transactions & allocation API (FEAT-003)", () => {
 
   test("an archived envelope keeps its balance — history preserved (FEAT-006)", async () => {
     const { accountId, env } = await seed();
-    await post(`/accounts/${accountId}/transactions`, {
+    await post(`/api/accounts/${accountId}/transactions`, {
       kind: "deposit",
       amount: "100.00",
       occurredOn: "2026-07-02",
       allocations: [{ envelopeId: env.Rent, amount: "100.00" }],
     });
-    await post(`/envelopes/${env.Rent}/archive`, {});
+    await post(`/api/envelopes/${env.Rent}/archive`, {});
     expect(await balanceOf("envelopes", env.Rent)).toBe(10000);
   });
 
   test("a refund row within a split nets to the amount and credits its envelope (FEAT-008)", async () => {
     const { accountId, env } = await seed("0");
     // A $70 receipt: $100 spent on Groceries, $30 returned to Gas (refund row).
-    const res = await post(`/accounts/${accountId}/transactions`, {
+    const res = await post(`/api/accounts/${accountId}/transactions`, {
       kind: "withdrawal",
       amount: "70.00",
       occurredOn: "2026-07-02",
@@ -326,7 +328,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
   test("DELETE removes a normal transaction and cascades its allocations", async () => {
     const { accountId, env } = await seed("0");
     const txn = (
-      await post(`/accounts/${accountId}/transactions`, {
+      await post(`/api/accounts/${accountId}/transactions`, {
         kind: "deposit",
         amount: "100.00",
         occurredOn: "2026-07-02",
@@ -337,20 +339,20 @@ describe("transactions & allocation API (FEAT-003)", () => {
     expect(await balanceOf("accounts", accountId)).toBe(10000);
     expect(await balanceOf("envelopes", env.Rent)).toBe(10000);
 
-    const res = await del(`/transactions/${txn.id}`);
+    const res = await del(`/api/transactions/${txn.id}`);
     expect(res.statusCode).toBe(204);
 
     expect(await balanceOf("accounts", accountId)).toBe(0);
     expect(await balanceOf("envelopes", env.Rent)).toBe(0);
     const register = (
-      await get(`/accounts/${accountId}/transactions?from=2026-07-01&to=2026-07-31`)
+      await get(`/api/accounts/${accountId}/transactions?from=2026-07-01&to=2026-07-31`)
     ).json().transactions;
     expect(register.every((t: { id: string }) => t.id !== txn.id)).toBe(true);
   });
 
   test("DELETE on a transfer leg → 409 (must use DELETE /transfers/:id)", async () => {
     const checking = (
-      await post("/accounts", {
+      await post("/api/accounts", {
         openedOn: "2026-07-02",
         name: "Del Checking",
         kind: "checking",
@@ -358,7 +360,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
       })
     ).json().account.id as string;
     const savings = (
-      await post("/accounts", {
+      await post("/api/accounts", {
         openedOn: "2026-07-02",
         name: "Del Savings",
         kind: "savings",
@@ -366,7 +368,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
       })
     ).json().account.id as string;
     const transfer = (
-      await post("/transfers", {
+      await post("/api/transfers", {
         fromAccountId: checking,
         toAccountId: savings,
         amount: "50.00",
@@ -374,18 +376,18 @@ describe("transactions & allocation API (FEAT-003)", () => {
       })
     ).json().transfer;
     const legId = transfer.from.transactionId as string;
-    const res = await del(`/transactions/${legId}`);
+    const res = await del(`/api/transactions/${legId}`);
     expect(res.statusCode).toBe(409);
   });
 
   test("DELETE on unknown transaction → 404", async () => {
     const ghost = "00000000-0000-0000-0000-0000000000ff";
-    expect((await del(`/transactions/${ghost}`)).statusCode).toBe(404);
+    expect((await del(`/api/transactions/${ghost}`)).statusCode).toBe(404);
   });
 
   test("refunds that flip the net direction are rejected (FEAT-008)", async () => {
     const { accountId, env } = await seed("0");
-    const res = await post(`/accounts/${accountId}/transactions`, {
+    const res = await post(`/api/accounts/${accountId}/transactions`, {
       kind: "withdrawal",
       amount: "70.00",
       occurredOn: "2026-07-02",
@@ -400,7 +402,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
   test("a refund row survives allocate-later / edit (PUT) (FEAT-008)", async () => {
     const { accountId, env } = await seed("0");
     const txn = (
-      await post(`/accounts/${accountId}/transactions`, {
+      await post(`/api/accounts/${accountId}/transactions`, {
         kind: "withdrawal",
         amount: "70.00",
         occurredOn: "2026-07-02",
@@ -408,7 +410,7 @@ describe("transactions & allocation API (FEAT-003)", () => {
       })
     ).json().transaction;
 
-    const upd = await put(`/transactions/${txn.id}/allocations`, {
+    const upd = await put(`/api/transactions/${txn.id}/allocations`, {
       allocations: [
         { envelopeId: env.Groceries, amount: "100.00" },
         { envelopeId: env.Gas, amount: "30.00", refund: true },

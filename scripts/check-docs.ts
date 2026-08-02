@@ -54,6 +54,7 @@ const EPIC_TITLES: Record<string, string> = {
   "BUD-E11": "Hardening",
   "BUD-E12": "Data & history import",
   "BUD-E13": "Multi-user / household scoping",
+  "BUD-E14": "Hub deployment readiness",
 };
 
 type Meta = { type: string; title: string; was: string; epic: string };

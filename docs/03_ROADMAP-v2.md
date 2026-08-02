@@ -33,7 +33,11 @@ sheet parity (BUD-E9), hardening (BUD-E11), and the real data & history import (
 - Ratify or veto FEAT-S7 §5's residual divergence (`BUD-S61`) — balanced latest-fit vs. the
   sheet's month-boundary float ([FEAT-S7 §5](features/pay-periods.md) · [SPIKE-10 §3.6](spikes/10-payperiod-policy-validation.md)); a veto scopes the §8 assignment store (a §11 scale-up).
 - Apply the reviewed merchant→envelope rules for the statement era (`BUD-S80`; opt-in, no app code).
-- `BUD-E13` multi-user / household scoping — deferred epic, full ceremony.
+**In flight:**
+- `BUD-E14` **Hub deployment readiness** — deploy budgeteer as a self-hosted ARM64 container service on labs-hub. Brief: [2026-07-27 initiative](reviews/2026-07-27-hub-deployment-readiness-initiative.md); runtime shape: [ADR-0008](adr/ADR-0008-containerized-production-runtime.md) (**Accepted** 2026-08-01). **`BUD-S81`–`BUD-S84` + `BUD-S90` Done, `BUD-S85` partly done (2026-08-01)**: one ARM64 image (82 MB) serving the SPA + API on one origin, real-Postgres readiness probe, published [deploy contract](DEPLOY_CONTRACT.md), GHCR publish workflow, and a reset/restore recovery that no longer locks the household out of its own ledger. **labs-hub LH-S3 is unblocked.** Two things remain: at-rest encryption (labs-hub SPIKE-03) and a first real tag push to exercise the GHCR job. The one design change: every API path moved under **`/api`**, because the SPA's client routes collided with it on a shared origin.
+
+**Recently completed:**
+- `BUD-E13` **Multi-user / household scoping** — ✅ **Done 2026-07-31.** Default-deny auth, opaque revocable sessions, scrypt, roles (admin/member), user management, and login hardening — shipped across `BUD-S86`–`BUD-S89` on shape **A** (one household, many members; multi-household via container-per-household). ADR-0009 Accepted; SEC3 closed.
 
 > **This is a transitional restructure.** Content is faithful to `03_ROADMAP.md`; only the
 > id scheme and grouping changed. `FEAT-*` spec names, `features/*` and `status-reports/*`
@@ -59,6 +63,7 @@ in either doc (they appear only in the log/spike reports) and are omitted here.
 | New ID | Type | Title | Was | Epic |
 | --- | --- | --- | --- | --- |
 | `BUD-E13` | epic | Multi-user / household scoping | `#19` | Multi-user / household scoping |
+| `BUD-E14` | epic | Hub deployment readiness | — | Hub deployment readiness |
 | `BUD-S1` | story | Foundation | `#1` | Foundation & stack |
 | `BUD-S2` | story | core enter→allocate loop — enter deposit/withdrawal → allocate in Sing… | `#3` | Core budgeting domain |
 | `BUD-S3` | story | accelerators — templates/presets | `#4` | Core budgeting domain |
@@ -151,6 +156,18 @@ in either doc (they appear only in the log/spike reports) and are omitted here.
 | `SPIKE-06` | spike | Spike: design-system + routing foundation | `UX1` | UX Uplift |
 | `SPIKE-07` | spike | Spike: accessible charting / viz a11y | `UX2` | UX Uplift |
 | `SPIKE-11` | spike | SPIKE-11 — data-profiling: | `#21` | Data & history import |
+| `BUD-S81` | story | Containerization — multi-stage ARM64 image | — | Hub deployment readiness |
+| `BUD-S82` | story | Production Postgres validation + `/health` DB readiness | — | Hub deployment readiness |
+| `BUD-S83` | story | Production config profile + deploy contract | — | Hub deployment readiness |
+| `BUD-S84` | story | CI image publishing to GHCR (ARM64) | — | Hub deployment readiness |
+| `BUD-S85` | story | Data-at-rest encryption + backup/restore validation | — | Hub deployment readiness |
+| `BUD-S90` | story | A rebuilt store has a way in (reset/seed/demo auth gap) | — | Hub deployment readiness |
+| `SPIKE-12` | spike | Postgres production-runtime validation | — | Hub deployment readiness |
+| `SPIKE-13` | spike | Auth vertical seam (BUD-E13 shape A) | — | Multi-user / household scoping |
+| `BUD-S86` | story | Principal seam refactor | — | Multi-user / household scoping |
+| `BUD-S87` | story | Auth core + login | — | Multi-user / household scoping |
+| `BUD-S88` | story | Roles + user management | — | Multi-user / household scoping |
+| `BUD-S89` | story | Login hardening + threat-model tests | — | Multi-user / household scoping |
 
 
 ## 3. The plan
@@ -252,7 +269,7 @@ The 2026-07-06 whole-repo security review. No live bugs; all three findings are 
 | --- | --- | --- | --- | --- | --- | --- |
 | **BUD-S36** | SEC1 | **Retire vulnerable `kysely` + fix the SCA justification** — `kysely@0.27.6` is a **direct runtime** dep (3 high advisories), not the "transitive type-gen tool, not used at runtime" the gate comment claims. Not currently exploitable (Postgres dialect → the `sql.lit` backslash advisory is MySQL-only · the two `sql.lit` sites are enum-fed · no JSON-path/`Kysely<any>`), but the comment would wave off a future runtime-Postgres advisory. Correct `gate.yml`'s note to the real reasons; bump `kysely` (or `overrides`-pin) once `kysely-pglite` ships `kysely-codegen ≥ 0.19`; re-run `npm audit --omit=dev`. | tooling / dep | P2 | **Proposed** | `apps/api/package.json:24` · `.github/workflows/gate.yml:60-68` · `analysisService.ts:219,585` |
 | **BUD-S37** | SEC2 | **Dev-tool advisories (vitest `critical`, vite/esbuild dev-server)** — correctly excluded from the shipped gate by `--omit=dev`; none ship. Informational, one operational caveat: keep the Vite dev server + Vitest UI **loopback-only**. Fold a `vite@5→8`/`vitest@2→3` bump (both breaking) into the next tooling refresh. | tooling | P3 | **Info (no action)** | dev tree only — not in the web build output |
-| **BUD-S38** | SEC3 | **Unauthenticated API, incl. one-request full-data `/export`** — reaffirms (does not reopen) the V1 no-auth stance. The loopback bind (BUD-S32) is the only control; CORS doesn't gate `curl`; `/export` is total exfiltration in one call. Binding `0.0.0.0` exposes read+write of the whole ledger with zero auth. **Folds into `BUD-E13`** (already its documented home); until then, add no HTTP restore/import endpoint (CLI-only restore is correct). | epic (folds into BUD-E13) | P2 | **Tracked in BUD-E13** | `backup.ts:10` · `server.ts` · `config.ts:10` |
+| **BUD-S38** | SEC3 | **Unauthenticated API, incl. one-request full-data `/export`** — reaffirms (does not reopen) the V1 no-auth stance. The loopback bind (BUD-S32) is the only control; CORS doesn't gate `curl`; `/export` is total exfiltration in one call. Binding `0.0.0.0` exposes read+write of the whole ledger with zero auth. **Folds into `BUD-E13`** (already its documented home); until then, add no HTTP restore/import endpoint (CLI-only restore is correct). | epic (folds into BUD-E13) | P2 | **Resolved by `BUD-S87`** (2026-07-29) — default-deny auth at the resource level; `/export` now gated; restore stays CLI-only | `backup.ts:10` · `server.ts` · `config.ts:10` |
 
 ### BUD-E6 — UX polish
 
@@ -365,11 +382,42 @@ The owner's real financial history — the 12-year workbook and the post-reset s
 
 ### BUD-E13 — Multi-user / household scoping
 
-Deferred epic (no stories yet). Auth + owner/household isolation — a §11 scale-up trigger requiring full ceremony (tenancy ADR + threat model + property tests). Absorbs the reviews' "no authentication" finding and BUD-S38 (SEC3).
+Auth + owner/household isolation — a §11 scale-up trigger requiring full ceremony (tenancy ADR + threat model + property tests). Absorbs the reviews' "no authentication" finding and BUD-S38 (SEC3). **The deferral trigger has now fired:** BUD-E14 (hub deployment) requires serving on the LAN, and per SECURITY.md §3 / EH11 that is the documented trigger to pull this epic forward. It is now **the exposure blocker for BUD-E14**.
 
-| ID | Was | Item | Kind | Why deferred | Status |
+**Discovery — decided 2026-07-29 (owner):**
+- **Tenancy shape A** — *one household, multiple member users* (not in-app multi-tenant isolation). Every table already carries `household_id` (ADR-0002 "designed toward"), so a future isolated-multi-household flip stays additive — but the chosen escape hatch for multi-household is **a separate container per household** (process/data isolation at the container boundary; ADR-0008 makes this cheap), so in-app RLS may never be needed. B (isolated households via RLS) is explicitly deferred and matched against Non-goal §8 of the [deploy initiative](reviews/2026-07-27-hub-deployment-readiness-initiative.md).
+- **Roles: admin + member** — admins manage users + run sensitive ops; members use the ledger. (Backup/restore stays CLI-only regardless — SEC3.)
+- **Recovery: CLI / admin reset** — no SMTP dependency on a CGNAT LAN box.
+- **The architectural crux:** `household_id` scoping is structurally present but *authenticates nobody* — services reach for the `DEFAULT_HOUSEHOLD_ID` constant. The real work is threading a **request-derived principal (userId + householdId)** from a Fastify auth hook through `buildServer` → routes → services (default-deny at the resource level), plus authN (users, KDF-hashed passwords, sessions) and the login UI.
+- **First spike: `SPIKE-13`** — prove the auth vertical seam (session + KDF + principal-scoped query on one slice) before the tenancy/auth ADR.
+
+| ID | Was | Item | Kind | Why | Status |
 | --- | --- | --- | --- | --- | --- |
-| **BUD-E13** | #19 | **Multi-user / household scoping** (auth · owner/household isolation) | epic | Future direction; a §11 scale-up trigger → full ceremony (tenancy ADR + threat model + property tests). **Absorbs the review's "no authentication" finding** ([2026-06-15 review](reviews/2026-06-15-repo-review.md)) | Deferred |
+| **BUD-E13** | #19 | **Multi-user / household scoping** (auth · owner/household isolation) | epic | Now the **exposure blocker for BUD-E14** (LAN serving = the SECURITY.md §3 trigger). Shape **A** (one household, many members; multi-household via container-per-household). Full ceremony: auth ADR + threat model + property tests. **Absorbs** the review's "no authentication" finding ([2026-06-15 review](reviews/2026-06-15-repo-review.md)) + BUD-S38 (SEC3) | **Done** 2026-07-31 — SPIKE-13 · ADR-0009 (Accepted) · BUD-S86–S89 all ✅ (SEC3 closed). Default-deny auth + roles + hardening shipped; **exposure blocker cleared → BUD-E14 unblocked** |
+
+**Slices** (build order — vertical, gate-green at each step; ADR: [ADR-0009](adr/ADR-0009-authentication-household-scoping.md)):
+
+| ID | Slice — what it delivers | Kind | Gated by | Status |
+| --- | --- | --- | --- | --- |
+| **SPIKE-13** | **Auth vertical seam** — prove principal-scoped query + session gate + scrypt + enumeration-safety on one slice, zero new deps, on PGlite | spike | — | **Done** 2026-07-29 — 11/11; [report](spikes/13-auth-seam.md) |
+| **BUD-S86** | **Principal seam refactor** — per-request service factory bound to a principal; **remove `DEFAULT_HOUSEHOLD_ID` from the request path**. Ships with a **hardcoded bootstrap principal → zero behavior change, gate stays green**. Front-loads the invasive, every-route change in isolation (ADR-0009 §2). | refactor | ADR-0009 · SPIKE-13 ✅ | **Done** 2026-07-29 — `makeServices(db, scope)` per request; 13 services scoped; gate green (434 Vitest + 121 e2e), zero behavior change, no new deps. [Status report](status-reports/2026-07-29-bud-s86-principal-seam.md) |
+| **BUD-S87** | **Auth core + login** (vertical DB→API→UI) — migration `0003-auth` (users+sessions), scrypt KDF, `POST /login`+`/logout`, session `preHandler` deriving the **real** principal, **gate every resource route** (401 default-deny), `create-admin` CLI, + the `/login` view · SPA 401→redirect · logout. *End state: login required and you can log in.* | slice | BUD-S86 | **Done** 2026-07-29 — default-deny gate + opaque server-side sessions + scrypt; first-run `POST /auth/setup`; `@fastify/cookie` (1 dep); e2e authed via shared `storageState`. **Closes SEC3/BUD-S38**; unblocks `HOST=0.0.0.0`. Gate green (446 Vitest + 123 e2e). [Status report](status-reports/2026-07-29-bud-s87-auth-core.md) |
+| **BUD-S88** | **Roles + user management** — admin/member enforcement (admin-only user-mgmt → 403 for members), admin UI to add/disable members, `reset-password`/`disable-user` CLI (**sessions revoked on reset/disable**, SECURITY.md §3). *End state: an admin adds the second member.* | slice | BUD-S87 | **Done** 2026-07-31 — `/users` admin routes (403 for members) + admin Users page (role-aware nav) + reset/disable CLIs, all **revoking sessions**; self-disable blocked. Gate green (455 Vitest + 124 e2e). [Status report](status-reports/2026-07-31-bud-s88-roles-user-management.md) |
+| **BUD-S89** | **Login hardening + threat-model tests** — enumeration-safety, login throttle/lockout, session expiry; **property/e2e tests of the security invariants** (default-deny · cross-household not-found · revocation on reset/disable); SECURITY.md + `06_API_CONTRACT` updates. *Closes SEC3/BUD-S38; flips ADR-0009 → Accepted; unblocks `HOST=0.0.0.0` (`BUD-S83`).* | hardening | BUD-S88 | **Done** 2026-07-31 — `(IP,username)` login throttle (429) · session-expiry proof · last-admin guard · cross-household not-found; **ADR-0009 → Accepted**; SECURITY.md §3 rewritten. **Completes BUD-E13.** Gate green (459 Vitest + 124 e2e). [Status report](status-reports/2026-07-31-bud-s89-login-hardening.md) |
+
+### BUD-E14 — Hub deployment readiness
+
+Make budgeteer deployable as a self-hosted container service on **labs-hub** (a portable Raspberry Pi 5 / ARM64 hub, LAN-only behind CGNAT). Brief: [2026-07-27 hub deployment-readiness initiative](reviews/2026-07-27-hub-deployment-readiness-initiative.md). Decided runtime shape: [ADR-0008](adr/ADR-0008-containerized-production-runtime.md). **Exposure gated by BUD-E13** (auth before `0.0.0.0`); the build fronts (B–E) can proceed in parallel now.
+
+| ID | Was | Front | Item | Kind | Gated by | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| **BUD-S81** | — | B | **Containerization** — multi-stage Dockerfile: `vite build` static + Fastify API in one image serving both (`@fastify/static`); must build for **ARM64**. Validates ADR-0008's image half. | slice | ADR-0008 | **Done** 2026-08-01 — ARM64 image builds + runs (**82 MB**, `node:22-bookworm-slim`, non-root). Found and fixed the flaw in ADR-0008's one-origin design: **7 SPA client routes were spelled exactly like API paths**, so a refresh on Accounts returned JSON — the API now lives under **`/api`** (owner-decided). PGlite → devDependency (−26 MB; `DATABASE_URL` now required in prod). Graceful shutdown. [Status report](status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| **BUD-S82** | — | C | **Production Postgres + `/health` readiness** — run against real PostgreSQL 16 via `DATABASE_URL`, migrate-on-boot; **extend `/health` to check DB reachability** (a true readiness probe). | slice | SPIKE-12 ✅ | **Done** 2026-08-01 — `/api/health` is now a **readiness** probe (`200 {status,db}` / **503** when the DB is unreachable, 2 s timeout), closing SPIKE-12's finding #2. New `deploy/compose.yaml` + `scripts/validate-deploy.sh`: **24 checks green against real PostgreSQL 16 (arm64)**. [Status report](status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| **BUD-S83** | — | D | **Production config profile + deploy contract** — validated prod env; publish the initiative §5 deploy contract for labs-hub LH-S3. | slice | BUD-S81 · BUD-S82 | **Done** 2026-08-01 — prod profile requires `SESSION_SECRET` **and** `DATABASE_URL`; `HOST=0.0.0.0` is now the image default (safe since BUD-E13). **Resolved the TLS/Secure-cookie decision** BUD-S87 deferred: new `SESSION_COOKIE_SECURE` (secure default, startup warning when off) — a TLS-less LAN deploy would otherwise take a login and silently discard the cookie. **[Deploy contract published](DEPLOY_CONTRACT.md)** → LH-S3 unblocked. [Status report](status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| **BUD-S84** | — | E | **CI image publishing** — GitHub Actions builds the ARM64 image and pushes to `ghcr.io/wes-cutting/budgeteer:<tag>` on release/tag; the Pi pulls by tag/digest (never builds on-node). | tooling | BUD-S81 | **Done** 2026-08-01 — [`publish-image.yml`](../.github/workflows/publish-image.yml): tag-triggered QEMU arm64 build → GHCR, with signed build provenance; `latest` only follows a real semver tag. The gate's build step now covers the API too. ⚠ **Unexecuted** — needs a real tag push to prove end-to-end. [Status report](status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| **BUD-S85** | — | F | **Data-at-rest & backup** — decide at-rest encryption (with labs-hub SPIKE-03); re-prove backup/restore **on Postgres**. | hardening | BUD-S82 · labs-hub SPIKE-03 | **Partly done** 2026-08-01 — **backup half ✅**: export → reset → restore round-trip proven on real Postgres in the harness (SPIKE-09 proved it only on PGlite), surfacing two runbook traps now pinned by tests — a restore **wiped every user account** (reset truncated `households` CASCADE; the backup holds no users) and the backup file must be readable by the container's non-root user. The first was a defect, not a trap to document: **fixed in `BUD-S90`**. **Encryption half ⚠ STILL OPEN** — belongs to labs-hub SPIKE-03; treat a deployed hub as unencrypted at rest ([contract §8](DEPLOY_CONTRACT.md)). |
+| **BUD-S90** | — | F | **A rebuilt store has a way in** — auth state and ledger state are on separate tracks, so every path that rebuilds the ledger locked the household out of it: `db:reset` truncated `households` CASCADE (taking `users`/`sessions`), the seeds create no users, and the demo capture had no login at all. | slice | BUD-S85 | **Done** 2026-08-01 — `db:reset` now empties the ledger only (`db/resetLedger.ts`); reset → restore keeps its logins, pinned by 3 Vitest tests **and** the deployment harness, whose inverted assertion had been written to the broken behaviour. Demo capture provisions its own admin via first-run `/api/auth/setup` with a per-run random password — **verified** it was screenshotting the login page (every data call 401). Seeds stay credential-free by owner decision and now say how to get in. [Status report](status-reports/2026-08-01-bud-s90-rebuilt-store-access.md) |
+| **SPIKE-12** | — | C | **Postgres production-runtime validation** — does the wired `pg` path run against real PostgreSQL 16 (migrate · read · aggregate money · write · error-map) with no PGlite divergence? | spike | — | **Done** 2026-07-29 — **yes, zero code change** (PostgreSQL 16.14 aarch64); one gap: `/health` is liveness-only → `BUD-S82`. [SPIKE-12](spikes/12-postgres-production-validation.md) |
 
 ### Tasks under BUD-S57 (UX Uplift — Feedback & states)
 

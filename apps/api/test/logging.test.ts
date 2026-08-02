@@ -34,13 +34,13 @@ const logOutput = () => lines.join("");
 
 describe("structured API logging (R13)", () => {
   test("emits an inbound + outbound line with method, url, and status for a request", async () => {
-    const res = await app.inject({ method: "GET", url: "/health" });
+    const res = await app.inject({ method: "GET", url: "/api/health" });
     expect(res.statusCode).toBe(200);
 
     const out = logOutput();
     expect(out).toContain("incoming request"); // Fastify's default inbound access line
     expect(out).toContain("request completed"); // …and the outbound one
-    expect(out).toContain("/health"); // the url (default `req` serializer)
+    expect(out).toContain("/api/health"); // the url (default `req` serializer)
     expect(out).toContain('"statusCode":200'); // the status (default `res` serializer)
   });
 
@@ -48,7 +48,7 @@ describe("structured API logging (R13)", () => {
     const accountId = (
       await app.inject({
         method: "POST",
-        url: "/accounts",
+        url: "/api/accounts",
         payload: {
           openedOn: "2026-07-02",
           name: "Checking",
@@ -58,7 +58,7 @@ describe("structured API logging (R13)", () => {
       })
     ).json().account.id as string;
     const envelopeId = (
-      await app.inject({ method: "POST", url: "/envelopes", payload: { name: "Rent" } })
+      await app.inject({ method: "POST", url: "/api/envelopes", payload: { name: "Rent" } })
     ).json().envelope.id as string;
 
     // Inspect only the logs produced by the sensitive money-route request below.
@@ -67,7 +67,7 @@ describe("structured API logging (R13)", () => {
     const SECRET_TOKEN = "Bearer SECRET-TOKEN-9z8y7x";
     const res = await app.inject({
       method: "POST",
-      url: `/accounts/${accountId}/transactions`,
+      url: `/api/accounts/${accountId}/transactions`,
       headers: { authorization: SECRET_TOKEN },
       payload: {
         kind: "withdrawal",
@@ -82,7 +82,7 @@ describe("structured API logging (R13)", () => {
 
     const out = logOutput();
     // Logging IS on for the money route — the request and its status were recorded …
-    expect(out).toContain("/accounts/");
+    expect(out).toContain("/api/accounts/");
     expect(out).toContain('"statusCode":201');
     // … but nothing from the body or headers leaks (the default serializers omit both).
     expect(out).not.toContain(SECRET_MEMO);
