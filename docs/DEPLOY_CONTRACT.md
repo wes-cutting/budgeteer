@@ -38,13 +38,20 @@ to another project, so breaking any of it is a coordinated change, not a refacto
 | Build | GitHub Actions → GHCR. **Never built on the Pi** (ADR-0008 §4) |
 | Provenance | signed SLSA v1 attestation, pushed to the registry; verify before deploying (below) |
 
-**Current release — `v0.1.0`, the first published image** (2026-08-02):
+**Current release — `v0.2.0`, the image labs-hub runs** (2026-08-02):
 
 | | |
 | --- | --- |
-| Digest | `sha256:ef088340334264d6ceb818e356de11224278c62c3d09626e70fd266161e71da2` |
-| Tags | `0.1.0` · `0.1` · `latest` — all three point at that digest |
-| Source | commit `a5f2380` (tag `v0.1.0`), built by [`publish-image.yml`](../.github/workflows/publish-image.yml) [run 30733049897](https://github.com/wes-cutting/budgeteer/actions/runs/30733049897) |
+| Digest | `sha256:0535855c75e2bd71500923c3f623cc639f1eefea08d4d31cb785ebdeac93283f` |
+| Tags | `0.2.0` · `0.2` · `latest` — all three point at that digest |
+| Source | commit `bda57af` (tag `v0.2.0`), built by [`publish-image.yml`](../.github/workflows/publish-image.yml) [run 30763372012](https://github.com/wes-cutting/budgeteer/actions/runs/30763372012) |
+| Carries | `BUD-S91` (sign-in error meets AA in dark mode), `BUD-S92` (first admin from the browser), `BUD-S93` (the demo stack — config/docs only) |
+| Consumed by | labs-hub `LH-S3-demo` — `deploy/compose.budgeteer-demo.yml`, pinned by the digest above |
+
+> **`v0.1.0`'s recorded digest was stale, and this is the argument for pinning.** This file used
+> to name `sha256:ef0883…` as v0.1.0's digest. The tag was published **twice** (runs 30733049897
+> and 30752973009), and `0.1.0` now resolves to `sha256:3154633…` instead. Nothing announced that;
+> a deploy tracking the *tag* would have silently changed underneath itself. Pin the digest.
 
 **Pin by digest, not by tag.** A tag can be repointed; a digest cannot. The compose file defaults to
 `:latest` for convenience, but a real deploy should pin:
