@@ -97,8 +97,16 @@ session; without one the API returns `401 { "error": { "message" } }`. The sessi
 signed, **HttpOnly** `budgeteer_session` cookie (`SameSite=Strict`; `Secure` in production), and every
 request is scoped to the session's household (ADR-0009 §2). CORS is **credentialed against the
 allowlist** (never `*`).
+- **`GET /auth/needs-setup`** *(public, BUD-S92)* — `200 { needsSetup: boolean }`; `true` only while
+  **zero** users exist. Public because the SPA must route a brand-new install to `/setup` **before**
+  it has a session, and `/login` cannot infer it — a userless store and a wrong password both answer
+  `401`, deliberately (enumeration-safety, BUD-S89). Strictly one bit: **no counts, no usernames, no
+  timestamps**, and the same bit anyone can already read from `POST /auth/setup`'s `201`-vs-`409`.
 - **`POST /auth/setup`** *(public, first-run only)* — `{ username, password }` → `201 { ok: true }`
   while **zero** users exist; `409` once complete. Creates the first **admin** (min password length 8).
+  Unchanged on the wire since BUD-S87; since **BUD-S92** the zero-users test happens **inside the
+  insert** and a partial unique index arbitrates a concurrent first setup, so two callers racing an
+  empty store yield exactly one `201` and one `409` — never two admins (SECURITY.md §3).
 - **`POST /auth/login`** *(public)* — `{ username, password }` → `200 { ok: true }` + `Set-Cookie`;
   `401` on unknown user / wrong password / disabled account (an **identical** response — enumeration-safe);
   `429` after repeated failures for the same `(IP, username)` (brute-force throttle, BUD-S89).

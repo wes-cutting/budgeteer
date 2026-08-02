@@ -103,5 +103,18 @@ types/typecheck  →  lint  →  format check  →  unit + integration  →  e2e
   free with the OS (e.g. `lsof -iTCP:<port> -sTCP:LISTEN`), not by trusting that a wrapper
   process was stopped — stopping the wrapper can still orphan the child holding the port
   (K20/K24; `playwright.config.ts`'s `reuseExistingServer: false` on both webServers here).
+- **Keep one cold-start spec that provisions through the UI, and give it its own empty stack.** A
+  shared authenticated fixture (`global-setup.ts` + `use.storageState`) is the right default for
+  speed, and it is exactly what hides "the product cannot be opened at all": every spec starts
+  *after* the hard part. So one spec must start from a genuinely empty datastore and create the first
+  principal **through the browser**, with nothing provisioned out of band. It cannot share the
+  primary stack — that store has a user before the first spec runs — so the harness starts a
+  **second API + web pair** on its own ports over its own store (`e2e/cold-start.ts`,
+  `e2e/first-run.spec.ts`; API `:3002` / web `:5174`). The isolation is then structural rather than a
+  convention: the shared session names a row in the *other* store and cannot make the spec pass.
+  Order matters inside it — completing setup makes `/setup` unreachable, so every assertion about
+  that page (including its axe scans) precedes the journey, in one `serial` file. (`KIT_FEEDBACK`
+  K42, the reference implementation of the archetype it asks for.)
 - The reference harness is in this repo: `e2e/` (per-area Playwright specs + `e2e/setup.ts`),
-  `e2e/a11y.spec.ts` (axe scan), and `apps/api/test/perf.test.ts` (p95 budgets).
+  `e2e/a11y.spec.ts` (axe scan), `e2e/first-run.spec.ts` (cold start), and
+  `apps/api/test/perf.test.ts` (p95 budgets).

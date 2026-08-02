@@ -1,7 +1,8 @@
 import { type FormEvent, useState } from "react";
-import { useNavigate } from "react-router";
+import { Navigate, useLocation, useNavigate } from "react-router";
 import { type Api, ApiError } from "./api";
 import { Button, Field, Input } from "./ui";
+import { useNeedsSetup } from "./useNeedsSetup";
 import styles from "./Login.module.css";
 
 /**
@@ -9,11 +10,18 @@ import styles from "./Login.module.css";
  * default-deny gate returns 401, the api client bounces here (the reactive auth guard). On success
  * we navigate home, where the now-authenticated data loads.
  *
- * The first admin is created out of band (the `create-admin` CLI or `POST /auth/setup`); this page
- * only signs an existing user in.
+ * BUD-S92 — this page signs an EXISTING user in, so on a store with no user it is a dead end: every
+ * credential is wrong and the 401 is deliberately indistinguishable from a wrong password
+ * (enumeration-safety, BUD-S89), which is why it takes a separate probe to know. While the store is
+ * empty we hand off to `/setup`, which hands back once it isn't.
  */
 export function Login({ api }: { api: Api }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const needsSetup = useNeedsSetup(api);
+  // Carried by `/setup` when the account was created but the automatic sign-in did not take — the
+  // one case where landing here is good news and needs saying.
+  const handoff = (location.state as { message?: string } | null)?.message;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +40,11 @@ export function Login({ api }: { api: Api }) {
     }
   }
 
+  // Hold the form back until the probe answers, so a brand-new install never flashes a sign-in page
+  // it has no credential for on its way to `/setup`.
+  if (needsSetup === "loading") return null;
+  if (needsSetup === "yes") return <Navigate to="/setup" replace />;
+
   return (
     <main className={styles.wrap}>
       <div className={styles.card}>
@@ -40,6 +53,11 @@ export function Login({ api }: { api: Api }) {
           {error !== null ? (
             <p role="alert" className={styles.error}>
               {error}
+            </p>
+          ) : null}
+          {error === null && handoff !== undefined ? (
+            <p role="status" className={styles.intro}>
+              {handoff}
             </p>
           ) : null}
           <Field label="Username" htmlFor="login-username">

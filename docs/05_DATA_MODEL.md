@@ -247,10 +247,20 @@ seeded household** in V1 (no auth/RLS yet).
 | role | text | no | `check (role in ('admin','member'))` |
 | created_at | timestamptz | no | default `now()` |
 | disabled_at | timestamptz | yes | non-null = disabled (login refused; sessions dropped, BUD-S88) |
-- **Keys/Indexes:** PK `id`; **unique** `lower(username)` (case-insensitive handle); index `(household_id)`.
-- **Semantics:** the authenticated principal every request is scoped by (ADR-0009). Created **out of
-  band** — the `create-admin` CLI or the first-run `POST /auth/setup` (zero-users-only); never in a
-  migration (no secrets in migrations). Roles are **admin/member** (BUD-S88 enforces the split).
+| bootstrap | boolean | no | default `false`; `true` on the one row created by first-run `/auth/setup` (BUD-S92, migration `0004`) |
+- **Keys/Indexes:** PK `id`; **unique** `lower(username)` (case-insensitive handle); index `(household_id)`;
+  **partial unique** `(bootstrap) where bootstrap` — at most one bootstrap row per store.
+- **Semantics:** the authenticated principal every request is scoped by (ADR-0009). Created by
+  **first-run `/auth/setup`** (zero-users-only, the `/setup` screen — BUD-S92), by an admin at
+  `POST /users`, or out of band by the `create-admin` CLI; never in a migration (no secrets in
+  migrations). Roles are **admin/member** (BUD-S88 enforces the split).
+- **Why the partial index:** it is what makes a concurrent first setup safe — the route's
+  `insert … select … where not exists (select 1 from users)` cannot see an interleaved uncommitted
+  insert under READ COMMITTED, so the index rejects the loser (`23505` → `409`) and the **database**
+  decides the winner (SECURITY.md §3). Scoped to the bootstrap row on purpose: the constraint is
+  "one first-run bootstrap", **not** "one admin" — a household may have several (BUD-S88/S89).
+  A first admin created before `0004` keeps `bootstrap = false`; the `where not exists` guard is what
+  stops setup running again on such a store.
 
 ### sessions → opaque server-side session (ADR-0009 §4)
 | Field | Type | Null | Notes |
@@ -306,8 +316,13 @@ whole — startup fails loudly rather than running on a half-migrated store.
   in §2). If a store already contains double-posted occurrences the index build fails loudly,
   naming the duplicated `(recurring_id, occurred_on)` — resolve those ledger rows by hand; a
   migration never deletes financial data on its own.
+- **`0003-auth`** — BUD-E13's `users` + `sessions` (see §2). Carries **no** user and no password: a
+  migration never contains a secret, which is why the first admin is created at runtime instead.
+- **`0004-first-run-bootstrap`** — BUD-S92's `users.bootstrap` column + the partial unique index that
+  makes first-run setup atomic (see `users` in §2 and SECURITY.md §3). Additive and safe on a
+  populated store: existing users default to `false`, so the index has nothing to reject.
 
-**Rules:** a schema change is a **new numbered file** (`0003-…`) — committed migrations are frozen,
+**Rules:** a schema change is a **new numbered file** (`0005-…`) — committed migrations are frozen,
 never edited. Migrations are **forward-only** (no `down`; disposable PGlite dev stores make
 rollback-by-recreate cheap). A schema change ships with this doc and the code in the **same
 change**. The default-household seed row is **not** a migration — it re-runs at every startup from

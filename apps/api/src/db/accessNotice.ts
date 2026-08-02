@@ -15,7 +15,9 @@ export async function printAccessNotice(db: Kysely<DB>): Promise<void> {
   console.log(
     "\nNo user accounts in this store — seeding fills the ledger, never credentials.\n" +
       "Two ways in:\n" +
+      "  • start the app and open it in a browser — it will route you to /setup to create the\n" +
+      "    first admin (BUD-S92), which is the only route that works on the in-memory dev store\n" +
       "  • ADMIN_USERNAME=<u> ADMIN_PASSWORD=<p> npm run create-admin --workspace @budgeteer/api\n" +
-      "  • start the app and complete first-run onboarding in the browser (POST /api/auth/setup)\n",
+      "    (needs PGLITE_DIR or DATABASE_URL; the recovery path when nobody can sign in)\n",
   );
 }

@@ -12,11 +12,9 @@ not by hand.
 > **Status:** V1 in review. The domain, the full Insights area, hardening (a11y/perf budgets, CI
 > gate, backup/export), **authentication + user management** (default-deny sessions, roles,
 > `BUD-E13`) and a **published ARM64 container image** (`BUD-E14`) are built and gate-green.
-> **Not yet:** a browser **first-run setup screen** — a brand-new install has no user and no way to
-> create one from the UI, so it needs the `create-admin` CLI or a raw `POST /api/auth/setup`
-> (see [Create the first user](#create-the-first-user)) — and a **showcase demo instance**. Both
-> are scoped as `BUD-S92` / `BUD-S93` in [`docs/03_ROADMAP-v2.md`](docs/03_ROADMAP-v2.md), the
-> live plan for the `BUD-*` ids.
+> A brand-new install is now usable **from the browser alone** — it routes you to `/setup` to create
+> the first admin (`BUD-S92`). **Not yet:** a **showcase demo instance**, scoped as `BUD-S93` in
+> [`docs/03_ROADMAP-v2.md`](docs/03_ROADMAP-v2.md), the live plan for the `BUD-*` ids.
 
 ---
 
@@ -109,25 +107,36 @@ user yet. Create one:
 
 **Authentication is always on**
 ([ADR-0009](docs/adr/ADR-0009-authentication-household-scoping.md)) — the API answers `401` to
-every request without a session, and the SPA redirects to `/login`. A brand-new store contains
-**no user**, and **there is no sign-up or setup screen yet** (`BUD-S92`), so the first admin is
-created out of band. Two ways — both produce an **admin**, but only one works on the default
-in-memory store:
+every request without a session. A brand-new store contains **no user**, so the app routes you to a
+first-run setup screen instead of a sign-in page you have no credential for (`BUD-S92`).
+
+**Just open http://localhost:5173.** With no user in the store you land on **`/setup`**: pick a
+username and a password (minimum 8 characters), and you are created as an **admin**, signed in, and
+dropped on the dashboard. No CLI, no `curl`. An admin adds everyone else from
+**Administration → Users** — there is no self-service sign-up, by design
+([spec §2.1](docs/features/first-run-setup.md)).
+
+`/setup` goes inert the moment a user exists (it redirects to `/login`), and the endpoint behind it,
+`POST /api/auth/setup`, is public **only while zero users exist** and answers `409 Setup is already
+complete.` from then on.
+
+<details>
+<summary>Creating the first admin without a browser (recovery / headless)</summary>
 
 ```bash
-# A. the CLI — needs a persistent store (PGLITE_DIR or DATABASE_URL). From apps/api/:
+# The CLI — needs a persistent store (PGLITE_DIR or DATABASE_URL). From apps/api/:
 ADMIN_USERNAME=you ADMIN_PASSWORD='a-long-passphrase' npm run create-admin
 ```
 
 ```bash
-# B. the first-run endpoint — against a RUNNING API. The only route that works for the
-#    default in-memory store, since the CLI needs a persistent one.
+# Or the endpoint directly, against a RUNNING API. Unlike the CLI this works on the default
+# in-memory store — it is what `/setup` calls for you.
 curl -X POST http://localhost:3001/api/auth/setup -H 'content-type: application/json' -d '{"username":"you","password":"a-long-passphrase"}'
 ```
 
-`POST /api/auth/setup` is public **only while zero users exist** and answers `409 Setup is already
-complete.` from then on. Passwords are minimum 8 characters. Then sign in at
-**http://localhost:5173/login**; an admin can add further members from **Administration → Users**.
+The CLI stays as the **recovery** path — when nobody can sign in, or the box has no browser on it.
+
+</details>
 
 ## Configuration
 
@@ -187,11 +196,10 @@ npm run db:reset && npm run seed:demo
 npm run db:restore -- path/to/budgeteer-backup-YYYY-MM-DD.json
 ```
 
-**A seeded store has no way into it.** Seeding fills the ledger and deliberately never creates a
-credential, and auth is always on — so a fresh `db:fresh` against a PGlite store answers `401` to
-everything and the app bounces to `/login`. The seed scripts say so when they finish; take either
-route in [Create the first user](#create-the-first-user). Note that the second route is a **raw
-`POST`**, not a screen — the browser setup UI is `BUD-S92`, still to build.
+**A seeded store has no credential in it.** Seeding fills the ledger and deliberately never creates a
+user, and auth is always on — so a fresh `db:fresh` against a PGlite store answers `401` to
+everything. Open the app and it walks you through `/setup`; the seed scripts say so when they finish.
+See [Create the first user](#create-the-first-user).
 
 `seed` is **idempotent** — it exits quietly if data already exists. Run `db:fresh` if you want
 to replace existing data. `seed:demo` is a **separate, deterministic** dev tool (fixed-seed

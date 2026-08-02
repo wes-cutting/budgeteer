@@ -37,6 +37,7 @@ describe("versioned migrator (EH9)", () => {
       "0001-baseline",
       "0002-recurring-occurrence-idempotency",
       "0003-auth",
+      "0004-first-run-bootstrap",
     ]);
     expect(await indexExists("transactions_recurring_occurrence_uniq")).toBe(true);
     const households = await db.selectFrom("households").select("id").execute();
@@ -46,7 +47,7 @@ describe("versioned migrator (EH9)", () => {
   test("re-running is a no-op (nothing re-executes, nothing duplicates)", async () => {
     await migrateToLatest(db);
     await migrateToLatest(db);
-    expect(await executedMigrations()).toHaveLength(3);
+    expect(await executedMigrations()).toHaveLength(4);
     const households = await db.selectFrom("households").select("id").execute();
     expect(households).toHaveLength(1);
   });
@@ -60,6 +61,7 @@ describe("versioned migrator (EH9)", () => {
       "0001-baseline",
       "0002-recurring-occurrence-idempotency",
       "0003-auth",
+      "0004-first-run-bootstrap",
     ]);
     expect(await indexExists("transactions_recurring_occurrence_uniq")).toBe(true);
   });

@@ -1,3 +1,7 @@
+/* The shared stylesheet for the two standalone auth cards that live OUTSIDE the app shell:
+   `Login` (BUD-S87) and `Setup` (BUD-S92). One sheet on purpose — a new install should not be able
+   to tell that the page it starts on and the page it signs in on were styled separately. */
+
 .wrap {
   min-height: 100vh;
   display: grid;
@@ -16,6 +20,13 @@
 .title {
   margin: 0;
   font-size: 1.5rem;
+}
+
+/* Setup only: the "what is this page" line under the title. `--color-text-muted` is contrast-checked
+   in both themes (tokens.css), so this is dimmer without dropping below AA. */
+.intro {
+  margin: -0.5rem 0 0;
+  color: var(--color-text-muted);
 }
 
 .form {

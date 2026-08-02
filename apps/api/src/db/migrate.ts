@@ -4,6 +4,7 @@ import type { DB } from "./schema";
 import * as baseline from "./migrations/0001-baseline";
 import * as recurringOccurrenceIdempotency from "./migrations/0002-recurring-occurrence-idempotency";
 import * as auth from "./migrations/0003-auth";
+import * as firstRunBootstrap from "./migrations/0004-first-run-bootstrap";
 
 /**
  * The versioned migration registry (EH9). In-code (not FileMigrationProvider) so the registry is
@@ -17,6 +18,7 @@ const migrations: Record<string, Migration> = {
   "0001-baseline": baseline,
   "0002-recurring-occurrence-idempotency": recurringOccurrenceIdempotency,
   "0003-auth": auth,
+  "0004-first-run-bootstrap": firstRunBootstrap,
 };
 
 const provider: MigrationProvider = {

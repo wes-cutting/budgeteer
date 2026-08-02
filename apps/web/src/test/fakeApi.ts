@@ -725,6 +725,11 @@ export function makeFakeApi(overrides: Partial<Api> = {}): Api {
     async login() {},
     async logout() {},
     async setup() {},
+    // Default false = "this install is claimed", so every existing suite keeps rendering `/login`
+    // rather than being redirected to `/setup`; the setup suite overrides it (BUD-S92).
+    async needsSetup() {
+      return false;
+    },
     async me() {
       return { userId: "fake-user", role: "admin" };
     },

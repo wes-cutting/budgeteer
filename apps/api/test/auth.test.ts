@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { type TestApp, closeTestApp, createAuthTestApp } from "./helpers";
+import { DEFAULT_HOUSEHOLD_ID } from "../src/constants";
 import { createDb } from "../src/db/connection";
 import { migrateToLatest } from "../src/db/migrate";
 import { buildServer } from "../src/http/server";
@@ -53,6 +54,59 @@ describe("first-run setup", () => {
       payload: { username: "wes", password: "short" },
     });
     expect(res.statusCode).toBe(400);
+  });
+
+  // --- BUD-S92: the probe the SPA routes on, and the race SECURITY.md §3 used to accept. ---
+
+  test("needs-setup is public, true on an empty store, and false once claimed", async () => {
+    const before = await ctx.app.inject({ method: "GET", url: "/api/auth/needs-setup" });
+    expect(before.statusCode).toBe(200); // no session, no 401 — the SPA asks before it has one
+    expect(before.json()).toEqual({ needsSetup: true });
+
+    await setup();
+
+    const after = await ctx.app.inject({ method: "GET", url: "/api/auth/needs-setup" });
+    expect(after.statusCode).toBe(200);
+    // Exactly one bit, and nothing else: no counts, no usernames, no timestamps.
+    expect(after.json()).toEqual({ needsSetup: false });
+  });
+
+  test("concurrent first setups produce exactly one admin", async () => {
+    const attempt = (username: string) =>
+      ctx.app.inject({
+        method: "POST",
+        url: "/api/auth/setup",
+        payload: { username, password: "a-long-enough-password" },
+      });
+    const results = await Promise.all([attempt("first"), attempt("second"), attempt("third")]);
+    const codes = results.map((r) => r.statusCode).sort();
+    expect(codes).toEqual([201, 409, 409]);
+    const users = await ctx.db.selectFrom("users").select(["username", "role"]).execute();
+    expect(users).toHaveLength(1);
+    expect(users[0]?.role).toBe("admin");
+  });
+
+  /**
+   * The mechanism behind the test above, asserted directly — because PGlite runs on ONE connection,
+   * so the concurrent requests there serialize and the losers are turned away by the statement's
+   * own `where not exists`, never reaching the index. On real Postgres the interleaving that the
+   * `where not exists` cannot see is possible, and this partial unique index (migration `0004`) is
+   * what stops it producing a second admin. Asserting the constraint keeps that guarantee pinned on
+   * both stores instead of only on the one the tests happen to use.
+   */
+  test("the bootstrap row is unique at the database (the race stopper)", async () => {
+    await setup();
+    const second = ctx.db
+      .insertInto("users")
+      .values({
+        household_id: DEFAULT_HOUSEHOLD_ID,
+        username: "racer",
+        password_hash: "irrelevant",
+        role: "admin",
+        bootstrap: true,
+      })
+      .execute();
+    await expect(second).rejects.toMatchObject({ code: "23505" });
   });
 });
 

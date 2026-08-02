@@ -78,14 +78,20 @@ in the `budget-extraction` review, 2026-07-10, K27 — the catch only happened b
   API still binds **loopback (`127.0.0.1`) by default** (env `HOST`, EH11) as defense-in-depth;
   serving `0.0.0.0` on the LAN is now safe because auth is in place (the `#19`/BUD-E13 exposure
   blocker is closed). CORS is a browser courtesy and does not gate non-browser clients.
-- **Known accepted limitation (first-run):** `POST /auth/setup` gates on "zero users exist"
-  (check-then-insert), a narrow race on the very first setup of a fresh store. Accepted for a
-  trusted-LAN first run; the out-of-band `create-admin` CLI avoids it entirely. **`BUD-S92` widens
-  the exposure of this race** by putting the endpoint behind a discoverable `/setup` screen: the
-  window stays the same length, but it becomes reachable by anyone who loads the app rather than
-  only by someone who knows the endpoint exists. That slice must therefore (a) make the
-  check-and-insert atomic rather than leaving the race merely accepted, and (b) keep the
-  `needs-setup` probe free of any detail beyond the boolean.
+- **First-run setup is atomic (BUD-S92 — closed, not accepted).** `POST /auth/setup` used to gate on
+  a separate "zero users exist" count and then insert: a check-then-insert race, previously recorded
+  here as *accepted* on the grounds that it was a narrow window on a trusted LAN reachable only by
+  someone who knew the endpoint existed. `BUD-S92` put the endpoint behind a discoverable `/setup`
+  screen, which retires that reasoning, so the race was closed rather than inherited. The
+  zero-users test now lives **inside the write** (`insert … select … where not exists`), and a
+  **partial unique index** on the bootstrap row (migration `0004`) settles the case the statement
+  alone cannot — under READ COMMITTED two concurrent transactions can both find the table empty, so
+  the loser is rejected by the index (`23505`, mapped to the existing `409`). **The winner is
+  decided by Postgres, not by a count that raced.** The constraint is scoped to the *bootstrap* row,
+  not to "one admin" — a household may have several (BUD-S88). Pinned by two tests: three concurrent
+  setups yield exactly one admin, and the index itself rejects a second bootstrap row (the mechanism,
+  asserted separately because PGlite's single connection serializes the first test).
+  The `needs-setup` probe added by the same slice is public and carries the boolean and nothing else.
 
 ## 4. Dependencies & supply chain
 

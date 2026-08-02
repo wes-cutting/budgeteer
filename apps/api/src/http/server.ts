@@ -128,6 +128,10 @@ export function buildServer(
     `${API_PREFIX}/auth/login`,
     `${API_PREFIX}/auth/logout`,
     `${API_PREFIX}/auth/setup`,
+    // BUD-S92 — public because the SPA must answer "is this install claimed yet?" BEFORE it has a
+    // session. It leaks exactly one bit, and that bit is already observable to anyone who can POST
+    // /auth/setup and read 201-vs-409.
+    `${API_PREFIX}/auth/needs-setup`,
   ]);
 
   // The SPA's own files must load WITHOUT a session, or the browser could never render the login
@@ -205,25 +209,31 @@ export function buildServer(
       // --- Auth routes (ADR-0009 · BUD-S87). login/logout/setup are public; /auth/me is gated. ---
       const credsBody = z.object({ username: z.string().min(1), password: z.string().min(1) });
 
+      // Whether this install still has no user — the one thing `/login` cannot infer, because a
+      // userless store and a wrong password both answer 401 by design (enumeration-safety,
+      // BUD-S89). The SPA routes a brand-new install to `/setup` on the strength of it (BUD-S92).
+      api.get("/auth/needs-setup", async () => ({ needsSetup: await authService.needsSetup() }));
+
       // First-run onboarding: create the first admin, allowed ONLY while zero users exist (a dead
-      // endpoint thereafter). The out-of-band `create-admin` CLI does the same job.
+      // endpoint thereafter). The out-of-band `create-admin` CLI does the same job. The
+      // zero-users test lives INSIDE the write (BUD-S92) — a separate count could race, and since
+      // BUD-S92 this endpoint is reachable from a screen rather than only by someone who knew it
+      // was there.
       api.post("/auth/setup", async (req, reply) => {
         const body = credsBody.safeParse(req.body);
         if (!body.success) return fail(reply, 400, "Username and password are required.");
-        if ((await authService.countUsers()) > 0)
-          return fail(reply, 409, "Setup is already complete.");
+        let created: boolean;
         try {
-          await authService.createUser({
+          created = await authService.createFirstAdmin({
             username: body.data.username,
             password: body.data.password,
-            role: "admin",
             householdId: DEFAULT_HOUSEHOLD_ID,
           });
         } catch (e) {
           if (e instanceof ValidationError) return fail(reply, 400, e.message);
-          if (e instanceof DuplicateNameError) return fail(reply, 409, e.message);
           throw e;
         }
+        if (!created) return fail(reply, 409, "Setup is already complete.");
         return reply.code(201).send({ ok: true });
       });
 

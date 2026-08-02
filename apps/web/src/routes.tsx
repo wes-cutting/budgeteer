@@ -15,6 +15,7 @@ import { RecurringView } from "./RecurringView";
 import { AnalysisSection } from "./AnalysisSection";
 import { PayPeriodsView } from "./PayPeriodsView";
 import { Login } from "./Login";
+import { Setup } from "./Setup";
 import { UsersAdmin } from "./UsersAdmin";
 
 /**
@@ -90,6 +91,10 @@ function LoginRoute() {
   return <Login api={useApi()} />;
 }
 
+function SetupRoute() {
+  return <Setup api={useApi()} />;
+}
+
 function UsersAdminRoute() {
   return <UsersAdmin api={useApi()} />;
 }
@@ -106,6 +111,10 @@ export function createAppRouter() {
     // BUD-S87 — the sign-in page lives OUTSIDE the shell (no nav/chrome, no data loads); the api
     // client redirects here on a 401 from the default-deny gate.
     { path: "/login", element: <LoginRoute /> },
+    // BUD-S92 — first-run setup, outside the shell for the same reasons as `/login` and one more:
+    // there is no session, no household, and no ledger to hang chrome off yet. The two pages
+    // redirect to each other on the `needs-setup` probe, so neither is ever a dead end.
+    { path: "/setup", element: <SetupRoute /> },
     {
       path: "/",
       element: <AppShell />,

@@ -160,6 +160,8 @@ export interface Api {
   logout(): Promise<void>;
   /** First-run only: create the first admin (succeeds while zero users exist). */
   setup(username: string, password: string): Promise<void>;
+  /** Whether this install has no user yet — public, and the only thing `/login` can't infer. */
+  needsSetup(): Promise<boolean>;
   /** The current user, or null if unauthenticated. */
   me(): Promise<{ userId: string; role: string } | null>;
 
@@ -226,6 +228,9 @@ export const httpApi: Api = {
   },
   async setup(username, password) {
     await request("/auth/setup", { method: "POST", body: JSON.stringify({ username, password }) });
+  },
+  async needsSetup() {
+    return (await request<{ needsSetup: boolean }>("/auth/needs-setup")).needsSetup;
   },
   async me() {
     try {

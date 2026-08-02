@@ -3,7 +3,7 @@ import { type Kysely, sql } from "kysely";
 import type { DB } from "../db/schema";
 import { type Clock, toISO } from "../util/dates";
 import { hashPassword, verifyPassword } from "../util/password";
-import { asDuplicateName } from "./dbErrors";
+import { asDuplicateName, isUniqueViolation } from "./dbErrors";
 import { NotFoundError, ValidationError } from "./errors";
 
 /** The authenticated caller (ADR-0009). Derived from the session; scopes every request. */
@@ -63,13 +63,49 @@ export function makeAuthService(db: Kysely<DB>, clock: Clock) {
       return { id: row.id, username: row.username, role: row.role as Role };
     },
 
-    /** How many users exist — the first-run `POST /auth/setup` gate (zero → setup allowed). */
-    async countUsers(): Promise<number> {
-      const r = await db
-        .selectFrom("users")
-        .select(db.fn.countAll<string>().as("n"))
-        .executeTakeFirstOrThrow();
-      return Number(r.n);
+    /**
+     * Whether this store still has no user — what `GET /auth/needs-setup` reports so the SPA can
+     * route a brand-new install to `/setup` (BUD-S92). Strictly one bit: no counts, no usernames.
+     * It is NOT the gate on creating that user — see {@link createFirstAdmin}, which cannot rely on
+     * a separate read.
+     */
+    async needsSetup(): Promise<boolean> {
+      const row = await db.selectFrom("users").select("id").limit(1).executeTakeFirst();
+      return row === undefined;
+    },
+
+    /**
+     * Create the first admin, atomically (BUD-S92 · SECURITY.md §3). Returns false when the store
+     * already has a user — the caller maps that to `409`.
+     *
+     * The emptiness test is INSIDE the insert, and the `bootstrap` partial unique index (migration
+     * `0004`) settles the case the statement alone cannot: under READ COMMITTED two concurrent
+     * transactions can both see an empty table, so the loser is rejected by the index (`23505`)
+     * rather than by a count that raced. Either way exactly one admin exists afterwards, and the
+     * decision belongs to the database.
+     */
+    async createFirstAdmin(input: {
+      username: string;
+      password: string;
+      householdId: string;
+    }): Promise<boolean> {
+      const username = input.username.trim();
+      if (username.length === 0) throw new ValidationError("Username is required.");
+      if (input.password.length < MIN_PASSWORD_LEN)
+        throw new ValidationError(`Password must be at least ${MIN_PASSWORD_LEN} characters.`);
+      const passwordHash = hashPassword(input.password);
+      try {
+        const result = await sql<{ id: string }>`
+          insert into users (household_id, username, password_hash, role, bootstrap)
+          select ${input.householdId}::uuid, ${username}, ${passwordHash}, 'admin', true
+          where not exists (select 1 from users)
+          returning id
+        `.execute(db);
+        return result.rows.length > 0;
+      } catch (e) {
+        if (isUniqueViolation(e)) return false; // lost the race, or the handle is taken
+        throw e;
+      }
     },
 
     /**

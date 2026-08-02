@@ -2,6 +2,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
+import {
+  COLD_START_API_ORIGIN,
+  COLD_START_API_PORT,
+  COLD_START_WEB_ORIGIN,
+  COLD_START_WEB_PORT,
+} from "./e2e/cold-start";
 
 // EH5 — the project's first real browser→API test layer. It boots the REAL Fastify API and the
 // REAL Vite-served web app, then drives Chromium against them, so it exercises the browser→API
@@ -30,6 +36,14 @@ const WEB_PORT = 5173;
 // instead of each worker leaking its own unused dir; global-teardown.ts removes it after the run.
 const E2E_PGLITE_DIR = (process.env.E2E_PGLITE_DIR ??= fs.mkdtempSync(
   path.join(os.tmpdir(), "budgeteer-e2e-pglite-"),
+));
+
+// BUD-S92 — a SECOND store for the cold-start stack (see e2e/cold-start.ts). It must stay empty
+// until `first-run.spec.ts` drives the browser through `/setup`, which is why it cannot be the
+// primary store: global-setup provisions that one before any spec runs. Same `budgeteer-e2e-pglite-`
+// prefix, so global-teardown's sweep reaps it too.
+const COLD_START_PGLITE_DIR = (process.env.COLD_START_PGLITE_DIR ??= fs.mkdtempSync(
+  path.join(os.tmpdir(), "budgeteer-e2e-pglite-cold-"),
 ));
 
 export default defineConfig({
@@ -77,6 +91,32 @@ export default defineConfig({
       command: "npm run dev --workspace @budgeteer/web",
       url: `http://localhost:${WEB_PORT}`,
       reuseExistingServer: false, // K24: own the stack or fail fast — never attach to a dev server
+      timeout: 60_000,
+    },
+    // BUD-S92 — the cold-start pair. A brand-new install: its own empty store, its own CORS
+    // allowlist, and a web server whose bundle points at it. global-setup never touches it, so the
+    // only thing that can ever create its first user is a browser walking `/setup`.
+    {
+      command: "npm run start --workspace @budgeteer/api",
+      url: `${COLD_START_API_ORIGIN}/api/health`,
+      env: {
+        PORT: String(COLD_START_API_PORT),
+        PGLITE_DIR: COLD_START_PGLITE_DIR,
+        CORS_ORIGINS: `${COLD_START_WEB_ORIGIN},http://127.0.0.1:${COLD_START_WEB_PORT}`,
+      },
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+    {
+      // `--strictPort` so a busy :5174 fails the run instead of letting Vite slide to another port,
+      // where the API's CORS allowlist would reject every call and the failure would read as a
+      // product bug rather than a port clash.
+      command: "npm run dev --workspace @budgeteer/web -- --port 5174 --strictPort",
+      url: COLD_START_WEB_ORIGIN,
+      // Vite exposes VITE_-prefixed vars from the real environment over the repo-root .env, so this
+      // points the cold-start bundle at the cold-start API (origin only — the client appends /api).
+      env: { VITE_API_BASE_URL: COLD_START_API_ORIGIN },
+      reuseExistingServer: false,
       timeout: 60_000,
     },
   ],

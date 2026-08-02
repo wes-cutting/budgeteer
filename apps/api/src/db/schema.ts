@@ -187,6 +187,9 @@ interface UsersTable {
   role: string; // 'admin' | 'member' (DB check constraint)
   created_at: Generated<Date>;
   disabled_at: ColumnType<Date | null, Date | null | undefined, Date | null>;
+  // True on the one row created by first-run `/auth/setup`; a partial unique index admits exactly
+  // one per store, which is what arbitrates a concurrent first setup (BUD-S92, `0004`).
+  bootstrap: Generated<boolean>;
 }
 
 /** An opaque, server-side, revocable session (ADR-0009 §4). The cookie carries only `id`. */

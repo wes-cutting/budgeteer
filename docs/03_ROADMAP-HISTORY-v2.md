@@ -142,6 +142,7 @@ newest linked status report. Full detail lives in the plan (`03_ROADMAP-v2.md` �
 
 | Shipped | ID | Was | Item | Report |
 | --- | --- | --- | --- | --- |
+| 2026-08-02 | `BUD-S92` | `—` | First-run setup UI (`/setup` — the first admin from the browser) | [report](../status-reports/2026-08-02-docs-onboarding-gap.md) |
 | 2026-08-02 | `BUD-S91` | `—` | Accessibility scans for the auth surfaces | [report](../status-reports/2026-08-02-bud-s91-auth-a11y.md) |
 | 2026-08-02 | `BUD-S84` | `—` | CI image publishing to GHCR (ARM64) | [report](../status-reports/2026-08-02-bud-s84-ghcr-publish.md) |
 | 2026-08-01 | `BUD-S90` | `—` | A rebuilt store has a way in (reset/seed/demo auth gap) | [report](../status-reports/2026-08-01-bud-s90-rebuilt-store-access.md) |

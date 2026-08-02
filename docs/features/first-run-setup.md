@@ -1,7 +1,7 @@
 ---
 type: feature-spec
 roadmap-item: BUD-S92
-status: Proposed
+status: Implemented
 ---
 <!--
 FEATURE SPEC — scopes BUD-S92: the browser path for creating the first admin on a brand-new
@@ -15,7 +15,7 @@ NOT the same thing as features/first-run-onboarding.md — see §1.1.
 | Field        | Value                                                                                     |
 | ------------ | ----------------------------------------------------------------------------------------- |
 | Feature ID   | FEAT-BUD-S92                                                                              |
-| Status       | **Proposed** (shape owner-decided 2026-08-02; not yet built)                              |
+| Status       | **Implemented** 2026-08-02 — built and gate-green ([status report](../status-reports/2026-08-02-bud-s92-first-run-setup.md)) |
 | Owner        | Wesley Cutting                                                                            |
 | Last updated | 2026-08-02                                                                                |
 | Related      | [ADR-0009](../adr/ADR-0009-authentication-household-scoping.md) (auth) · [`BUD-S87`](../03_ROADMAP-v2.md) (created `/auth/setup`, built no UI for it) · [`BUD-S91`](../status-reports/2026-08-02-bud-s91-auth-a11y.md) (the a11y precedent for the auth surfaces) · [SECURITY.md §3](../SECURITY.md) · [06_API_CONTRACT §Authentication](../06_API_CONTRACT.md) · [DEPLOY_CONTRACT §7](../DEPLOY_CONTRACT.md) |
@@ -144,9 +144,16 @@ a concrete need. Noted here so that the decision is re-openable with its reasoni
 
 ## 6. Data changes
 
-**None** — `users` and `sessions` already exist (migration `0003-auth`). The atomicity fix in §5 may
-add a **constraint or partial index**, which is a migration but not a shape change; if so,
-[`05_DATA_MODEL.md`](../05_DATA_MODEL.md) is updated in the same change.
+**As built (2026-08-02) — one additive column, not "none".** `users` and `sessions` already existed
+(`0003-auth`), and this section originally expected the atomicity fix to be a bare constraint. It
+could not be: §5's two options are an **and**, not an **or**. `INSERT … SELECT … WHERE NOT EXISTS`
+alone does not close the race — under READ COMMITTED both transactions take a snapshot, neither sees
+the other's uncommitted row, and both insert — and a partial unique index needs something to key on
+that identifies the *bootstrap* row (it may not key on `role = 'admin'`, because a household may have
+several admins). So migration **`0004-first-run-bootstrap`** adds `users.bootstrap boolean not null
+default false` plus `unique (bootstrap) where bootstrap`, and the route uses the single statement on
+top of it. Additive and safe on a populated store; recorded in
+[`05_DATA_MODEL.md`](../05_DATA_MODEL.md) in the same change.
 
 ## 7. Interface changes
 
