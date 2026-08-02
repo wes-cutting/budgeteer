@@ -31,6 +31,7 @@ import type { Kysely } from "kysely";
 import { loadConfig } from "../config.js";
 import { createDb } from "./connection.js";
 import { migrateToLatest } from "./migrate.js";
+import { printAccessNotice } from "./accessNotice.js";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants.js";
 import { systemClock, todayStr } from "../util/dates.js";
 import type { DB } from "./schema.js";
@@ -664,5 +665,7 @@ console.log(
   "  targets · credit limit · loan principal · biweekly paycheck + 7 bill rules · 3 templates",
 );
 console.log("  Insights, the pay-period planner, and the Templates page now show real patterns.");
+
+await printAccessNotice(db);
 
 await db.destroy();

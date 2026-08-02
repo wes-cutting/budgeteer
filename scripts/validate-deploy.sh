@@ -174,20 +174,18 @@ check "restore brings the ledger back" \
   "$(compose exec -T db psql -U budgeteer -d budgeteer -tAc \
      "select name from envelopes where name = 'Deploy Validation'")" "Deploy Validation"
 
-# The sharp edge, asserted rather than assumed: `reset` truncates `households` CASCADE, and
-# `users.household_id` references it — so the accounts go with it, and the backup does NOT carry
-# users. A restored box has its ledger and NOBODY who can log in until `create-admin` runs again.
-# Pinned here so the recovery runbook in DEPLOY_CONTRACT.md §7 can never silently drift from it.
-check "restore leaves no user accounts — create-admin is required afterwards" \
-  "$(compose exec -T db psql -U budgeteer -d budgeteer -tAc "select count(*) from users")" "0"
-
-ADMIN_PW2="validate-$(openssl rand -hex 8)"
-compose exec -T -e ADMIN_USERNAME=validator2 -e ADMIN_PASSWORD="$ADMIN_PW2" \
-  app node apps/api/dist/cli/create-admin.js >/dev/null
-check "create-admin restores access to the recovered ledger" \
+# The half of recovery the ledger checks above cannot see (BUD-S90): auth state and ledger state
+# live in different tables, and the backup carries the ledger ONLY. Until BUD-S90, `reset`
+# truncated `households` CASCADE and `users.household_id` references it — so a restored box came
+# back with all of its data and NOBODY able to sign in. `reset` now leaves `households`, `users`
+# and `sessions` alone. Pinned here, against a real container, so the recovery runbook in
+# DEPLOY_CONTRACT.md §7 can never silently drift from the behaviour.
+check "restore preserves the user accounts" \
+  "$(compose exec -T db psql -U budgeteer -d budgeteer -tAc "select count(*) from users")" "1"
+# The same `$CREDS` that set this box up before the backup was ever taken.
+check "the operator can still log in to the recovered ledger — no create-admin needed" \
   "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/auth/login" \
-     -H 'content-type: application/json' \
-     -d "{\"username\":\"validator2\",\"password\":\"$ADMIN_PW2\"}")" "200"
+     -H 'content-type: application/json' -d "$CREDS")" "200"
 
 echo "--- restart survival ---"
 compose restart app >/dev/null

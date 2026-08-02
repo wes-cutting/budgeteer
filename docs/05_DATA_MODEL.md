@@ -311,8 +311,12 @@ whole — startup fails loudly rather than running on a half-migrated store.
 never edited. Migrations are **forward-only** (no `down`; disposable PGlite dev stores make
 rollback-by-recreate cheap). A schema change ships with this doc and the code in the **same
 change**. The default-household seed row is **not** a migration — it re-runs at every startup from
-`migrateToLatest` itself, because `db:reset`'s PostgreSQL path truncates `households` but not
-`kysely_migration`. The two derived-balance views `v_account_balances` and `v_envelope_balances`
+`migrateToLatest` itself, so any store reaching that function has the row whatever route it took
+(a pre-migrator store adopting `0001`, or a restore whose backup upserts its own household values
+over it). Since `BUD-S90`, `db:reset` **preserves** `households` — and with it `users` and
+`sessions`, which reference it — so a reset-then-restore recovery no longer locks the household out
+of its own ledger (`db/resetLedger.ts`; [DEPLOY_CONTRACT §7](DEPLOY_CONTRACT.md)).
+The two derived-balance views `v_account_balances` and `v_envelope_balances`
 are (re)created with `create or replace view` in the baseline; a future view **column-type** change
 needs an explicit `drop view` + recreate in its migration (`create or replace` can't do it).
 

@@ -22,6 +22,7 @@ import { config as loadEnv } from "dotenv";
 import { loadConfig } from "../config.js";
 import { createDb } from "./connection.js";
 import { migrateToLatest } from "./migrate.js";
+import { printAccessNotice } from "./accessNotice.js";
 import { DEFAULT_HOUSEHOLD_ID } from "../constants.js";
 
 loadEnv({ path: path.resolve(import.meta.dirname, "../../../../.env") });
@@ -426,5 +427,7 @@ await db
 console.log("Seed complete.");
 console.log("  4 accounts · 22 envelopes · 3 months of transactions");
 console.log("  8 envelope targets · credit limit · loan principal · 2 recurring rules");
+
+await printAccessNotice(db);
 
 await db.destroy();
