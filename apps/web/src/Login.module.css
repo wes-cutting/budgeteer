@@ -26,6 +26,11 @@
 
 .error {
   margin: 0;
-  color: var(--color-danger-fg, #b91c1c);
+  /* `--color-danger` is the real token and it is theme-aware (tokens.css re-points it under
+     prefers-color-scheme: dark). This previously read `var(--color-danger-fg, #b91c1c)` — a token
+     name that is defined NOWHERE, so it always resolved to that hard-coded light-mode red, which
+     scored 2.78:1 against the dark surface (BUD-S91). No fallback literal here on purpose: a
+     missing token should fail visibly, not silently pin a colour the theme cannot reach. */
+  color: var(--color-danger);
   font-weight: 600;
 }

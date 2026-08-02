@@ -7,6 +7,7 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { E2E_ADMIN } from "./global-setup";
 import {
   createAccount,
   createEnvelope,
@@ -892,6 +893,50 @@ test.describe("a11y — responsive reflow at phone width (UX15)", () => {
     }) => {
       await page.goto("/");
       await scanPayPeriodsReflow(page);
+    });
+  });
+});
+
+// BUD-S91 — admin user management (`/users`, BUD-S88). Previously the only scan touching this
+// feature was of the sidebar's admin-only Users *nav entry*; the page behind it — a data table of
+// accounts plus the add-member form — had never been scanned. The suite runs as the admin
+// (global-setup), so the table always has at least that one row and never renders its empty state.
+
+/** The users table itself. Asserts a real row is present so a clean scan can't be a scan of a skeleton. */
+async function scanUsersList(page: Page) {
+  await page.goto("/users");
+  await expect(page.getByRole("heading", { name: "Users", level: 1 })).toBeVisible();
+  // The admin the suite signs in as is always present — wait for a real row, not the loading skeleton.
+  await expect(page.getByRole("row").filter({ hasText: E2E_ADMIN.username })).toBeVisible();
+  await assertNoViolations(page);
+}
+
+/** The add-member form, expanded — three labelled controls (incl. a Select) that only exist when open. */
+async function scanAddMemberForm(page: Page) {
+  await page.goto("/users");
+  await page.getByRole("button", { name: "Add member" }).click();
+  await expect(page.getByRole("form", { name: "Add member" })).toBeVisible();
+  await assertNoViolations(page);
+}
+
+test.describe("a11y — user management (BUD-S88)", () => {
+  test("the users list is accessible", async ({ page }) => {
+    await scanUsersList(page);
+  });
+
+  test("the add-member form is accessible", async ({ page }) => {
+    await scanAddMemberForm(page);
+  });
+
+  test.describe("dark mode", () => {
+    test.use({ colorScheme: "dark" });
+
+    test("the users list is accessible in dark mode", async ({ page }) => {
+      await scanUsersList(page);
+    });
+
+    test("the add-member form is accessible in dark mode", async ({ page }) => {
+      await scanAddMemberForm(page);
     });
   });
 });
