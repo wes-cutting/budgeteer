@@ -487,18 +487,21 @@ BudgeteerBackup = {
 
 > **Security:** the backup contains the user's complete financial history. Do not commit a
 > real backup to the repo (`.gitignore` already excludes data files). Tests use synthetic
-> fixtures only. The endpoint has no auth in V1 — auth-gating is part of roadmap `#19`.
+> fixtures only. The endpoint is session-gated like every other resource route (`BUD-S87`).
 
 ### Restore (EH10 / `#15b`) — a CLI, not an endpoint
 
 `npm run db:restore -- <file>` (from `apps/api`) restores a `BudgeteerBackup` file into the
-configured store. Deliberately not exposed over HTTP in V1: `GET /export` has no auth, and a
-write-side counterpart would be a remote wipe-and-replace primitive — revisit with `#19`.
+configured store. Deliberately not exposed over HTTP: an import endpoint would be a remote
+wipe-and-replace primitive, so restore stays CLI-only (SEC3 / `BUD-S38`).
 Semantics (decided in [SPIKE-09](spikes/09-restore-roundtrip.md), proven by the
 `export → restore → export` equivalence gate test):
 
-- **Non-destructive:** refuses a store containing user data (anything beyond the untouched
-  seed household); the recovery flow is `db:reset` → restore. It never deletes rows.
+- **Non-destructive:** refuses a store containing ledger data (anything beyond the untouched
+  seed household); the recovery flow is `db:reset` → restore. It never deletes rows. **Sign-in
+  accounts are orthogonal:** `users`/`sessions` are not backup tables, so they neither block a
+  restore nor travel in one — and `db:reset` leaves them in place (`BUD-S90`), so an in-place
+  recovery keeps its logins.
 - **Insert order is the FK-safe topological order** owned by `restoreService` — not the
   file's key order (which lists `transactions` before the `recurring_transactions` they
   reference).

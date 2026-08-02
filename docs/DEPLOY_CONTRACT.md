@@ -121,14 +121,19 @@ first admin while zero users exist, and is a dead endpoint from then on.
 
 Backups are taken with `GET /api/export` (authenticated) or `pg_dump` against the database volume.
 
-### Restoring — two things that will bite you
+### Restoring — what to know
 
-Both are asserted by `scripts/validate-deploy.sh`, so this runbook cannot drift from the behaviour:
+Both points are asserted by `scripts/validate-deploy.sh`, so this runbook cannot drift from the
+behaviour:
 
-1. **A restore leaves the household with no way to log in.** The documented flow is reset-then-restore,
-   and reset truncates `households` with `CASCADE` — which takes `users` (they reference it) with it.
-   The backup carries the ledger, *not* accounts. So after a restore the data is all there and
-   **nobody can sign in** until you run `create-admin` again. Do that before handing the box back.
+1. **Accounts survive the reset-then-restore flow; the backup does not carry them.** These are two
+   separate facts and both matter. `reset` empties the ledger only — it leaves `households`, `users`
+   and `sessions` untouched — so the people who could sign in before a restore can still sign in
+   after it, with no `create-admin` step in between. But `GET /api/export` contains the **ledger
+   only**: restoring a backup into a *different* box does not bring the accounts along, and that box
+   needs `create-admin` (or first-run setup) before anyone can reach the restored data.
+   *(Until `BUD-S90` this was a trap: reset truncated `households` with `CASCADE`, which took `users`
+   with it, so every restore — even in place — locked the household out of its own ledger.)*
 2. **The backup file must be readable by the container's non-root user.** The app runs as `node`,
    and `docker cp` preserves the host file's permissions — a `600` file copied in is unreadable, and
    the restore fails with `EACCES`. `chmod 644` the backup before copying it in.

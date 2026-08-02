@@ -8,6 +8,11 @@
  * without a reset first, re-running this script would pile up duplicate transactions and
  * the demo numbers would drift further from the clean baseline on every run.
  *
+ * Auth is always on and the seed creates no users, so the run also provisions its own admin
+ * through first-run `/api/auth/setup`, with a password generated per run and never stored
+ * (`provisionSession` below). The reset is what keeps that repeatable: it deletes the PGlite
+ * directory, so every run starts from zero users and `/auth/setup` is live again.
+ *
  * Each run writes into its own datetime-stamped folder under data/demo-assets/ (gitignored)
  * so past captures stay around as history instead of being overwritten.
  *
@@ -22,6 +27,7 @@
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import net from "node:net";
 import path from "node:path";
 
@@ -101,6 +107,50 @@ function startApiServer() {
   return { child, crashed };
 }
 
+/**
+ * Give the throwaway demo store its one user and return the session cookie (BUD-S90).
+ *
+ * The seed scripts create no users and `src/index.ts` always enables auth, so without this every
+ * page here answered 401 and the SPA bounced to `/login` — the capture silently produced 20
+ * screenshots of the login screen. The credential is generated per run and never written down:
+ * `/auth/setup` is a dead endpoint once a user exists, so this works exactly once, against the
+ * store this script just reset. Nothing about it is reachable from a production image (`seedDemo`
+ * is not even bundled into it).
+ *
+ * The cookie is server-signed, so it is lifted verbatim from the login response rather than
+ * constructed. Cookies ignore the port, so a `localhost` cookie set by the API on :3001 is sent to
+ * the web dev server's own origin on :5173 as well.
+ */
+async function provisionSession(): Promise<{ name: string; value: string }> {
+  const credentials = {
+    username: "demo",
+    password: `demo-${randomBytes(24).toString("base64url")}`,
+  };
+  const post = (endpoint: string) =>
+    fetch(`${API_BASE}/api/auth/${endpoint}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+
+  const setup = await post("setup");
+  if (!setup.ok) {
+    throw new Error(
+      `POST /api/auth/setup returned ${setup.status} — the demo store should have had zero users ` +
+        `after the reset+reseed above. ${await setup.text()}`,
+    );
+  }
+  const login = await post("login");
+  if (!login.ok) throw new Error(`POST /api/auth/login returned ${login.status}.`);
+
+  const header = login.headers.get("set-cookie");
+  if (header === null) throw new Error("Login succeeded but sent no Set-Cookie.");
+  const [pair] = header.split(";");
+  const separator = pair.indexOf("=");
+  if (separator < 1) throw new Error(`Could not parse the session cookie from "${pair}".`);
+  return { name: pair.slice(0, separator), value: pair.slice(separator + 1) };
+}
+
 async function waitForReady(
   url: string,
   crashed: Promise<never>,
@@ -141,10 +191,20 @@ const { child: apiServer, crashed } = startApiServer();
 try {
   await waitForReady(`${API_BASE}/api/health`, crashed);
 
+  console.log("Creating the demo store's throwaway admin...");
+  const sessionCookie = {
+    ...(await provisionSession()),
+    domain: "localhost",
+    path: "/",
+    httpOnly: true,
+    sameSite: "Strict" as const,
+  };
+
   const browser = await chromium.launch();
 
   // --- Static screens (2x device scale for crisp/retina output) ---
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 });
+  await context.addCookies([sessionCookie]);
   const page = await context.newPage();
 
   async function shot(route: string, file: string) {
@@ -242,6 +302,7 @@ try {
       viewport: VIEWPORT,
       recordVideo: { dir: path.join(OUT, "video"), size: VIEWPORT },
     });
+    await videoContext.addCookies([sessionCookie]);
     const vp = await videoContext.newPage();
     await vp.goto(`${WEB_BASE}/`, { waitUntil: "networkidle" });
     await vp.waitForTimeout(800);
