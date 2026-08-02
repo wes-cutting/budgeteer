@@ -79,6 +79,32 @@ onboarding. That is the intended full first-run story, and it has never actually
 - Retiring `create-admin`. It stays: it is the recovery path when nobody can log in, and it is the
   only option when the box is unreachable by browser.
 
+### 2.1 Enrollment model — ratified 2026-08-02 (owner)
+
+**Bootstrap one admin from the browser; that admin provisions everyone else.** There is no
+self-service registration, and this slice does not add one — `/setup` is a one-shot that goes inert
+the moment a user exists, and the only other way to create a user stays `POST /users`, admin-only
+(`BUD-S88`).
+
+Recorded as a **decision, not an omission**, because the two are indistinguishable from the code and
+the next person to read this will otherwise assume sign-up was forgotten. It is the correct default
+for a self-hosted, single-household budget app: the set of people who should ever have an account is
+small, known, and already in the room, so an open registration surface would be pure attack surface
+on a LAN box with no email to verify against (ADR-0009 §8 — no SMTP).
+
+**If coverage ever needs to expand**, the ladder from here is additive and does not invalidate this
+slice — `/setup` bootstraps the first principal regardless of how later ones arrive:
+
+1. **Admin-issued invite links** — a signed, single-use, expiring token that lets an invitee set
+   their own password without an admin handling it. The natural next rung, and the one that removes
+   the "admin types someone else's password" wrinkle in `POST /users` today.
+2. **Self-service registration** — only ever meaningful alongside a real multi-household story
+   (shape **B**, deferred in ADR-0009 in favour of a container per household). Registration without
+   tenant isolation would enroll strangers into *this* household's ledger.
+
+Neither is on the roadmap, and neither should be scoped until there is a concrete second user with
+a concrete need. Noted here so that the decision is re-openable with its reasoning intact.
+
 ## 3. User stories
 
 | ID   | Story | Priority |
