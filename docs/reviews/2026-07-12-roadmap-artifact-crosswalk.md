@@ -123,6 +123,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | `BUD-S89` | `—` | Login hardening + threat-model tests | — | — | [2026-07-31-bud-s89-login-hardening.md](../status-reports/2026-07-31-bud-s89-login-hardening.md) |
 | `BUD-S90` | `—` | A rebuilt store has a way in (reset/seed/demo auth gap) | — | — | [2026-08-01-bud-s90-rebuilt-store-access.md](../status-reports/2026-08-01-bud-s90-rebuilt-store-access.md) |
 | `BUD-S91` | `—` | Accessibility scans for the auth surfaces | — | — | [2026-08-02-bud-s91-auth-a11y.md](../status-reports/2026-08-02-bud-s91-auth-a11y.md) |
+| `BUD-S92` | `—` | First-run setup UI (`/setup` — the first admin from the browser) | [first-run-setup.md](../features/first-run-setup.md) | — | — |
 | `SPIKE-01` | `#0` | Split-allocation UX | — | [01-split-allocation-ux.md](../spikes/01-split-allocation-ux.md) | — |
 | `SPIKE-02` | `#2` | Technical feasibility / stack | — | [02-stack-feasibility.md](../spikes/02-stack-feasibility.md) | — |
 | `SPIKE-03` | `#17` | SPIKE-03 — data-profiling: | — | [03-history-extraction.md](../spikes/03-history-extraction.md) | [2026-07-10-history-import.md](../status-reports/2026-07-10-history-import.md) |
@@ -157,6 +158,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | [`features/envelope-ledger.md`](../features/envelope-ledger.md) | Implemented | `BUD-S14` (R15) |
 | [`features/envelopes.md`](../features/envelopes.md) | Implemented | `BUD-S1` (#1) |
 | [`features/first-run-onboarding.md`](../features/first-run-onboarding.md) | Implemented | `BUD-S59` (UX14) |
+| [`features/first-run-setup.md`](../features/first-run-setup.md) | Proposed | `BUD-S92` (—) |
 | [`features/inline-validation.md`](../features/inline-validation.md) | — | `BUD-S57` (UX12) |
 | [`features/insights-charts.md`](../features/insights-charts.md) | Implemented | `BUD-S53` (UX8) |
 | [`features/manage-move-money.md`](../features/manage-move-money.md) | Implemented | `BUD-S65` (UXR3) · `BUD-S69` (UXR7) |
@@ -309,6 +311,6 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 
 ## 3. Coverage
 
-- **168** of **168** artifact files carry a `roadmap-item` in their frontmatter
+- **169** of **169** artifact files carry a `roadmap-item` in their frontmatter
   and appear above — **self-describing**, no supplement, no roadmap-link dependency.
 - **0** with a frontmatter problem (see `npm run docs:check`).

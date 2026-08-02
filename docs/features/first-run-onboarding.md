@@ -12,6 +12,11 @@ dependency. No data / API / domain change (onboarding state is DERIVED from exis
 
 # Feature Spec — Empty states & first-run onboarding (UX14)
 
+> **Not [`first-run-setup.md`](first-run-setup.md) (`BUD-S92`).** This spec is the *authenticated*
+> first run — "my ledger is empty, what now?". That one is the *unauthenticated* first run — "there
+> is no account at all, how do I get in?". They compose: `/setup` creates the first admin and lands
+> on `/`, where this surface takes over.
+
 | Field        | Value                                                                 |
 | ------------ | --------------------------------------------------------------------- |
 | Feature ID   | FEAT-UX14                                                             |

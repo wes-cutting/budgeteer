@@ -144,8 +144,14 @@ The image ships the operational CLIs; run them with `docker compose exec app …
 | `node apps/api/dist/cli/disable-user.js` | Disable an account; revokes its sessions. |
 | `node apps/api/dist/db/restore.js <file>` | Restore a backup. **CLI-only by design — there is no HTTP import** (SEC3). |
 
-Alternatively, first-run onboarding is available in the browser: `POST /api/auth/setup` creates the
-first admin while zero users exist, and is a dead endpoint from then on.
+Alternatively the first admin can be created over HTTP, without `exec` into the container:
+`POST /api/auth/setup` with `{ username, password }` creates the first admin while zero users
+exist, and is a dead endpoint (`409`) from then on.
+
+> ⚠ **This is an API call, not a screen.** There is no browser setup UI — the SPA only serves
+> `/login`, which a userless box cannot get past. Until `BUD-S92` ships that surface, a fresh
+> deployment is reachable only via `create-admin` or a hand-made `POST`, so **do not hand a new
+> box to a non-technical user and expect them to get in.**
 
 Backups are taken with `GET /api/export` (authenticated) or `pg_dump` against the database volume.
 

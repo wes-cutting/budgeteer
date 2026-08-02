@@ -80,7 +80,12 @@ in the `budget-extraction` review, 2026-07-10, K27 — the catch only happened b
   blocker is closed). CORS is a browser courtesy and does not gate non-browser clients.
 - **Known accepted limitation (first-run):** `POST /auth/setup` gates on "zero users exist"
   (check-then-insert), a narrow race on the very first setup of a fresh store. Accepted for a
-  trusted-LAN first run; the out-of-band `create-admin` CLI avoids it entirely.
+  trusted-LAN first run; the out-of-band `create-admin` CLI avoids it entirely. **`BUD-S92` widens
+  the exposure of this race** by putting the endpoint behind a discoverable `/setup` screen: the
+  window stays the same length, but it becomes reachable by anyone who loads the app rather than
+  only by someone who knows the endpoint exists. That slice must therefore (a) make the
+  check-and-insert atomic rather than leaving the race merely accepted, and (b) keep the
+  `needs-setup` probe free of any detail beyond the boolean.
 
 ## 4. Dependencies & supply chain
 

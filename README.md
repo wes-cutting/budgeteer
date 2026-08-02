@@ -9,10 +9,14 @@ The core guarantee: a transaction's allocations always sum exactly to its amount
 envelope balances are **derived** from that ledger — so the books are penny-exact by construction,
 not by hand.
 
-> **Status:** V1 in progress (single-user, local-first). The domain, the full Insights area, and
-> hardening (a11y/perf budgets, CI gate, backup/export) are built and gate-green; restore/import
-> and multi-user (auth + household isolation) are still ahead. See
-> [`docs/03_ROADMAP.md`](docs/03_ROADMAP.md) for the live plan.
+> **Status:** V1 in review. The domain, the full Insights area, hardening (a11y/perf budgets, CI
+> gate, backup/export), **authentication + user management** (default-deny sessions, roles,
+> `BUD-E13`) and a **published ARM64 container image** (`BUD-E14`) are built and gate-green.
+> **Not yet:** a browser **first-run setup screen** — a brand-new install has no user and no way to
+> create one from the UI, so it needs the `create-admin` CLI or a raw `POST /api/auth/setup`
+> (see [Create the first user](#create-the-first-user)) — and a **showcase demo instance**. Both
+> are scoped as `BUD-S92` / `BUD-S93` in [`docs/03_ROADMAP-v2.md`](docs/03_ROADMAP-v2.md), the
+> live plan for the `BUD-*` ids.
 
 ---
 
@@ -43,8 +47,8 @@ not by hand.
 
 The UI is a **grouped sidebar app shell** — **Budget** (Home · Insights), **Ledgers** (Accounts ·
 Envelopes · Needs allocation), **Planning** (Templates · Recurring · Pay periods), and
-**Administration** (Manage) — with a global **Add transaction** action, a desktop collapse-to-icon
-rail, and an off-canvas drawer at phone width.
+**Administration** (Manage · Users, the latter admin-only) — with a global **Add transaction**
+action, a desktop collapse-to-icon rail, and an off-canvas drawer at phone width.
 
 ## Tech stack
 
@@ -86,16 +90,44 @@ PGlite (real Postgres compiled to WASM).
 # 1. install (workspace-aware)
 npm install
 
-# 2. configure (optional in dev — sensible defaults are built in)
-cp .env.example .env        # repo-root .env is auto-loaded (API: dotenv · web: Vite envDir)
+# 2. configure — the repo-root .env is auto-loaded (API: dotenv · web: Vite envDir)
+cp .env.example .env
 
-# 3. run the two dev servers (separate terminals)
+# 3. persist the dev store — uncomment PGLITE_DIR in .env (see "Dev database" below).
+#    Optional for a look around, REQUIRED for `npm run seed` and the `create-admin` CLI.
+
+# 4. run the two dev servers (separate terminals)
 npm run dev --workspace apps/api    # API  → http://localhost:3001
 npm run dev --workspace apps/web    # web  → http://localhost:5173
 ```
 
 Open **http://localhost:5173**. The web app talks to the API at `http://localhost:3001`; the API
-allows the dev origin via CORS out of the box.
+allows the dev origin via CORS out of the box — and bounces you to `/login`, because there is no
+user yet. Create one:
+
+### Create the first user
+
+**Authentication is always on**
+([ADR-0009](docs/adr/ADR-0009-authentication-household-scoping.md)) — the API answers `401` to
+every request without a session, and the SPA redirects to `/login`. A brand-new store contains
+**no user**, and **there is no sign-up or setup screen yet** (`BUD-S92`), so the first admin is
+created out of band. Two ways — both produce an **admin**, but only one works on the default
+in-memory store:
+
+```bash
+# A. the CLI — needs a persistent store (PGLITE_DIR or DATABASE_URL). From apps/api/:
+ADMIN_USERNAME=you ADMIN_PASSWORD='a-long-passphrase' npm run create-admin
+```
+
+```bash
+# B. the first-run endpoint — against a RUNNING API. The only route that works for the
+#    default in-memory store, since the CLI needs a persistent one.
+curl -X POST http://localhost:3001/api/auth/setup -H 'content-type: application/json' -d '{"username":"you","password":"a-long-passphrase"}'
+```
+
+`POST /api/auth/setup` is public **only while zero users exist** and answers `409 Setup is already
+complete.` from then on. Passwords are minimum 8 characters. Then sign in at
+**http://localhost:5173/login**; an admin can add further members from **Administration → Users**.
 
 ## Configuration
 
@@ -104,12 +136,17 @@ startup — the app fails loudly on invalid config. See [`.env.example`](.env.ex
 
 | Variable | Where | Default | Purpose |
 | -------- | ----- | ------- | ------- |
+| `APP_ENV` | api | `development` | `development` · `test` · `production`. Production **requires** `SESSION_SECRET` and `DATABASE_URL` — startup fails without them |
 | `PORT` | api | `3001` | API listen port |
-| `HOST` | api | `127.0.0.1` | Interface the API binds. Loopback-only by default — the API has no auth, so widening to `0.0.0.0` (LAN) is a deliberate opt-in (see [`docs/SECURITY.md`](docs/SECURITY.md) §3) |
-| `DATABASE_URL` | api | _unset_ → in-process PGlite | Set to a Postgres URL in production |
-| `PGLITE_DIR` | api | _unset_ → in-memory (ephemeral) | Path to a file-based PGlite store; required by `npm run seed` / `seed:demo` / `db:reset` / `db:fresh`. Ignored when `DATABASE_URL` is set. |
+| `HOST` | api | `127.0.0.1` | Interface the API binds. Loopback by default as defense-in-depth, but `0.0.0.0` (LAN) is **safe** since auth landed — default-deny at the resource level closed the old exposure blocker ([`docs/SECURITY.md`](docs/SECURITY.md) §3). The production image binds `0.0.0.0` |
+| `LOG_LEVEL` | api | `info` | `fatal` … `trace` \| `silent`. Validated against a closed set, so a typo fails at startup |
+| `DATABASE_URL` | api | _unset_ → in-process PGlite | Set to a Postgres URL in production. **Required** there — PGlite is a devDependency and is not in the production image |
+| `PGLITE_DIR` | api | _unset_ → in-memory (ephemeral) | Path to a file-based PGlite store; required by `npm run seed` / `seed:demo` / `db:reset` / `db:fresh` / `create-admin`. Ignored when `DATABASE_URL` is set. |
+| `SESSION_SECRET` | api | dev/e2e fallback | Signs the session cookie. **Required in production** (min 16 chars; `openssl rand -base64 48`). Never commit it |
+| `SESSION_COOKIE_SECURE` | api | on in production, off elsewhere | Marks the session cookie `Secure` (HTTPS only). ⚠ A browser **discards** a `Secure` cookie sent over plain HTTP, so a TLS-less deploy accepts the login and bounces straight back to `/login`. Terminate TLS at a proxy, or set `false` on a LAN you trust |
 | `CORS_ORIGINS` | api | dev origins | Comma-separated **allowlist** of browser origins (never `*`) |
-| `VITE_API_BASE_URL` | web | `http://localhost:3001` | Base URL the browser uses to reach the API |
+| `WEB_STATIC_ROOT` | api | _unset_ → API only | Absolute path to `apps/web/dist`. Set → this process also serves the SPA (the one-image container shape, [ADR-0008](docs/adr/ADR-0008-containerized-production-runtime.md) §1). Startup fails if the path holds no `index.html` |
+| `VITE_API_BASE_URL` | web | `http://localhost:3001` | **Origin** the browser uses to reach the API — no path; the client appends `/api` itself. Set **empty** for a same-origin deployment |
 
 ## Dev database
 
@@ -132,8 +169,9 @@ Then, from the `apps/api/` directory:
 #   8 envelope targets · credit limit · loan principal · 2 recurring rules
 npm run seed
 
-# Empty the store (irreversible). With PGLITE_DIR it deletes the directory, user accounts
-# included; against DATABASE_URL it empties the ledger and KEEPS the household + accounts:
+# Empty the store (irreversible). With PGLITE_DIR it deletes the directory, USER accounts
+# included; against DATABASE_URL it empties the ledger only and KEEPS the household + its
+# USER logins (so a production restore never locks you out — BUD-S90):
 npm run db:reset
 
 # Reset + re-seed in one shot (the usual "start fresh" command):
@@ -152,7 +190,8 @@ npm run db:restore -- path/to/budgeteer-backup-YYYY-MM-DD.json
 **A seeded store has no way into it.** Seeding fills the ledger and deliberately never creates a
 credential, and auth is always on — so a fresh `db:fresh` against a PGlite store answers `401` to
 everything and the app bounces to `/login`. The seed scripts say so when they finish; take either
-route they offer (`create-admin`, or first-run onboarding in the browser).
+route in [Create the first user](#create-the-first-user). Note that the second route is a **raw
+`POST`**, not a screen — the browser setup UI is `BUD-S92`, still to build.
 
 `seed` is **idempotent** — it exits quietly if data already exists. Run `db:fresh` if you want
 to replace existing data. `seed:demo` is a **separate, deterministic** dev tool (fixed-seed
@@ -173,6 +212,15 @@ ephemeral in-memory PGlite and tears it down — no `PGLITE_DIR` needed, no clea
 | `npm run test:e2e` | Playwright browser e2e — boots the real API + web, drives Chromium |
 | `npm run format` | Prettier check (`format:write` to fix) |
 | `npm run build --workspace apps/web` | Production build of the web app |
+
+Operational CLIs live in `apps/api` and have **no HTTP surface** — run them with
+`npm run <cmd> --workspace @budgeteer/api` (all three need a persistent store):
+
+| Command | What it does |
+| ------- | ------------ |
+| `create-admin` | Create an admin out of band (reads `ADMIN_USERNAME` / `ADMIN_PASSWORD` from the environment so the password stays out of shell history) |
+| `reset-password` | Reset a user's password — **revokes their sessions** |
+| `disable-user` | Disable an account — revokes its sessions |
 
 The project follows a **gate-green** rule: typecheck, lint, `npm test`, format, `npm run test:e2e`,
 and the web build must all pass before any change is considered done
@@ -210,8 +258,12 @@ npm run test:e2e                      # browser e2e (needs Chromium; see Scripts
   allocations (SQL views), never cached.
 - **Validate at the boundary** — every request is validated (shape + domain rules); invalid input
   fails loudly with a consistent error envelope.
-- **Designed toward multi-tenant** — every row carries a `household_id`; V1 runs a single implicit
-  household with **no authentication yet** (local single-user). Auth/isolation is a post-V1 epic.
+- **Default-deny authentication** — every row carries a `household_id`, and every request is scoped
+  to the **principal derived from an opaque, revocable session** rather than to a constant. Nothing
+  but `/api/health` and the public auth routes is reachable without one
+  ([ADR-0009](docs/adr/ADR-0009-authentication-household-scoping.md)). V1 runs **one household with
+  many member users** (roles: admin/member); isolated multi-household is deliberately deferred in
+  favour of a container per household.
 
 ## Documentation
 
