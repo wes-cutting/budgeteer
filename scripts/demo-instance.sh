@@ -31,7 +31,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 COMPOSE_FILE="deploy/compose.demo.yaml"
-ENV_FILE="deploy/.env.demo"
+# Overridable so scripts/validate-demo.sh can drive THIS script — not a copy of it — against
+# its own throwaway secrets and ports, without going near the operator's demo box. Nothing
+# else should set it; an operator always wants deploy/.env.demo.
+ENV_FILE="${BUDGETEER_DEMO_ENV_FILE:-deploy/.env.demo}"
 
 # The published demo credential. Documented, not invented per run: a showing that begins by
 # reading a freshly generated password off a terminal is not a demo you can hand to someone,

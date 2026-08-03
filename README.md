@@ -229,6 +229,18 @@ It shares nothing with a real deployment — its own compose project, its own vo
 including the two places it deliberately differs from the production stack, is
 [DEPLOY_CONTRACT §10](docs/DEPLOY_CONTRACT.md).
 
+Those claims are pinned by a harness — run it after touching `deploy/compose.demo.yaml` or
+`scripts/demo-instance.sh`:
+
+```bash
+./scripts/validate-demo.sh              # 47 checks; own project, own ports, torn down on exit
+```
+
+It never touches a demo box you have up on `:3010` (it runs on `:3098`/`:5435` under its own compose
+project, with per-run secrets in a temp file). Like its sibling `scripts/validate-deploy.sh` (`:3099`,
+the production profile), it needs a container runtime and is therefore **not a gate step** — never run
+either one alongside `npm run test:e2e`.
+
 ## Scripts (from the repo root)
 
 | Command | What it does |

@@ -294,3 +294,25 @@ The ledger reset runs *inside* the container and preserves `households`, `users`
 (BUD-S90, §7), which is why the demo account survives a refresh instead of having to be recreated. For
 a box that is dirty in some way `refresh` does not cover, `down --purge && up` rebuilds it from
 nothing.
+
+### What pins all of the above (`BUD-S96`)
+
+Everything in this section is asserted by [`scripts/validate-demo.sh`](../scripts/validate-demo.sh),
+so the runbook cannot drift from the behaviour — the same relationship
+[`validate-deploy.sh`](../scripts/validate-deploy.sh) has to §5 and §7. **47 checks**: the published
+credential, the seeded shape, default-deny while anonymous, both deviations above, and `refresh`
+re-pristining a *deliberately dirtied* box — stray data gone, the changed password restored, the
+previous viewer's session revoked — then `down --purge` leaving nothing.
+
+The isolation claims under *What it does not share* are asserted **statically**, from
+`docker compose config` with a hostile environment exported and no container started: an exported
+`DATABASE_URL` cannot redirect the demo box, an exported `SESSION_SECRET` cannot become its signing
+key, and the project name still resolves to `budgeteer-demo` rather than the parent directory. Each
+was verified to fail against the corresponding injected defect, so none of them is vacuously green.
+
+```bash
+./scripts/validate-demo.sh        # own project on :3098/:5435 — never touches a box on :3010
+```
+
+It needs a container runtime, so — like `validate-deploy.sh` — it is **a local tool, not a gate
+step**, and it must never run alongside the e2e suite or the deploy harness.
