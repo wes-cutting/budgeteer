@@ -1,3 +1,8 @@
+---
+id: DOC-UX-ASSETS-README
+type: index
+---
+
 # UX reference assets
 
 Reference images the UX specs link to (design-session screenshots, mockups).

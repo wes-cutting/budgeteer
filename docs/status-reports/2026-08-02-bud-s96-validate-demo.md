@@ -1,4 +1,5 @@
 ---
+id: SR-2026-08-02-bud-s96-validate-demo
 type: status-report
 roadmap-item: BUD-S96
 status: Snapshot

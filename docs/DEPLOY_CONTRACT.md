@@ -1,4 +1,5 @@
 ---
+id: DOC-DEPLOY-CONTRACT
 type: reference
 status: Implemented
 ---

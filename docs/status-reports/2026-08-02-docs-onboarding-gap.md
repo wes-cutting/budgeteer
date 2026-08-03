@@ -1,4 +1,5 @@
 ---
+id: SR-2026-08-02-docs-onboarding-gap
 type: status-report
 roadmap-item: [BUD-S92, BUD-S93]
 status: Snapshot

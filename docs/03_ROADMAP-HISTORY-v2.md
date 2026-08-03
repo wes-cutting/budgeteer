@@ -1,4 +1,5 @@
 ---
+id: DOC-ROADMAP-HISTORY
 type: roadmap
 status: Append-only
 ---
@@ -142,93 +143,94 @@ newest linked status report. Full detail lives in the plan (`03_ROADMAP-v2.md` �
 
 | Shipped | ID | Was | Item | Report |
 | --- | --- | --- | --- | --- |
-| 2026-08-02 | `BUD-S96` | `—` | Pin the demo profile with a validation harness | [report](../status-reports/2026-08-02-bud-s96-validate-demo.md) |
-| 2026-08-02 | `BUD-S95` | `—` | Bring repo tooling under typecheck (`scripts/**`) | [report](../status-reports/2026-08-02-bud-s95-tooling-typecheck.md) |
-| 2026-08-02 | `BUD-S93` | `—` | Demo instance (separate showcase container) | [report](../status-reports/2026-08-02-docs-onboarding-gap.md) |
-| 2026-08-02 | `BUD-S92` | `—` | First-run setup UI (`/setup` — the first admin from the browser) | [report](../status-reports/2026-08-02-docs-onboarding-gap.md) |
-| 2026-08-02 | `BUD-S91` | `—` | Accessibility scans for the auth surfaces | [report](../status-reports/2026-08-02-bud-s91-auth-a11y.md) |
-| 2026-08-02 | `BUD-S84` | `—` | CI image publishing to GHCR (ARM64) | [report](../status-reports/2026-08-02-bud-s84-ghcr-publish.md) |
-| 2026-08-01 | `BUD-S90` | `—` | A rebuilt store has a way in (reset/seed/demo auth gap) | [report](../status-reports/2026-08-01-bud-s90-rebuilt-store-access.md) |
-| 2026-08-01 | `BUD-S83` | `—` | Production config profile + deploy contract | [report](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
-| 2026-08-01 | `BUD-S82` | `—` | Production Postgres validation + `/health` DB readiness | [report](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
-| 2026-08-01 | `BUD-S81` | `—` | Containerization — multi-stage ARM64 image | [report](../status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
-| 2026-07-31 | `BUD-S89` | `—` | Login hardening + threat-model tests | [report](../status-reports/2026-07-31-bud-s89-login-hardening.md) |
-| 2026-07-31 | `BUD-S88` | `—` | Roles + user management | [report](../status-reports/2026-07-31-bud-s88-roles-user-management.md) |
-| 2026-07-29 | `BUD-S87` | `—` | Auth core + login | [report](../status-reports/2026-07-29-bud-s87-auth-core.md) |
-| 2026-07-29 | `BUD-S86` | `—` | Principal seam refactor | [report](../status-reports/2026-07-29-bud-s86-principal-seam.md) |
-| 2026-07-10 | `BUD-S80` | `#20` | Statement import | [report](../status-reports/2026-07-10-statement-import.md) |
-| 2026-07-10 | `BUD-S79` | `#18` | Historical import | [report](../status-reports/2026-07-10-history-import.md) |
-| 2026-07-08 | `BUD-S75` | `UXR13` | Allocate form on the pattern | [report](../status-reports/2026-07-08-uxr13-allocate-form.md) |
-| 2026-07-08 | `BUD-S74` | `UXR12` | Manage page formatting | [report](../status-reports/2026-07-08-uxr12-manage-formatting.md) |
-| 2026-07-08 | `BUD-S73` | `UXR11` | Add-transaction cleanup | [report](../status-reports/2026-07-08-uxr11-add-transaction.md) |
-| 2026-07-07 | `BUD-S72` | `UXR10` | Insights chart X-axis readability | [report](../status-reports/2026-07-07-uxr10-chart-xaxis.md) |
-| 2026-07-07 | `BUD-S71` | `UXR9` | Dashboard IA | [report](../status-reports/2026-07-07-uxr9-dashboard-ia.md) |
-| 2026-07-07 | `BUD-S70` | `UXR8` | Demo-grade synthetic seed | [report](../status-reports/2026-07-07-uxr8-demo-seed.md) |
-| 2026-07-07 | `BUD-S69` | `UXR7` | Manage page | [report](../status-reports/2026-07-07-uxr7-manage-form.md) |
-| 2026-07-07 | `BUD-S68` | `UXR6` | Insights IA | [report](../status-reports/2026-07-07-uxr6-insights-ia.md) |
-| 2026-07-07 | `BUD-S67` | `UXR5` | Recurring page | [report](../status-reports/2026-07-07-uxr5-recurring-page.md) |
-| 2026-07-07 | `BUD-S66` | `UXR4` | Templates page | [report](../status-reports/2026-07-07-uxr4-templates-page.md) |
-| 2026-07-07 | `BUD-S65` | `UXR3` | Ledgers tables | [report](../status-reports/2026-07-07-uxr3-ledgers-tables.md) |
-| 2026-07-07 | `BUD-S64` | `UXR2` | Pay-period planner | [report](../status-reports/2026-07-07-uxr2-pay-period-planner.md) |
-| 2026-07-07 | `BUD-S63` | `UXR1` | Sidebar app shell | [report](../status-reports/2026-07-07-uxr1-sidebar-shell.md) |
-| 2026-07-03 | `BUD-S62` | `S9` | "Still owed this month" | [report](../status-reports/2026-07-03-s9-s7-spec.md) |
-| 2026-07-03 | `BUD-S61` | `S7` | Pay-period planning | [report](../status-reports/2026-07-03-s7-slice.md) |
-| 2026-07-03 | `BUD-S35` | `EH14` | Make post-due idempotency structural | [report](../status-reports/2026-07-03-eh9-eh14.md) |
-| 2026-07-03 | `BUD-S34` | `EH13` | Lint the layer boundaries | [report](../status-reports/2026-07-03-eh12-eh13.md) |
-| 2026-07-03 | `BUD-S33` | `EH12` | Share the DTO types; decide the client-boundary stance | [report](../status-reports/2026-07-03-eh12-eh13.md) |
-| 2026-07-03 | `BUD-S31` | `EH10` | Prove restore | [report](../status-reports/2026-07-03-eh10.md) |
-| 2026-07-03 | `BUD-S30` | `EH9` | Versioned migrator | [report](../status-reports/2026-07-03-eh9-eh14.md) |
-| 2026-07-03 | `BUD-S29` | `EH8` | Decide + document the timezone policy | [report](../status-reports/2026-07-03-eh8.md) |
-| 2026-07-02 | `BUD-S60` | `UX15` | Responsive pass | [report](../status-reports/2026-07-02-ux15.md) |
-| 2026-07-02 | `BUD-S59` | `UX14` | Empty states & first-run onboarding | [report](../status-reports/2026-07-02-ux14.md) |
-| 2026-07-02 | `BUD-S58` | `UX13` | Money & budget-health visual encoding | [report](../status-reports/2026-07-02-ux13.md) |
-| 2026-07-02 | `BUD-S57` | `UX12` | Feedback & states | [report](../status-reports/2026-07-02-ux12d.md) |
-| 2026-07-02 | `BUD-S32` | `EH11` | Bind localhost by default | [report](../status-reports/2026-07-02-eh11.md) |
-| 2026-07-02 | `BUD-S28` | `EH7` | Inject the clock into services | [report](../status-reports/2026-07-02-eh7.md) |
-| 2026-07-01 | `BUD-S56` | `UX11` | New viz: budget burn-down | [report](../status-reports/2026-07-01-ux11.md) |
-| 2026-07-01 | `BUD-S55` | `UX10` | New viz: spending trends over time | [report](../status-reports/2026-07-01-ux10.md) |
-| 2026-06-28 | `BUD-S54` | `UX9` | New viz: spending breakdown | [report](../status-reports/2026-06-28-ux9.md) |
-| 2026-06-28 | `BUD-S53` | `UX8` | rename + restyle the 6 views, replace number grids with accessible cha… | [report](../status-reports/2026-06-28-ux8.md) |
-| 2026-06-28 | `BUD-S52` | `UX7` | Global quick-add transaction | [report](../status-reports/2026-06-28-ux7.md) |
-| 2026-06-28 | `BUD-S51` | `UX6` | Demote management to a dedicated surface | [report](../status-reports/2026-06-28-ux6.md) |
-| 2026-06-27 | `BUD-S50` | `UX5` | Home: budget + future-planning cockpit | [report](../status-reports/2026-06-27-ux5.md) |
-| 2026-06-27 | `BUD-S49` | `UX3` | Routing + persistent app shell | [report](../status-reports/2026-06-27-ux3.md) |
-| 2026-06-26 | `BUD-S48` | `UX4` | Design-system foundation | [report](../status-reports/2026-06-26-ux4.md) |
-| 2026-06-23 | `BUD-S46` | `R13` | Structured API logging | [report](../status-reports/2026-06-23-r13.md) |
-| 2026-06-23 | `BUD-S45` | `R12` | React error boundaries | [report](../status-reports/2026-06-23-r12.md) |
-| 2026-06-22 | `BUD-S44` | `R11` | Route modularization | [report](../status-reports/2026-06-22-r11.md) |
-| 2026-06-22 | `BUD-S42` | `R5` | Envelope targets visible inline | [report](../status-reports/2026-06-22-r5.md) |
-| 2026-06-22 | `BUD-S41` | `R3` | Grouped navigation — unified Analysis section | [report](../status-reports/2026-06-22-r3.md) |
-| 2026-06-22 | `BUD-S40` | `R2` | Needs-allocation count badge | [report](../status-reports/2026-06-22-r2.md) |
-| 2026-06-22 | `BUD-S21` | `R4` | Dashboard net worth summary | [report](../status-reports/2026-06-22-r4.md) |
-| 2026-06-22 | `BUD-S20` | `R9` | Net worth over time analysis | [report](../status-reports/2026-06-22-r9.md) |
-| 2026-06-22 | `BUD-S13` | `R8` | Transaction search / filter | [report](../status-reports/2026-06-22-r8.md) |
-| 2026-06-21 | `BUD-S78` | `#16` | a11y pass | [report](../status-reports/2026-06-21-16.md) |
-| 2026-06-21 | `BUD-S39` | `R1` | Account rename in UI | [report](../status-reports/2026-06-21-r1.md) |
-| 2026-06-21 | `BUD-S14` | `R15` | Envelope ledger | [report](../status-reports/2026-06-21-r15.md) |
-| 2026-06-21 | `BUD-S12` | `R7` | Account archive / close | [report](../status-reports/2026-06-21-r7.md) |
-| 2026-06-21 | `BUD-S11` | `R6` | Transaction delete | [report](../status-reports/2026-06-21-r6.md) |
-| 2026-06-17 | `BUD-S76` | `#15a` | Backup / export | [report](../status-reports/2026-06-17-slice-15a.md) |
-| 2026-06-17 | `BUD-S47` | `R14` | e2e expansion | [report](../status-reports/2026-06-17-r14.md) |
-| 2026-06-16 | `BUD-S19` | `#14b` | debt payoff % | [report](../status-reports/2026-06-16-slice-14b.md) |
-| 2026-06-16 | `BUD-S18` | `#14a` | credit utilization | [report](../status-reports/2026-06-16-slice-14a.md) |
-| 2026-06-16 | `BUD-S17` | `#13` | cash-flow forecast | [report](../status-reports/2026-06-16-slice-13.md) |
-| 2026-06-16 | `BUD-S16` | `#12` | budget vs. actual | [report](../status-reports/2026-06-16-slice-12.md) |
-| 2026-06-15 | `BUD-S27` | `EH6` | Repo hygiene | [report](../status-reports/2026-06-15-eh6.md) |
-| 2026-06-15 | `BUD-S26` | `EH5` | Browser e2e | [report](../status-reports/2026-06-15-eh5.md) |
-| 2026-06-15 | `BUD-S25` | `EH4` | Add ESLint to the gate | [report](../status-reports/2026-06-15-eh4.md) |
-| 2026-06-15 | `BUD-S24` | `EH3` | Map DB unique-violation → 409 | [report](../status-reports/2026-06-15-eh3.md) |
-| 2026-06-15 | `BUD-S23` | `EH2` | Extract API service plumbing | [report](../status-reports/2026-06-15-eh2.md) |
-| 2026-06-15 | `BUD-S22` | `EH1` | Share the domain in the web | [report](../status-reports/2026-06-15-eh1.md) |
-| 2026-06-15 | `BUD-S15` | `#11` | spend by envelope over time | [report](../status-reports/2026-06-15-slice-11.md) |
-| 2026-06-15 | `BUD-S10` | `#10` | Reconcile to bank | [report](../status-reports/2026-06-15-slice-10.md) |
-| 2026-06-14 | `BUD-S9` | `#9` | Recurring transactions | [report](../status-reports/2026-06-14-slice-9.md) |
-| 2026-06-14 | `BUD-S8` | `#8` | Refunds | [report](../status-reports/2026-06-14-slice-8.md) |
-| 2026-06-14 | `BUD-S7` | `#7b` | Reallocation | [report](../status-reports/2026-06-14-slice-7b.md) |
-| 2026-06-14 | `BUD-S6` | `#7a` | Transfer | [report](../status-reports/2026-06-14-slice-7a.md) |
-| 2026-06-13 | `BUD-S5` | `#6` | Archive an envelope | [report](../status-reports/2026-06-13-slice-6.md) |
-| 2026-06-13 | `BUD-S4` | `#5` | Edit a past split | [report](../status-reports/2026-06-13-slice-5.md) |
-| 2026-06-13 | `BUD-S3` | `#4` | accelerators — templates/presets | [report](../status-reports/2026-06-13-slice-2.md) |
-| 2026-06-13 | `BUD-S2` | `#3` | core enter→allocate loop — enter deposit/withdrawal → allocate in Sing… | [report](../status-reports/2026-06-13-slice-1.md) |
-| 2026-06-13 | `BUD-S1` | `#1` | Foundation | [report](../status-reports/2026-06-13-foundation-slice.md) |
+| 2026-08-03 | `BUD-S97` | `—` | Stable doc ids + link integrity in the gate (`K30` Part B) | [report](status-reports/2026-08-03-bud-s97-doc-ids-links.md) |
+| 2026-08-02 | `BUD-S96` | `—` | Pin the demo profile with a validation harness | [report](status-reports/2026-08-02-bud-s96-validate-demo.md) |
+| 2026-08-02 | `BUD-S95` | `—` | Bring repo tooling under typecheck (`scripts/**`) | [report](status-reports/2026-08-02-bud-s95-tooling-typecheck.md) |
+| 2026-08-02 | `BUD-S93` | `—` | Demo instance (separate showcase container) | [report](status-reports/2026-08-02-docs-onboarding-gap.md) |
+| 2026-08-02 | `BUD-S92` | `—` | First-run setup UI (`/setup` — the first admin from the browser) | [report](status-reports/2026-08-02-docs-onboarding-gap.md) |
+| 2026-08-02 | `BUD-S91` | `—` | Accessibility scans for the auth surfaces | [report](status-reports/2026-08-02-bud-s91-auth-a11y.md) |
+| 2026-08-02 | `BUD-S84` | `—` | CI image publishing to GHCR (ARM64) | [report](status-reports/2026-08-02-bud-s84-ghcr-publish.md) |
+| 2026-08-01 | `BUD-S90` | `—` | A rebuilt store has a way in (reset/seed/demo auth gap) | [report](status-reports/2026-08-01-bud-s90-rebuilt-store-access.md) |
+| 2026-08-01 | `BUD-S83` | `—` | Production config profile + deploy contract | [report](status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| 2026-08-01 | `BUD-S82` | `—` | Production Postgres validation + `/health` DB readiness | [report](status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| 2026-08-01 | `BUD-S81` | `—` | Containerization — multi-stage ARM64 image | [report](status-reports/2026-08-01-bud-s81-s85-hub-deploy.md) |
+| 2026-07-31 | `BUD-S89` | `—` | Login hardening + threat-model tests | [report](status-reports/2026-07-31-bud-s89-login-hardening.md) |
+| 2026-07-31 | `BUD-S88` | `—` | Roles + user management | [report](status-reports/2026-07-31-bud-s88-roles-user-management.md) |
+| 2026-07-29 | `BUD-S87` | `—` | Auth core + login | [report](status-reports/2026-07-29-bud-s87-auth-core.md) |
+| 2026-07-29 | `BUD-S86` | `—` | Principal seam refactor | [report](status-reports/2026-07-29-bud-s86-principal-seam.md) |
+| 2026-07-10 | `BUD-S80` | `#20` | Statement import | [report](status-reports/2026-07-10-statement-import.md) |
+| 2026-07-10 | `BUD-S79` | `#18` | Historical import | [report](status-reports/2026-07-10-history-import.md) |
+| 2026-07-08 | `BUD-S75` | `UXR13` | Allocate form on the pattern | [report](status-reports/2026-07-08-uxr13-allocate-form.md) |
+| 2026-07-08 | `BUD-S74` | `UXR12` | Manage page formatting | [report](status-reports/2026-07-08-uxr12-manage-formatting.md) |
+| 2026-07-08 | `BUD-S73` | `UXR11` | Add-transaction cleanup | [report](status-reports/2026-07-08-uxr11-add-transaction.md) |
+| 2026-07-07 | `BUD-S72` | `UXR10` | Insights chart X-axis readability | [report](status-reports/2026-07-07-uxr10-chart-xaxis.md) |
+| 2026-07-07 | `BUD-S71` | `UXR9` | Dashboard IA | [report](status-reports/2026-07-07-uxr9-dashboard-ia.md) |
+| 2026-07-07 | `BUD-S70` | `UXR8` | Demo-grade synthetic seed | [report](status-reports/2026-07-07-uxr8-demo-seed.md) |
+| 2026-07-07 | `BUD-S69` | `UXR7` | Manage page | [report](status-reports/2026-07-07-uxr7-manage-form.md) |
+| 2026-07-07 | `BUD-S68` | `UXR6` | Insights IA | [report](status-reports/2026-07-07-uxr6-insights-ia.md) |
+| 2026-07-07 | `BUD-S67` | `UXR5` | Recurring page | [report](status-reports/2026-07-07-uxr5-recurring-page.md) |
+| 2026-07-07 | `BUD-S66` | `UXR4` | Templates page | [report](status-reports/2026-07-07-uxr4-templates-page.md) |
+| 2026-07-07 | `BUD-S65` | `UXR3` | Ledgers tables | [report](status-reports/2026-07-07-uxr3-ledgers-tables.md) |
+| 2026-07-07 | `BUD-S64` | `UXR2` | Pay-period planner | [report](status-reports/2026-07-07-uxr2-pay-period-planner.md) |
+| 2026-07-07 | `BUD-S63` | `UXR1` | Sidebar app shell | [report](status-reports/2026-07-07-uxr1-sidebar-shell.md) |
+| 2026-07-03 | `BUD-S62` | `S9` | "Still owed this month" | [report](status-reports/2026-07-03-s9-s7-spec.md) |
+| 2026-07-03 | `BUD-S61` | `S7` | Pay-period planning | [report](status-reports/2026-07-03-s7-slice.md) |
+| 2026-07-03 | `BUD-S35` | `EH14` | Make post-due idempotency structural | [report](status-reports/2026-07-03-eh9-eh14.md) |
+| 2026-07-03 | `BUD-S34` | `EH13` | Lint the layer boundaries | [report](status-reports/2026-07-03-eh12-eh13.md) |
+| 2026-07-03 | `BUD-S33` | `EH12` | Share the DTO types; decide the client-boundary stance | [report](status-reports/2026-07-03-eh12-eh13.md) |
+| 2026-07-03 | `BUD-S31` | `EH10` | Prove restore | [report](status-reports/2026-07-03-eh10.md) |
+| 2026-07-03 | `BUD-S30` | `EH9` | Versioned migrator | [report](status-reports/2026-07-03-eh9-eh14.md) |
+| 2026-07-03 | `BUD-S29` | `EH8` | Decide + document the timezone policy | [report](status-reports/2026-07-03-eh8.md) |
+| 2026-07-02 | `BUD-S60` | `UX15` | Responsive pass | [report](status-reports/2026-07-02-ux15.md) |
+| 2026-07-02 | `BUD-S59` | `UX14` | Empty states & first-run onboarding | [report](status-reports/2026-07-02-ux14.md) |
+| 2026-07-02 | `BUD-S58` | `UX13` | Money & budget-health visual encoding | [report](status-reports/2026-07-02-ux13.md) |
+| 2026-07-02 | `BUD-S57` | `UX12` | Feedback & states | [report](status-reports/2026-07-02-ux12d.md) |
+| 2026-07-02 | `BUD-S32` | `EH11` | Bind localhost by default | [report](status-reports/2026-07-02-eh11.md) |
+| 2026-07-02 | `BUD-S28` | `EH7` | Inject the clock into services | [report](status-reports/2026-07-02-eh7.md) |
+| 2026-07-01 | `BUD-S56` | `UX11` | New viz: budget burn-down | [report](status-reports/2026-07-01-ux11.md) |
+| 2026-07-01 | `BUD-S55` | `UX10` | New viz: spending trends over time | [report](status-reports/2026-07-01-ux10.md) |
+| 2026-06-28 | `BUD-S54` | `UX9` | New viz: spending breakdown | [report](status-reports/2026-06-28-ux9.md) |
+| 2026-06-28 | `BUD-S53` | `UX8` | rename + restyle the 6 views, replace number grids with accessible cha… | [report](status-reports/2026-06-28-ux8.md) |
+| 2026-06-28 | `BUD-S52` | `UX7` | Global quick-add transaction | [report](status-reports/2026-06-28-ux7.md) |
+| 2026-06-28 | `BUD-S51` | `UX6` | Demote management to a dedicated surface | [report](status-reports/2026-06-28-ux6.md) |
+| 2026-06-27 | `BUD-S50` | `UX5` | Home: budget + future-planning cockpit | [report](status-reports/2026-06-27-ux5.md) |
+| 2026-06-27 | `BUD-S49` | `UX3` | Routing + persistent app shell | [report](status-reports/2026-06-27-ux3.md) |
+| 2026-06-26 | `BUD-S48` | `UX4` | Design-system foundation | [report](status-reports/2026-06-26-ux4.md) |
+| 2026-06-23 | `BUD-S46` | `R13` | Structured API logging | [report](status-reports/2026-06-23-r13.md) |
+| 2026-06-23 | `BUD-S45` | `R12` | React error boundaries | [report](status-reports/2026-06-23-r12.md) |
+| 2026-06-22 | `BUD-S44` | `R11` | Route modularization | [report](status-reports/2026-06-22-r11.md) |
+| 2026-06-22 | `BUD-S42` | `R5` | Envelope targets visible inline | [report](status-reports/2026-06-22-r5.md) |
+| 2026-06-22 | `BUD-S41` | `R3` | Grouped navigation — unified Analysis section | [report](status-reports/2026-06-22-r3.md) |
+| 2026-06-22 | `BUD-S40` | `R2` | Needs-allocation count badge | [report](status-reports/2026-06-22-r2.md) |
+| 2026-06-22 | `BUD-S21` | `R4` | Dashboard net worth summary | [report](status-reports/2026-06-22-r4.md) |
+| 2026-06-22 | `BUD-S20` | `R9` | Net worth over time analysis | [report](status-reports/2026-06-22-r9.md) |
+| 2026-06-22 | `BUD-S13` | `R8` | Transaction search / filter | [report](status-reports/2026-06-22-r8.md) |
+| 2026-06-21 | `BUD-S78` | `#16` | a11y pass | [report](status-reports/2026-06-21-16.md) |
+| 2026-06-21 | `BUD-S39` | `R1` | Account rename in UI | [report](status-reports/2026-06-21-r1.md) |
+| 2026-06-21 | `BUD-S14` | `R15` | Envelope ledger | [report](status-reports/2026-06-21-r15.md) |
+| 2026-06-21 | `BUD-S12` | `R7` | Account archive / close | [report](status-reports/2026-06-21-r7.md) |
+| 2026-06-21 | `BUD-S11` | `R6` | Transaction delete | [report](status-reports/2026-06-21-r6.md) |
+| 2026-06-17 | `BUD-S76` | `#15a` | Backup / export | [report](status-reports/2026-06-17-slice-15a.md) |
+| 2026-06-17 | `BUD-S47` | `R14` | e2e expansion | [report](status-reports/2026-06-17-r14.md) |
+| 2026-06-16 | `BUD-S19` | `#14b` | debt payoff % | [report](status-reports/2026-06-16-slice-14b.md) |
+| 2026-06-16 | `BUD-S18` | `#14a` | credit utilization | [report](status-reports/2026-06-16-slice-14a.md) |
+| 2026-06-16 | `BUD-S17` | `#13` | cash-flow forecast | [report](status-reports/2026-06-16-slice-13.md) |
+| 2026-06-16 | `BUD-S16` | `#12` | budget vs. actual | [report](status-reports/2026-06-16-slice-12.md) |
+| 2026-06-15 | `BUD-S27` | `EH6` | Repo hygiene | [report](status-reports/2026-06-15-eh6.md) |
+| 2026-06-15 | `BUD-S26` | `EH5` | Browser e2e | [report](status-reports/2026-06-15-eh5.md) |
+| 2026-06-15 | `BUD-S25` | `EH4` | Add ESLint to the gate | [report](status-reports/2026-06-15-eh4.md) |
+| 2026-06-15 | `BUD-S24` | `EH3` | Map DB unique-violation → 409 | [report](status-reports/2026-06-15-eh3.md) |
+| 2026-06-15 | `BUD-S23` | `EH2` | Extract API service plumbing | [report](status-reports/2026-06-15-eh2.md) |
+| 2026-06-15 | `BUD-S22` | `EH1` | Share the domain in the web | [report](status-reports/2026-06-15-eh1.md) |
+| 2026-06-15 | `BUD-S15` | `#11` | spend by envelope over time | [report](status-reports/2026-06-15-slice-11.md) |
+| 2026-06-15 | `BUD-S10` | `#10` | Reconcile to bank | [report](status-reports/2026-06-15-slice-10.md) |
+| 2026-06-14 | `BUD-S9` | `#9` | Recurring transactions | [report](status-reports/2026-06-14-slice-9.md) |
+| 2026-06-14 | `BUD-S8` | `#8` | Refunds | [report](status-reports/2026-06-14-slice-8.md) |
+| 2026-06-14 | `BUD-S7` | `#7b` | Reallocation | [report](status-reports/2026-06-14-slice-7b.md) |
+| 2026-06-14 | `BUD-S6` | `#7a` | Transfer | [report](status-reports/2026-06-14-slice-7a.md) |
+| 2026-06-13 | `BUD-S5` | `#6` | Archive an envelope | [report](status-reports/2026-06-13-slice-6.md) |
+| 2026-06-13 | `BUD-S4` | `#5` | Edit a past split | [report](status-reports/2026-06-13-slice-5.md) |
+| 2026-06-13 | `BUD-S3` | `#4` | accelerators — templates/presets | [report](status-reports/2026-06-13-slice-2.md) |
+| 2026-06-13 | `BUD-S2` | `#3` | core enter→allocate loop — enter deposit/withdrawal → allocate in Sing… | [report](status-reports/2026-06-13-slice-1.md) |
+| 2026-06-13 | `BUD-S1` | `#1` | Foundation | [report](status-reports/2026-06-13-foundation-slice.md) |
 | — | `BUD-S43` | `R10` | API watch mode | — |

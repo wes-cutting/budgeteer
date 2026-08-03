@@ -1,4 +1,5 @@
 ---
+id: REV-2026-07-06-ux-redesign-initiative
 type: initiative
 status: Proposed
 ---

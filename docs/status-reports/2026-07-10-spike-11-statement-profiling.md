@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-10-spike-11-statement-profiling
 type: status-report
 roadmap-item: SPIKE-11
 ---

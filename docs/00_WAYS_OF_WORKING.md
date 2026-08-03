@@ -1,4 +1,5 @@
 ---
+id: DOC-WAYS-OF-WORKING
 type: process
 status: Accepted
 ---
@@ -107,8 +108,8 @@ Rule of thumb: the amount of code you may build on a document scales with its st
 
 ### Frontmatter (machine-readable identity)
 
-Every doc under `docs/` (plus each `templates/` file, as a worked example) carries a
-lightweight YAML frontmatter block, not only the prose meta-table above:
+Every doc under `docs/` carries a lightweight YAML frontmatter block, not only the prose
+meta-table above (the `templates/` scaffolds do **not** yet — see `K47`):
 
 ```yaml
 ---
@@ -132,6 +133,49 @@ docs:check`) validates every doc's frontmatter and regenerates the crosswalk
 ([`reviews/2026-07-12-roadmap-artifact-crosswalk.md`](reviews/2026-07-12-roadmap-artifact-crosswalk.md))
 from it, wired into the gate so a missing/dangling `roadmap-item` or a stale crosswalk fails
 loudly (K30) — the reference implementation for any project porting this pattern.
+
+#### Stable typed ids (K30 Part B)
+
+Every doc's `id` is **stable**: it names the doc, not its location, so a file can be renamed
+without every reference to it cascading. The `type` determines the prefix, one per kind of
+doc — an id therefore announces what it is:
+
+| Prefix | Doc types | Example |
+| ------ | --------- | ------- |
+| `ADR-` | `adr` | `ADR-0003` |
+| `SPIKE-` | `spike` | `SPIKE-07` |
+| `FEAT-` | `feature-spec` | `FEAT-011`, `FEAT-UX12a` (one roadmap item split across sibling specs — the repo's existing `FEAT-014a`/`FEAT-014b` convention) |
+| `UX-` | `ux-spec` | `UX-reconcile` (UX specs never had an id of their own; they cite their feature's) |
+| `SR-` | `status-report` | `SR-2026-08-03-bud-s97-doc-ids-links` (date + slug) |
+| `REV-` | `audit` · `initiative` · `working-note` · `generated` | `REV-2026-06-15-repo-review` |
+| `DOC-` | the core docs — `process` · `intake` · `prd` · `roadmap` · `reference` · `standard` · `index` · `template` · `feedback-log` | `DOC-ARCHITECTURE`, `DOC-ROADMAP` |
+
+`docs:check` fails on a missing, malformed, duplicated, or type-mismatched id, and on a doc
+with no frontmatter at all. Note that `DOC-ROADMAP` is the id of `03_ROADMAP-v2.md`: the id
+is deliberately *not* the filename, which is what lets `BUD-S94` rename the file later
+without touching anything that refers to the doc.
+
+#### Link integrity — what "resolves" means, and the one exception
+
+`docs:check` resolves **every** link in `docs/**` and in the repo-root docs that point into
+it. Two rules, and the second is the one this project had to settle deliberately:
+
+1. **Doc→doc links are strict, everywhere, with no exception.** Every `.md` in this repo
+   exists; a link to one that doesn't is always rot. This includes ADRs — append-only
+   protects the *decision*, not a link path that was wrong the day it was written.
+2. **Doc→code links are strict only in docs that describe the current system** (the core
+   docs, feature specs, UX specs). In **dated records** — status reports, spike reports,
+   reviews, ADRs — a link to a path *outside* `docs/` is allowed to have moved, because code
+   moves underneath them and **editing a 2026-06-22 snapshot to chase a later refactor
+   falsifies the record**. The alternative stances both fail: rewriting snapshots destroys
+   the history the snapshots exist to keep, and leaving them red means the gate can never be
+   green, which is how a gate gets ignored. This exception is never silent — `docs:check`
+   prints the count and every offending path on each run, so it stays a visible, bounded
+   list rather than a hole.
+
+A trailing `:227` (as in `api.ts:227`) is this repo's **line-reference** convention — prose,
+not part of a filename. It is stripped before the file is checked, so the file itself still
+has to exist.
 
 **Which states apply to which artifact** (not every status fits every doc):
 

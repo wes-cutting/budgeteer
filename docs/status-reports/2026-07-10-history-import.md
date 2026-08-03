@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-10-history-import
 type: status-report
 roadmap-item: [BUD-S79, SPIKE-03]
 ---

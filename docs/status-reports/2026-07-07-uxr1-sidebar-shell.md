@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-07-uxr1-sidebar-shell
 type: status-report
 roadmap-item: BUD-S63
 status: Snapshot

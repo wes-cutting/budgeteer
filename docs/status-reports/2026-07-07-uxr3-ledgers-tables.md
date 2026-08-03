@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-07-uxr3-ledgers-tables
 type: status-report
 roadmap-item: BUD-S65
 status: Snapshot

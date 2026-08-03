@@ -1,4 +1,5 @@
 ---
+id: FEAT-004
 type: feature-spec
 roadmap-item: BUD-S3
 status: Implemented

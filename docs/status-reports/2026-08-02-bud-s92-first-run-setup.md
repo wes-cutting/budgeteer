@@ -1,4 +1,5 @@
 ---
+id: SR-2026-08-02-bud-s92-first-run-setup
 type: status-report
 roadmap-item: BUD-S92
 status: Snapshot

@@ -1,4 +1,5 @@
 ---
+id: FEAT-UX4
 type: feature-spec
 roadmap-item: BUD-S48
 status: Implemented
@@ -35,7 +36,8 @@ and **proves them by restyling the Account Register in place** — gate-green an
 - **In scope**
   - **Token sheet** — color, space, type scale, radius, elevation as CSS custom properties; **dark
     mode** via one `prefers-color-scheme` query; `prefers-reduced-motion` honored globally. Absorbs
-    the WCAG 2.5.8 touch-target floor currently in [`index.css`](../../apps/web/src/index.css).
+    the WCAG 2.5.8 touch-target floor that lived in `index.css` (absorbed into
+    [`ui/base.css`](../../apps/web/src/ui/base.css)).
   - **Starter primitives** (the minimum the Account Register exercises) — see §3a inventory.
     **Built:** `Button`, `Field`/`Input`/`Select`, `Badge`, `Card`, `Alert`, `EmptyState`,
     `Skeleton`. **Grown since (per slice):** `Dialog` (Radix) — added by `UX7`, the first genuine

@@ -1,4 +1,5 @@
 ---
+id: DOC-ADR-TEMPLATE
 type: template
 status: Proposed
 ---

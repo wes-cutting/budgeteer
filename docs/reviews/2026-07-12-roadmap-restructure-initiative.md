@@ -1,4 +1,5 @@
 ---
+id: REV-2026-07-12-roadmap-restructure-initiative
 type: initiative
 status: Agreed
 ---

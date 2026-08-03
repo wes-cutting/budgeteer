@@ -1,4 +1,5 @@
 ---
+id: DOC-DOMAIN-MODEL
 type: reference
 status: Accepted
 ---

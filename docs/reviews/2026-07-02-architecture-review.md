@@ -1,4 +1,5 @@
 ---
+id: REV-2026-07-02-architecture-review
 type: audit
 ---
 <!--

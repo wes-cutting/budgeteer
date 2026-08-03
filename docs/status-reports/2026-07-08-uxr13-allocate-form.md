@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-08-uxr13-allocate-form
 type: status-report
 roadmap-item: BUD-S75
 ---

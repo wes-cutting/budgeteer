@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-08-uxr12-manage-formatting
 type: status-report
 roadmap-item: BUD-S74
 ---

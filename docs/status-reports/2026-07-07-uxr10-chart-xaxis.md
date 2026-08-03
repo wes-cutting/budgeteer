@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-07-uxr10-chart-xaxis
 type: status-report
 roadmap-item: BUD-S72
 ---

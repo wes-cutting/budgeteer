@@ -1,4 +1,5 @@
 ---
+id: REV-2026-07-27-hub-deployment-readiness-initiative
 type: initiative
 status: Accepted
 ---

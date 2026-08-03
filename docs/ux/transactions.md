@@ -1,4 +1,5 @@
 ---
+id: UX-transactions
 type: ux-spec
 roadmap-item: BUD-S2
 status: Accepted

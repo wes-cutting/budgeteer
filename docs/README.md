@@ -1,4 +1,5 @@
 ---
+id: DOC-README
 type: index
 ---
 # Documentation map

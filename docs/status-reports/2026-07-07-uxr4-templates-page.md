@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-07-uxr4-templates-page
 type: status-report
 roadmap-item: BUD-S66
 status: Snapshot

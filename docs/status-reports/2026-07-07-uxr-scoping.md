@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-07-uxr-scoping
 type: status-report
 roadmap-item: BUD-E10
 status: Snapshot

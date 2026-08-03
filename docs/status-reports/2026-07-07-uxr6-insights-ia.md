@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-07-uxr6-insights-ia
 type: status-report
 roadmap-item: BUD-S68
 status: Snapshot

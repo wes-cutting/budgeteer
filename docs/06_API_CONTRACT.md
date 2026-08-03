@@ -1,4 +1,5 @@
 ---
+id: DOC-API-CONTRACT
 type: reference
 status: Implemented
 ---

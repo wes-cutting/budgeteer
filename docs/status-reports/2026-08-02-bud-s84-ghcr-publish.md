@@ -1,4 +1,5 @@
 ---
+id: SR-2026-08-02-bud-s84-ghcr-publish
 type: status-report
 roadmap-item: BUD-S84
 ---

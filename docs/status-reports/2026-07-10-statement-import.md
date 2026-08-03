@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-10-statement-import
 type: status-report
 roadmap-item: BUD-S80
 ---

@@ -1,4 +1,5 @@
 ---
+id: SR-2026-06-13-foundation-slice
 type: status-report
 roadmap-item: BUD-S1
 status: Snapshot

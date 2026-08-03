@@ -1,4 +1,5 @@
 ---
+id: UX-cockpit
 type: ux-spec
 roadmap-item: BUD-S50
 status: Accepted

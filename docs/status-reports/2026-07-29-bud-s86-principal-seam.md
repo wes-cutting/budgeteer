@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-29-bud-s86-principal-seam
 type: status-report
 roadmap-item: BUD-S86
 ---

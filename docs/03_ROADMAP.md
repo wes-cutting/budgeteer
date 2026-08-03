@@ -1,4 +1,5 @@
 ---
+id: DOC-ROADMAP-LEGACY
 type: roadmap
 status: Superseded-in-place
 ---
@@ -34,7 +35,7 @@ is BUD-S94, gated on KIT_FEEDBACK K30 Part B.
 | Status        | **Superseded-in-place** 2026-08-02 (was `Living`; content frozen at 2026-07-10) |
 | Owner         | Wesley Cutting |
 | Last updated  | 2026-07-10 (content) · 2026-08-02 (superseded) |
-| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [2026-06-15 repo review](reviews/2026-06-15-repo-review.md) · [2026-06-17 improvement review](reviews/2026-06-17-improvement-review.md) · [2026-06-25 UX uplift initiative](reviews/2026-06-25-ux-uplift-initiative.md) · [2026-07-02 architecture review](reviews/2026-07-02-architecture-review.md) · [2026-07-06 UX redesign initiative](reviews/2026-07-06-ux-redesign-initiative.md) · [SPIKE-08 sheet analysis](spikes/08-budgethome-sheet-analysis.md) — per-item sources (spike · feature/UX spec · status report) are linked from each item's row in §4 and the log in §5 |
+| Sources       | [`01_INTAKE.md`](01_INTAKE.md) · [`02_PRD.md`](02_PRD.md) · [2026-06-15 repo review](reviews/2026-06-15-repo-review.md) · 2026-06-17 improvement review (`reviews/2026-06-17-improvement-review.md` — never committed to this repo) · [2026-06-25 UX uplift initiative](reviews/2026-06-25-ux-uplift-initiative.md) · [2026-07-02 architecture review](reviews/2026-07-02-architecture-review.md) · [2026-07-06 UX redesign initiative](reviews/2026-07-06-ux-redesign-initiative.md) · [SPIKE-08 sheet analysis](spikes/08-budgethome-sheet-analysis.md) — per-item sources (spike · feature/UX spec · status report) are linked from each item's row in §4 and the log in §5 |
 
 **Current focus:** **The V1 tracks and the entire UX Redesign (`UXR1`–`UXR8`) are complete; the owner-directed
 post-track polish batch (`UXR9`–`UXR13`, 2026-07-07) is now fully `Done` — `UXR9` (Dashboard IA), `UXR10` (chart

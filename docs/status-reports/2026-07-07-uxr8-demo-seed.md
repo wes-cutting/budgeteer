@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-07-uxr8-demo-seed
 type: status-report
 roadmap-item: BUD-S70
 status: Snapshot

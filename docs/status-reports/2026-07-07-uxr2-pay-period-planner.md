@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-07-uxr2-pay-period-planner
 type: status-report
 roadmap-item: BUD-S64
 status: Snapshot

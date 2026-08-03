@@ -1,4 +1,5 @@
 ---
+id: UX-transfers
 type: ux-spec
 roadmap-item: [BUD-S6, BUD-S7]
 status: Accepted

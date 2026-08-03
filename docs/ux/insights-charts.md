@@ -1,4 +1,5 @@
 ---
+id: UX-insights-charts
 type: ux-spec
 roadmap-item: BUD-S53
 status: Accepted

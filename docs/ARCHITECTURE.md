@@ -1,4 +1,5 @@
 ---
+id: DOC-ARCHITECTURE
 type: reference
 status: Accepted
 ---

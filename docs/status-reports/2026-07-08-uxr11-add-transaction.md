@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-08-uxr11-add-transaction
 type: status-report
 roadmap-item: BUD-S73
 ---

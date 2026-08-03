@@ -1,4 +1,5 @@
 ---
+id: SR-2026-08-01-bud-s81-s85-hub-deploy
 type: status-report
 roadmap-item: [BUD-S81, BUD-S82, BUD-S83, BUD-S84, BUD-S85]
 ---

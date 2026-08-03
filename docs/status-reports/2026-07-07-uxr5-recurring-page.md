@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-07-uxr5-recurring-page
 type: status-report
 roadmap-item: BUD-S67
 status: Snapshot

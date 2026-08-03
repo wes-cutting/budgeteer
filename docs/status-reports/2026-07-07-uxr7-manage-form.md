@@ -1,4 +1,5 @@
 ---
+id: SR-2026-07-07-uxr7-manage-form
 type: status-report
 roadmap-item: BUD-S69
 ---

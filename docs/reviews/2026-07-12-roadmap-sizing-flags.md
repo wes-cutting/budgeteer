@@ -1,4 +1,5 @@
 ---
+id: REV-2026-07-12-roadmap-sizing-flags
 type: working-note
 status: Advisory
 ---

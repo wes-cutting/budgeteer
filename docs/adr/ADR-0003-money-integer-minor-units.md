@@ -43,7 +43,7 @@ Specifics another contributor must follow:
 
 - **No floating-point for money, anywhere** in the domain or storage layers. Amounts are
   integers (e.g. `1234` means `$12.34`). Deposits are positive, withdrawals negative (sign
-  convention finalized in [`04_DOMAIN_MODEL`](04_DOMAIN_MODEL.md)).
+  convention finalized in [`04_DOMAIN_MODEL`](../04_DOMAIN_MODEL.md)).
 - **Single currency (USD) for V1.** No multi-currency, no FX. If that ever changes, write a
   superseding ADR — do not bolt a currency field on silently.
 - **The split invariant is exact in minor units:** `sum(allocation.amount_minor) ==

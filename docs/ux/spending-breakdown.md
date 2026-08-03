@@ -1,4 +1,5 @@
 ---
+id: UX-spending-breakdown
 type: ux-spec
 roadmap-item: BUD-S54
 status: Accepted

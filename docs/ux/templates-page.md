@@ -1,4 +1,5 @@
 ---
+id: UX-templates-page
 type: ux-spec
 roadmap-item: [BUD-S65, BUD-S66]
 status: Implemented

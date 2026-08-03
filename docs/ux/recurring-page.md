@@ -1,4 +1,5 @@
 ---
+id: UX-recurring-page
 type: ux-spec
 roadmap-item: [BUD-S65, BUD-S67]
 status: Implemented

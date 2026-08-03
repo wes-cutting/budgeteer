@@ -1,4 +1,5 @@
 ---
+id: UX-quick-add-transaction
 type: ux-spec
 roadmap-item: BUD-S52
 status: Accepted

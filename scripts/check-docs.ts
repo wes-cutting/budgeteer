@@ -1,22 +1,28 @@
 /**
- * Docs frontmatter tooling (K30 Part A).
+ * Docs frontmatter tooling (K30 Part A + Part B).
  *
  * Every artifact under docs/{status-reports,spikes,features,ux} carries YAML frontmatter
- * (`type` · `roadmap-item` · `status`, +`id` for spikes); the core docs (docs/*.md + adr/)
- * carry `type` (+ `id` for ADRs) but no `roadmap-item`. This tool:
+ * (`id` · `type` · `roadmap-item` · `status`); the core docs (docs/*.md + adr/ + reviews/)
+ * carry `id` + `type` but no `roadmap-item`. This tool:
  *   - `npm run docs:crosswalk` (--write) — regenerates docs/reviews/2026-07-12-roadmap-artifact-crosswalk.md
  *     FROM that frontmatter, so the index is derived from the docs, not hand-maintained.
- *   - `npm run docs:check` (default) — validates the frontmatter and fails if the committed
- *     crosswalk is stale. Wired into the gate so the metadata can't silently rot.
+ *   - `npm run docs:check` (default) — validates the frontmatter, the stable `id` of every
+ *     doc, and that every inter-doc link resolves; fails if the committed crosswalk is
+ *     stale. Wired into the gate so the metadata and the cross-references can't silently rot.
  */
-import { readFileSync, writeFileSync, readdirSync } from "node:fs";
-import { join, basename } from "node:path";
+import { readFileSync, writeFileSync, readdirSync, existsSync } from "node:fs";
+import { join, basename, dirname, relative, resolve } from "node:path";
 
 const DOCS = "docs";
 const V2 = join(DOCS, "03_ROADMAP-v2.md");
 const HIST = join(DOCS, "03_ROADMAP-HISTORY-v2.md");
 const CROSSWALK = join(DOCS, "reviews", "2026-07-12-roadmap-artifact-crosswalk.md");
 const DONE_MARKER = "## 2. Done / shipped";
+// Where each generated file lives, as a docs-relative directory — the generator emits links
+// into BOTH, so the `../` prefix has to come from the output file, not be hardcoded (K30
+// Part B: hardcoding it broke all 89 report links in the history's §2 while the gate said OK).
+const CROSSWALK_DIR = "reviews";
+const HIST_DIR = "";
 const TYPE_DIR: Record<string, string> = {
   features: "feature-spec",
   ux: "ux-spec",
@@ -133,6 +139,11 @@ function parseV2(): { meta: Map<string, Meta>; valid: Set<string> } {
 }
 
 const kindOf = (p: string): string => p.split("/")[0] ?? p;
+
+/** Docs-relative artifact path → a link target relative to the generated file that carries it.
+ *  `fromDir` is the output file's own docs-relative directory ("" for docs/*.md). */
+const linkTarget = (fromDir: string, p: string): string => (fromDir ? relative(fromDir, p) : p);
+
 function idSort(a: string, b: string): number {
   const rank = (n: string): [number, number] => {
     const m = /^BUD-([EST])(\d+)/.exec(n);
@@ -189,7 +200,7 @@ function build(): {
     const out = [...(idToArts.get(id) ?? [])]
       .filter((p) => kinds.includes(kindOf(p)))
       .sort()
-      .map((p) => `[${basename(p)}](../${p})`);
+      .map((p) => `[${basename(p)}](${linkTarget(CROSSWALK_DIR, p)})`);
     return out.join(" · ") || "—";
   };
   const label = (id: string) => (meta.has(id) ? `\`${id}\` (${meta.get(id)!.was})` : `\`${id}\``);
@@ -210,12 +221,13 @@ function build(): {
     (a, b) => kindOf(a).localeCompare(kindOf(b)) || a.localeCompare(b),
   )) {
     const ids = [...artToIds.get(p)!].sort(idSort).map(label).join(" · ");
-    rev.push(`| [\`${p}\`](../${p}) | ${status.get(p) ?? "—"} | ${ids} |`);
+    rev.push(`| [\`${p}\`](${linkTarget(CROSSWALK_DIR, p)}) | ${status.get(p) ?? "—"} | ${ids} |`);
   }
 
   const covered = artToIds.size;
   const bad = problems.filter((p) => p.msg === "no frontmatter" || p.msg === "no roadmap-item");
   const markdown = `---
+id: REV-2026-07-12-roadmap-artifact-crosswalk
 type: generated
 status: Generated
 ---
@@ -299,7 +311,7 @@ function doneLedger(idToArts: Map<string, Set<string>>, meta: Map<string, Meta>)
         date: shippedDate(reports),
         was: m?.was ?? "",
         title: m?.title ?? "",
-        report: reports.at(-1) ? `[report](../${reports.at(-1)})` : "—",
+        report: reports.at(-1) ? `[report](${linkTarget(HIST_DIR, reports.at(-1)!)})` : "—",
       };
     })
     .sort((a, b) => b.date.localeCompare(a.date) || idSort(b.id, a.id));
@@ -356,6 +368,147 @@ function checkNonArtifact(): { problems: Problem[]; total: number } {
   return { problems, total: core.length + reviews.length };
 }
 
+// ---------------------------------------------------------------------------
+// K30 Part B — stable typed ids + link integrity
+// ---------------------------------------------------------------------------
+
+/** Each doc `type` maps to exactly one id prefix, so an id announces its own kind of doc.
+ *  Ids are STABLE: they survive a rename, which is the whole point — the file can move
+ *  without every reference to the doc cascading (K30 Part B, and what `BUD-S94` needs). */
+const ID_PREFIX: Record<string, string> = {
+  adr: "ADR",
+  spike: "SPIKE",
+  "feature-spec": "FEAT",
+  "ux-spec": "UX",
+  "status-report": "SR",
+  audit: "REV",
+  initiative: "REV",
+  "working-note": "REV",
+  generated: "REV",
+  process: "DOC",
+  intake: "DOC",
+  prd: "DOC",
+  roadmap: "DOC",
+  reference: "DOC",
+  standard: "DOC",
+  index: "DOC",
+  template: "DOC",
+  "feedback-log": "DOC",
+};
+const ID_RE = /^[A-Z]+-[A-Za-z0-9][A-Za-z0-9-]*$/;
+/** Dated records — status reports and spike reports (snapshots), reviews (point-in-time), and
+ *  ADRs (append-only). Code moves underneath them, and rewriting a 2026-06-22 snapshot to chase
+ *  a later refactor falsifies the record, so a link to a path OUTSIDE docs/ is allowed to have
+ *  moved (it is counted and listed on every run, never silent). Doc→doc links stay strict
+ *  everywhere: every .md in this repo exists, so a broken one is always rot. */
+const HISTORICAL_TYPES = new Set([
+  "status-report",
+  "spike",
+  "adr",
+  "audit",
+  "initiative",
+  "working-note",
+]);
+
+const LINK_RE = /\[(?:[^\]\\]|\\.)*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+const FENCE_RE = /^\s*(?:```|~~~)/;
+
+function walkMd(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = join(dir, e.name);
+    return e.isDirectory() ? walkMd(p) : e.name.endsWith(".md") ? [p] : [];
+  });
+}
+
+/** Markdown link targets in a file, skipping fenced code — a fenced kickoff prompt or a
+ *  template example is sample text, not a live reference. */
+function linksIn(text: string): string[] {
+  const out: string[] = [];
+  let fenced = false;
+  for (const line of text.split("\n")) {
+    if (FENCE_RE.test(line)) {
+      fenced = !fenced;
+      continue;
+    }
+    if (fenced) continue;
+    for (const m of line.matchAll(LINK_RE)) if (m[1] !== undefined) out.push(m[1]);
+  }
+  return out;
+}
+
+/** A link target as a repo path, or null when it addresses no file (external URL, in-page
+ *  anchor). A trailing `:227` is this repo's line-reference convention (`api.ts:227` means
+ *  "line 227 of that file") — prose, not part of the filename, so it is stripped before the
+ *  file is checked. Unknown URL schemes deliberately fall through and fail as paths. */
+function targetPath(raw: string): string | null {
+  if (/^(?:https?|mailto|tel|ftp):/i.test(raw) || raw.startsWith("//") || raw.startsWith("#"))
+    return null;
+  const path = (raw.split("#")[0] ?? "").replace(/(\.[A-Za-z0-9]+):\d+$/, "$1");
+  return path || null;
+}
+
+/** Every doc under docs/ carries a stable, unique, well-formed, type-matching `id`. */
+function checkIds(): { problems: Problem[]; total: number } {
+  const problems: Problem[] = [];
+  const seen = new Map<string, string>();
+  const files = walkMd(DOCS);
+  for (const file of files) {
+    const fm = parseFrontmatter(readFileSync(file, "utf8"));
+    if (!fm) {
+      // This walk is the only recursive one, so it is the net that catches a doc no other
+      // check looks at (docs/ux/assets/README.md was exactly that until 2026-08-02).
+      problems.push({ file, msg: "no frontmatter" });
+      continue;
+    }
+    const id = fm.id;
+    const type = typeof fm.type === "string" ? fm.type : "";
+    if (typeof id !== "string" || !id) {
+      problems.push({ file, msg: "missing id" });
+      continue;
+    }
+    if (!ID_RE.test(id)) {
+      problems.push({
+        file,
+        msg: `malformed id "${id}" (want e.g. ADR-0003 · SR-2026-08-02-slug)`,
+      });
+      continue;
+    }
+    const want = ID_PREFIX[type];
+    if (want !== undefined && !id.startsWith(`${want}-`))
+      problems.push({ file, msg: `id "${id}" should start with "${want}-" for type "${type}"` });
+    const first = seen.get(id);
+    if (first !== undefined) problems.push({ file, msg: `duplicate id "${id}" (also ${first})` });
+    else seen.set(id, file);
+  }
+  return { problems, total: files.length };
+}
+
+/** Every inter-doc link resolves. Sources: docs/** plus the repo-root docs that point into it. */
+function checkLinks(): { problems: Problem[]; stale: Problem[]; total: number } {
+  const problems: Problem[] = [];
+  const stale: Problem[] = [];
+  const docsRoot = resolve(DOCS);
+  const sources = [...readdirSync(".").filter((f) => f.endsWith(".md")), ...walkMd(DOCS)];
+  let total = 0;
+  for (const file of sources) {
+    const text = readFileSync(file, "utf8");
+    const fm = parseFrontmatter(text);
+    const type = typeof fm?.type === "string" ? fm.type : "";
+    for (const raw of linksIn(text)) {
+      const p = targetPath(raw);
+      if (p === null) continue;
+      total++;
+      const abs = resolve(dirname(file), p);
+      if (existsSync(abs)) continue;
+      const insideDocs = !relative(docsRoot, abs).startsWith("..");
+      const isDocRef = p.endsWith(".md") || insideDocs;
+      if (!isDocRef && HISTORICAL_TYPES.has(type)) stale.push({ file, msg: `moved → ${raw}` });
+      else problems.push({ file, msg: `broken link → ${raw}` });
+    }
+  }
+  return { problems, stale, total };
+}
+
 function main() {
   const write = process.argv.includes("--write");
   const { markdown, problems, covered, total, idToArts, meta } = build();
@@ -380,12 +533,19 @@ function main() {
     });
 
   const nonArt = checkNonArtifact();
-  problems.push(...nonArt.problems);
+  const ids = checkIds();
+  const links = checkLinks();
+  problems.push(...nonArt.problems, ...ids.problems, ...links.problems);
 
   if (problems.length === 0) {
     console.log(
       `docs:check — OK (${covered}/${total} artifacts + ${nonArt.total} core/review docs self-describing, crosswalk in sync)`,
     );
+    console.log(`  ids   — ${ids.total} docs, every one a unique typed id`);
+    console.log(
+      `  links — ${links.total} inter-doc links resolve; ${links.stale.length} moved code path(s) in dated records (allowed — see 00_WAYS_OF_WORKING §4)`,
+    );
+    for (const s of links.stale) console.log(`          ${s.file}: ${s.msg}`);
     return;
   }
   console.error(`docs:check — ${problems.length} problem(s):`);

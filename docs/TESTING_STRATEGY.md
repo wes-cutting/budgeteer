@@ -1,4 +1,5 @@
 ---
+id: DOC-TESTING-STRATEGY
 type: standard
 status: Accepted
 ---

@@ -1,4 +1,5 @@
 ---
+id: UX-cash-flow-forecast
 type: ux-spec
 roadmap-item: BUD-S17
 status: Accepted

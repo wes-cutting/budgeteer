@@ -1,4 +1,5 @@
 ---
+id: REV-2026-06-25-ux-uplift-initiative
 type: initiative
 status: Proposed
 ---
@@ -17,7 +18,7 @@ Pattern mirrors reviews/2026-06-17-improvement-review.md → the R-items.
 | Owner        | Wesley Cutting                                                         |
 | Captured     | 2026-06-25                                                            |
 | Tracked in   | [`03_ROADMAP.md`](../03_ROADMAP.md) → "UX Uplift" track (`UX1`–`UX15`) |
-| Sources      | design session 2026-06-25 · [`02_PRD.md`](../02_PRD.md) · the current `apps/web` surface · [`reviews/2026-06-17-improvement-review.md`](2026-06-17-improvement-review.md) (the R-series precedent) |
+| Sources      | design session 2026-06-25 · [`02_PRD.md`](../02_PRD.md) · the current `apps/web` surface · `reviews/2026-06-17-improvement-review.md` (the R-series precedent — never committed to this repo) |
 
 > **Why a brief and not a standalone backlog doc?** The roadmap's
 > [2026-06-17 entry](../03_ROADMAP.md) records that a parallel working backlog

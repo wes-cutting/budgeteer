@@ -1,4 +1,5 @@
 ---
+id: DOC-ADR-README
 type: index
 ---
 # Architecture Decision Records

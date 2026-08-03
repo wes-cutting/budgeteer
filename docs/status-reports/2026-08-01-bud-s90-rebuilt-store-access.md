@@ -1,4 +1,5 @@
 ---
+id: SR-2026-08-01-bud-s90-rebuilt-store-access
 type: status-report
 roadmap-item: BUD-S90
 ---

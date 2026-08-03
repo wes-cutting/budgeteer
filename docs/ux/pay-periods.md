@@ -1,4 +1,5 @@
 ---
+id: UX-pay-periods
 type: ux-spec
 roadmap-item: [BUD-S61, BUD-S62]
 ---

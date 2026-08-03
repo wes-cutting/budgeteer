@@ -1,4 +1,5 @@
 ---
+id: UX-app-shell-sidebar
 type: ux-spec
 roadmap-item: BUD-S63
 status: Proposed

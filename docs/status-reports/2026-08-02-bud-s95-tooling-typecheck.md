@@ -1,4 +1,5 @@
 ---
+id: SR-2026-08-02-bud-s95-tooling-typecheck
 type: status-report
 roadmap-item: BUD-S95
 status: Snapshot
