@@ -4,20 +4,23 @@ type: roadmap
 status: Append-only
 ---
 <!--
-ROADMAP HISTORY v2 — the append-only narrative split out of 03_ROADMAP-v2.md (K31): the
-re-sequencing log + the shipped ledger. Migrated verbatim from 03_ROADMAP.md §5–§6 with only
-standalone roadmap ids re-keyed to BUD-*. The living plan is 03_ROADMAP-v2.md.
+ROADMAP HISTORY — the append-only narrative split out of the roadmap (K31): the re-sequencing
+log + the shipped ledger. Migrated verbatim from the PRE-RESTRUCTURE roadmap §5–§6 (the file
+that was called 03_ROADMAP.md until BUD-S94 deleted it on 2026-08-03) with only standalone
+roadmap ids re-keyed to BUD-*. The living plan is 03_ROADMAP.md.
 -->
 
-# Roadmap history — Budgeteer (v2)
+# Roadmap history — Budgeteer
 
 | Field   | Value          |
 | ------- | -------------- |
 | Status  | Append-only (narrative history) |
 | Owner   | Wesley Cutting |
-| Plan    | [`03_ROADMAP-v2.md`](03_ROADMAP-v2.md) (the living plan of record) |
+| Plan    | [`03_ROADMAP.md`](03_ROADMAP.md) (the living plan of record) |
 
-> Migrated verbatim from `03_ROADMAP.md` §5–§6. Only standalone roadmap ids were re-keyed to
+> Migrated verbatim from §5–§6 of the **pre-restructure** roadmap — the file that held the name
+> `03_ROADMAP.md` until `BUD-S94` deleted it (2026-08-03), not the plan of record that carries that
+> name today. Only standalone roadmap ids were re-keyed to
 > `BUD-*`; `FEAT-*`, `features/*`, `status-reports/*`, and `ADR-*` references are unchanged.
 > Rows are in their original (chronological / status) order.
 
@@ -138,12 +141,13 @@ standalone roadmap ids re-keyed to BUD-*. The living plan is 03_ROADMAP-v2.md.
 
 Every shipped story (plan status **Done**), newest first — **generated from the plan** by
 `npm run docs:crosswalk`, so it can't drift; do not hand-edit. Shipped date = the item's
-newest linked status report. Full detail lives in the plan (`03_ROADMAP-v2.md` §3) and the
+newest linked status report. Full detail lives in the plan (`03_ROADMAP.md` §3) and the
 §1 log above.
 
 | Shipped | ID | Was | Item | Report |
 | --- | --- | --- | --- | --- |
 | 2026-08-03 | `BUD-S97` | `—` | Stable doc ids + link integrity in the gate (`K30` Part B) | [report](status-reports/2026-08-03-bud-s97-doc-ids-links.md) |
+| 2026-08-03 | `BUD-S94` | `—` | Retire the legacy roadmap (the v2 cutover) | [report](status-reports/2026-08-03-bud-s94-retire-legacy-roadmap.md) |
 | 2026-08-02 | `BUD-S96` | `—` | Pin the demo profile with a validation harness | [report](status-reports/2026-08-02-bud-s96-validate-demo.md) |
 | 2026-08-02 | `BUD-S95` | `—` | Bring repo tooling under typecheck (`scripts/**`) | [report](status-reports/2026-08-02-bud-s95-tooling-typecheck.md) |
 | 2026-08-02 | `BUD-S93` | `—` | Demo instance (separate showcase container) | [report](status-reports/2026-08-02-docs-onboarding-gap.md) |

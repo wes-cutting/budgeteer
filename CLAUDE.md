@@ -12,6 +12,11 @@ conflicts with a doc, STOP and flag it** rather than diverging silently. Start w
 - [`docs/README.md`](docs/README.md) — the documentation map
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/ENGINEERING_STANDARDS.md`](docs/ENGINEERING_STANDARDS.md) · [`docs/TESTING_STRATEGY.md`](docs/TESTING_STRATEGY.md) · [`docs/SECURITY.md`](docs/SECURITY.md)
 - [`docs/adr/`](docs/adr/) — decisions (including this project's **stack**, per `ADR-0001`)
+- [`docs/03_ROADMAP.md`](docs/03_ROADMAP.md) — **the living plan of record**: what is next, and the
+  status of everything shipped. Ids are stable handles, never positions —
+  `BUD-E##` epic · `BUD-S##` story · `BUD-T##` task · `SPIKE-##` spike — so re-sequencing never
+  renames. The append-only re-sequencing log and shipped ledger live in the sibling
+  [`docs/03_ROADMAP-HISTORY.md`](docs/03_ROADMAP-HISTORY.md), whose §2 is *generated*.
 
 **Starting a new project?** Run discovery first.
 [`templates/DISCOVERY-GUIDE.md`](templates/DISCOVERY-GUIDE.md) is your intake-conversation
@@ -86,6 +91,11 @@ types-only shared contract, a demo-asset capture pattern, a consistent error env
 
 Any change to data shape, interfaces, or architecture updates the corresponding doc **in
 the same change** — including overview/summary lines and internal links, which rot first.
+**This is gate-enforced, not honour-system:** every doc under [`docs/`](docs/) carries YAML
+frontmatter (`id` · `type` · `status` · `roadmap-item` — [`00_WAYS_OF_WORKING.md`](docs/00_WAYS_OF_WORKING.md) §4),
+and `npm run docs:check` — a gate step — validates that frontmatter, that every `id` is unique,
+well-formed and matches its type, and that **every inter-doc link resolves**. A new doc needs an
+`id`; a renamed doc keeps its `id` and fails the gate loudly if anything pointed at the old path.
 New features start from [`templates/`](templates/). ADRs are append-only — **supersede,
 don't edit**. When something would have been a better **kit** default (a tooling gap, an
 example-code default, doc/process friction), log it in

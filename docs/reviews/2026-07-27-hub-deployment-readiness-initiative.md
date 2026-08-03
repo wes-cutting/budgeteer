@@ -123,7 +123,7 @@ When A–E are checked, labs-hub LH-S3 can deploy budgeteer unchanged.
 ## 9. Outputs / next steps
 
 - [x] Owner review; reconcile with the live roadmap — done 2026-07-29 (A = `BUD-E13`, full epic; corrected the "#19 already exists" framing to "named but unbuilt").
-- [x] Spawn roadmap items for **B–F** — `BUD-E14` epic: `BUD-S81` (B) · `BUD-S82` (C) · `BUD-S83` (D) · `BUD-S84` (E) · `BUD-S85` (F), sized in [`03_ROADMAP-v2.md`](../03_ROADMAP-v2.md) §3.
+- [x] Spawn roadmap items for **B–F** — `BUD-E14` epic: `BUD-S81` (B) · `BUD-S82` (C) · `BUD-S83` (D) · `BUD-S84` (E) · `BUD-S85` (F), sized in [`03_ROADMAP-v2.md`](../03_ROADMAP.md) §3.
 - [x] **ADR** for the containerized production runtime — [`ADR-0008`](../adr/ADR-0008-containerized-production-runtime.md) (single ARM64 image · Postgres · GHCR), extending `ADR-0001/0002`; runtime half validated by [`SPIKE-12`](../spikes/12-postgres-production-validation.md).
 - [x] Finalize and publish the **§5 deploy contract**; hand it to labs-hub LH-S3 (`BUD-S83`) —
       done 2026-08-01: [`docs/DEPLOY_CONTRACT.md`](../DEPLOY_CONTRACT.md) + [`deploy/compose.yaml`](../../deploy/compose.yaml).

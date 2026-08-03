@@ -19,7 +19,7 @@ NOT the same thing as features/first-run-onboarding.md — see §1.1.
 | Status       | **Implemented** 2026-08-02 — built and gate-green ([status report](../status-reports/2026-08-02-bud-s92-first-run-setup.md)) |
 | Owner        | Wesley Cutting                                                                            |
 | Last updated | 2026-08-02                                                                                |
-| Related      | [ADR-0009](../adr/ADR-0009-authentication-household-scoping.md) (auth) · [`BUD-S87`](../03_ROADMAP-v2.md) (created `/auth/setup`, built no UI for it) · [`BUD-S91`](../status-reports/2026-08-02-bud-s91-auth-a11y.md) (the a11y precedent for the auth surfaces) · [SECURITY.md §3](../SECURITY.md) · [06_API_CONTRACT §Authentication](../06_API_CONTRACT.md) · [DEPLOY_CONTRACT §7](../DEPLOY_CONTRACT.md) |
+| Related      | [ADR-0009](../adr/ADR-0009-authentication-household-scoping.md) (auth) · [`BUD-S87`](../03_ROADMAP.md) (created `/auth/setup`, built no UI for it) · [`BUD-S91`](../status-reports/2026-08-02-bud-s91-auth-a11y.md) (the a11y precedent for the auth surfaces) · [SECURITY.md §3](../SECURITY.md) · [06_API_CONTRACT §Authentication](../06_API_CONTRACT.md) · [DEPLOY_CONTRACT §7](../DEPLOY_CONTRACT.md) |
 | Gated by     | — (`BUD-S87` is Done; this needs no new dependency, table, or migration)                   |
 
 ## 1. Summary

@@ -20,13 +20,13 @@ this stays Proposed until then. Refines ADR-0002's multi-household note; resolve
 | Validated by  | Mechanism by [`SPIKE-13`](../spikes/13-auth-seam.md); **fully implemented + validated** by BUD-E13 slices **BUD-S86** (principal seam) · **BUD-S87** (auth core + login) · **BUD-S88** (roles + user mgmt) · **BUD-S89** (throttle · session expiry · last-admin · threat-model tests). Gate-green (455 Vitest + 124 e2e). |
 | Refines       | [`ADR-0002`](ADR-0002-datastore.md) (its "future multi-household → RLS" note — this ADR chooses container-per-household instead) |
 | Resolves      | `SEC3` / `BUD-S38` (the unauthenticated-API finding); unblocks `HOST=0.0.0.0` for `BUD-E14`/[ADR-0008](ADR-0008-containerized-production-runtime.md) |
-| Context       | [`BUD-E13`](../03_ROADMAP-v2.md) discovery (2026-07-29): shape A · admin/member · CLI reset |
+| Context       | [`BUD-E13`](../03_ROADMAP.md) discovery (2026-07-29): shape A · admin/member · CLI reset |
 
 ## Context
 
 Budgeteer has **no authentication**: the API binds loopback because anything that reaches the
 port can read/write the whole ledger (SECURITY.md §3, EH11). Deploying on labs-hub
-([`BUD-E14`](../03_ROADMAP-v2.md)) means serving on the LAN — the documented trigger to build auth.
+([`BUD-E14`](../03_ROADMAP.md)) means serving on the LAN — the documented trigger to build auth.
 
 The data is **already structurally household-scoped** (every table carries `household_id`;
 ADR-0002 "designed toward"), but the value is the compile-time `DEFAULT_HOUSEHOLD_ID` constant, so

@@ -41,8 +41,9 @@ is checked on every change:
 - [ ] Acceptance criteria met and covered by tests.
 - [ ] The capability is **usable end-to-end** (data → API → UI), not just a layer — a shipped
       endpoint includes its **client binding and a UI surface** (or an explicit, logged deferral).
-- [ ] Gate green: types/typecheck, lint, format, unit + integration tests, end-to-end for
-      the journey, build. **No failing or skipped tests.**
+- [ ] Gate green: types/typecheck, lint, format, **docs check** (`npm run docs:check` —
+      frontmatter, stable ids, and every inter-doc link resolving), unit + integration tests,
+      end-to-end for the journey, build. **No failing or skipped tests.**
 - [ ] External input validated at the boundary.
 - [ ] UX states handled: empty, loading, error, success (and permission-limited if
       relevant).

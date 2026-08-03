@@ -11,7 +11,7 @@ A box you can't check is a blocker, not a footnote — say why under "Carries / 
 ## Linked docs
 
 <!-- The slice this implements and the docs it satisfies / updates. -->
-- **Roadmap item:** <`BUD-S##` / `BUD-T##` / `SPIKE-##` from `03_ROADMAP-v2.md`>
+- **Roadmap item:** <`BUD-S##` / `BUD-T##` / `SPIKE-##` from `03_ROADMAP.md`>
 - **Spec(s):** <feature spec · UX spec · PRD goal/journey>
 - **ADR(s):** <ADR-XXXX, if a decision was made or changed>
 - **Spike(s):** <report(s) that de-risked this, if any>
@@ -35,6 +35,7 @@ A box you can't check is a blocker, not a footnote — say why under "Carries / 
 - [ ] types / typecheck
 - [ ] lint
 - [ ] format check
+- [ ] docs check (`npm run docs:check` — frontmatter, ids, link integrity)
 - [ ] unit + integration
 - [ ] e2e for the journey (incl. accessibility scan)
 - [ ] build

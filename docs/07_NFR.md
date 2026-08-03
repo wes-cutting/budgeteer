@@ -5,8 +5,8 @@ status: Active
 ---
 <!--
 NFR / OPERATIONAL-READINESS — hardening track for Budgeteer. The non-functional requirements
-and operational readiness the app must meet. Created alongside #15a (backup/export), the first
-hardening item; extended by #16 (a11y pass + perf/NFR budgets + CI gates).
+and operational readiness the app must meet. Created alongside `BUD-S76` (backup/export, was `#15a`), the first
+hardening item; extended by `BUD-S78` (a11y pass, was `#16`) with perf/NFR budgets + CI gates.
 Adapted from templates/NFR-TEMPLATE.md.
 -->
 
@@ -17,7 +17,7 @@ Adapted from templates/NFR-TEMPLATE.md.
 | Status       | Active                                                                  |
 | Owner        | Wesley Cutting                                                          |
 | Last updated | 2026-07-06                                                              |
-| Sources      | [`SECURITY.md`](SECURITY.md) · [`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) · [`ADR-0003`](adr/ADR-0003-money-integer-minor-units.md) · [`03_ROADMAP.md`](03_ROADMAP.md) `#15a`/`#16` |
+| Sources      | [`SECURITY.md`](SECURITY.md) · [`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) · [`ADR-0003`](adr/ADR-0003-money-integer-minor-units.md) · [`03_ROADMAP.md`](03_ROADMAP.md) `BUD-S76`/`BUD-S78` (was `#15a`/`#16`) |
 
 > **Measure before optimizing.** Every budget must be verified against a realistic data
 > volume — not an empty dev database. An unmeasured target is a guess.

@@ -7,7 +7,7 @@ status: Generated
 Artifact crosswalk — Follow-up B of the 2026-07-12 restructure initiative, now GENERATED
 FROM DOC FRONTMATTER (K30 Part A) by scripts/check-docs.ts. Each artifact declares its own
 type/roadmap-item/status; this file is regenerated from that (`npm run docs:crosswalk`) and
-validated in the gate (`npm run docs:check`). Do not hand-edit. Id metadata from 03_ROADMAP-v2.md §2.
+validated in the gate (`npm run docs:check`). Do not hand-edit. Id metadata from 03_ROADMAP.md §2.
 -->
 
 # Artifact crosswalk — reports · spikes · specs ↔ BUD-* ids
@@ -18,7 +18,7 @@ validated in the gate (`npm run docs:check`). Do not hand-edit. Id metadata from
 | Owner   | Wesley Cutting |
 | Date    | 2026-07-12     |
 | Parent  | [2026-07-12 restructure initiative](2026-07-12-roadmap-restructure-initiative.md) (Follow-up B) |
-| Source  | **doc frontmatter** (`type` · `roadmap-item` · `status`) across `status-reports/ · spikes/ · features/ · ux/`; id metadata from [`03_ROADMAP-v2.md`](../03_ROADMAP-v2.md) §2 |
+| Source  | **doc frontmatter** (`type` · `roadmap-item` · `status`) across `status-reports/ · spikes/ · features/ · ux/`; id metadata from [`03_ROADMAP.md`](../03_ROADMAP.md) §2 |
 
 ## What this is
 
@@ -126,6 +126,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | `BUD-S91` | `—` | Accessibility scans for the auth surfaces | — | — | [2026-08-02-bud-s91-auth-a11y.md](../status-reports/2026-08-02-bud-s91-auth-a11y.md) |
 | `BUD-S92` | `—` | First-run setup UI (`/setup` — the first admin from the browser) | [first-run-setup.md](../features/first-run-setup.md) | — | [2026-08-02-bud-s92-first-run-setup.md](../status-reports/2026-08-02-bud-s92-first-run-setup.md) · [2026-08-02-docs-onboarding-gap.md](../status-reports/2026-08-02-docs-onboarding-gap.md) |
 | `BUD-S93` | `—` | Demo instance (separate showcase container) | — | — | [2026-08-02-bud-s93-demo-instance.md](../status-reports/2026-08-02-bud-s93-demo-instance.md) · [2026-08-02-docs-onboarding-gap.md](../status-reports/2026-08-02-docs-onboarding-gap.md) |
+| `BUD-S94` | `—` | Retire the legacy roadmap (the v2 cutover) | — | — | [2026-08-03-bud-s94-retire-legacy-roadmap.md](../status-reports/2026-08-03-bud-s94-retire-legacy-roadmap.md) |
 | `BUD-S95` | `—` | Bring repo tooling under typecheck (`scripts/**`) | — | — | [2026-08-02-bud-s95-tooling-typecheck.md](../status-reports/2026-08-02-bud-s95-tooling-typecheck.md) |
 | `BUD-S96` | `—` | Pin the demo profile with a validation harness | — | — | [2026-08-02-bud-s96-validate-demo.md](../status-reports/2026-08-02-bud-s96-validate-demo.md) |
 | `BUD-S97` | `—` | Stable doc ids + link integrity in the gate (`K30` Part B) | — | — | [2026-08-03-bud-s97-doc-ids-links.md](../status-reports/2026-08-03-bud-s97-doc-ids-links.md) |
@@ -288,6 +289,7 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 | [`status-reports/2026-08-02-bud-s95-tooling-typecheck.md`](../status-reports/2026-08-02-bud-s95-tooling-typecheck.md) | Snapshot | `BUD-S95` (—) |
 | [`status-reports/2026-08-02-bud-s96-validate-demo.md`](../status-reports/2026-08-02-bud-s96-validate-demo.md) | Snapshot | `BUD-S96` (—) |
 | [`status-reports/2026-08-02-docs-onboarding-gap.md`](../status-reports/2026-08-02-docs-onboarding-gap.md) | Snapshot | `BUD-S92` (—) · `BUD-S93` (—) |
+| [`status-reports/2026-08-03-bud-s94-retire-legacy-roadmap.md`](../status-reports/2026-08-03-bud-s94-retire-legacy-roadmap.md) | Snapshot | `BUD-S94` (—) |
 | [`status-reports/2026-08-03-bud-s97-doc-ids-links.md`](../status-reports/2026-08-03-bud-s97-doc-ids-links.md) | Snapshot | `BUD-S97` (—) |
 | [`ux/analysis-envelope-spend.md`](../ux/analysis-envelope-spend.md) | Accepted | `BUD-S15` (#11) |
 | [`ux/app-shell-sidebar.md`](../ux/app-shell-sidebar.md) | Proposed | `BUD-S63` (UXR1) |
@@ -322,6 +324,6 @@ small frontmatter block was prepended. Filename/id renames stay a **cutover** ta
 
 ## 3. Coverage
 
-- **175** of **175** artifact files carry a `roadmap-item` in their frontmatter
+- **176** of **176** artifact files carry a `roadmap-item` in their frontmatter
   and appear above — **self-describing**, no supplement, no roadmap-link dependency.
 - **0** with a frontmatter problem (see `npm run docs:check`).

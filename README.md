@@ -15,7 +15,7 @@ not by hand.
 > A brand-new install is now usable **from the browser alone** — it routes you to `/setup` to create
 > the first admin (`BUD-S92`), and there is a one-command **demo instance** to show it to someone
 > without the real ledger being anywhere near it (`BUD-S93`, below). The live plan for the `BUD-*`
-> ids is [`docs/03_ROADMAP-v2.md`](docs/03_ROADMAP-v2.md).
+> ids is [`docs/03_ROADMAP.md`](docs/03_ROADMAP.md).
 
 ---
 
@@ -251,6 +251,8 @@ either one alongside `npm run test:e2e`.
 | `npm run test:watch` | Vitest in watch mode |
 | `npm run test:e2e` | Playwright browser e2e — boots the real API + web, drives Chromium |
 | `npm run format` | Prettier check (`format:write` to fix) |
+| `npm run docs:check` | Docs gate — validates every doc's frontmatter (`id`/`type`/`roadmap-item`), that ids are unique and well-formed, and that **every inter-doc link resolves**; fails if the generated crosswalk or roadmap history §2 is stale |
+| `npm run docs:crosswalk` | Regenerates the two generated files the check guards — [the artifact crosswalk](docs/reviews/2026-07-12-roadmap-artifact-crosswalk.md) and §2 of [the roadmap history](docs/03_ROADMAP-HISTORY.md) |
 | `npm run build --workspace apps/web` | Production build of the web app |
 
 Operational CLIs live in `apps/api` and have **no HTTP surface** — run them with
@@ -262,8 +264,8 @@ Operational CLIs live in `apps/api` and have **no HTTP surface** — run them wi
 | `reset-password` | Reset a user's password — **revokes their sessions** |
 | `disable-user` | Disable an account — revokes its sessions |
 
-The project follows a **gate-green** rule: typecheck, lint, `npm test`, format, `npm run test:e2e`,
-and the web build must all pass before any change is considered done
+The project follows a **gate-green** rule: typecheck, lint, format, `npm run docs:check`,
+`npm test`, `npm run test:e2e`, and the web build must all pass before any change is considered done
 ([ENGINEERING_STANDARDS](docs/ENGINEERING_STANDARDS.md)). `npm run test:e2e` is kept out of
 `npm test` so the inner Vitest loop stays fast; it runs as its own gate step (and needs Chromium —
 `npx playwright install chromium`, one time).
@@ -311,10 +313,9 @@ The [`docs/`](docs/) tree is the source of truth — start here:
 
 - [`CLAUDE.md`](CLAUDE.md) · [`docs/00_WAYS_OF_WORKING.md`](docs/00_WAYS_OF_WORKING.md) — how this project is built.
 - [`docs/02_PRD.md`](docs/02_PRD.md) — what it is and why.
-- [`docs/03_ROADMAP-v2.md`](docs/03_ROADMAP-v2.md) — the living plan of record (`BUD-*` ids), with
-  its append-only [history](docs/03_ROADMAP-HISTORY-v2.md). The unsuffixed
-  [`03_ROADMAP.md`](docs/03_ROADMAP.md) is **superseded** — kept only so the pre-restructure ids
-  cited by older status reports still resolve.
+- [`docs/03_ROADMAP.md`](docs/03_ROADMAP.md) — the living plan of record (`BUD-*` ids), with
+  its append-only [history](docs/03_ROADMAP-HISTORY.md). The pre-restructure roadmap that held this
+  name was deleted by `BUD-S94` (2026-08-03); its 88 ids live on in the plan's `Was` columns and §2.
 - [`docs/04_DOMAIN_MODEL.md`](docs/04_DOMAIN_MODEL.md) · [`docs/05_DATA_MODEL.md`](docs/05_DATA_MODEL.md) · [`docs/06_API_CONTRACT.md`](docs/06_API_CONTRACT.md) — the model & interface.
 - [`docs/adr/`](docs/adr/) — architecture decisions · [`docs/features/`](docs/features/) · [`docs/ux/`](docs/ux/) — per-capability specs.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — workflow and conventions.

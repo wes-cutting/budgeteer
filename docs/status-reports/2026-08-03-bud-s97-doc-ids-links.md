@@ -18,7 +18,7 @@ full report. Right-sized per §11: no ADR, no UX spec, no feature spec. One slic
 | Date   | 2026-08-03 |
 | Author | Wesley Cutting + agent |
 | Scope  | `BUD-S97` — `docs:check` is the gate step whose entire job is documentation integrity, and it had never once checked that a link resolves. Give every doc a stable typed `id`; teach the gate to resolve every link; fix the rot that surfaces. `K30` Part B, deliberately scoped — see §2 |
-| Item   | [`03_ROADMAP-v2.md`](../03_ROADMAP-v2.md) §3 · [`KIT_FEEDBACK`](../KIT_FEEDBACK.md) `K30` / `K46` / `K47` |
+| Item   | [`03_ROADMAP-v2.md`](../03_ROADMAP.md) §3 · [`KIT_FEEDBACK`](../KIT_FEEDBACK.md) `K30` / `K46` / `K47` |
 
 **Resume here:** **`docs:check` now validates what its name has always implied.** All **214** docs
 under `docs/` carry a stable typed `id` (was 23), and the gate resolves **2,318** links — a number
@@ -148,7 +148,7 @@ status report is sample text, not a live reference (this report's §9 is exactly
 | Acceptance criteria | ✅ | (1) every doc under `docs/` has a stable typed id — **214/214**; (2) `docs:check` validates ids *and* resolves every inter-doc link — both, with the id check also catching a doc with no frontmatter; (3) the 89-link generator bug and the genuine rot fixed — 89 + 4 strict cases, 5 remaining are policy-allowed and printed. |
 | Accessibility | n/a | No user-facing surface. |
 | Input validation & secrets | ✅ | No runtime code, no I/O beyond reading the repo's own files, no secrets. Unknown URL schemes deliberately fall through and are resolved as paths (fail loudly) rather than being silently skipped. |
-| Docs in the same change | ✅ | [`00_WAYS_OF_WORKING.md`](../00_WAYS_OF_WORKING.md) §4 — the id scheme table and the link-integrity policy, plus a correction: it claimed `templates/` files carry frontmatter; none of the 13 do. [`KIT_FEEDBACK`](../KIT_FEEDBACK.md) — `K30` Part B applied-note, new `K46` (the false-green) and `K47` (templates ship without the frontmatter they document). [`03_ROADMAP-v2.md`](../03_ROADMAP-v2.md) — `BUD-S97` → Done, `BUD-S94` → Ready, §0 state. History §2 regenerated. |
+| Docs in the same change | ✅ | [`00_WAYS_OF_WORKING.md`](../00_WAYS_OF_WORKING.md) §4 — the id scheme table and the link-integrity policy, plus a correction: it claimed `templates/` files carry frontmatter; none of the 13 do. [`KIT_FEEDBACK`](../KIT_FEEDBACK.md) — `K30` Part B applied-note, new `K46` (the false-green) and `K47` (templates ship without the frontmatter they document). [`03_ROADMAP-v2.md`](../03_ROADMAP.md) — `BUD-S97` → Done, `BUD-S94` → Ready, §0 state. History §2 regenerated. |
 | **Verified against injected defects** | ✅ | 13 cases, §5. Including re-injecting the original bug: **exactly 89** broken-link failures, exit 1. |
 | Test-count delta | ⚠ **0 new Vitest/e2e tests** | `scripts/` is in neither Vitest project (`node` = `packages/**` + `apps/api/**`; `web` = `apps/web/**`), so unit-testing the checker's helpers means adding a **third project** to `vitest.workspace.ts` — a structural change to the test harness, outside this slice. Verified by injected defect instead; see §7, where I argue this should not stay deferred forever. |
 

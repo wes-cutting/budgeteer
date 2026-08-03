@@ -151,9 +151,10 @@ doc — an id therefore announces what it is:
 | `DOC-` | the core docs — `process` · `intake` · `prd` · `roadmap` · `reference` · `standard` · `index` · `template` · `feedback-log` | `DOC-ARCHITECTURE`, `DOC-ROADMAP` |
 
 `docs:check` fails on a missing, malformed, duplicated, or type-mismatched id, and on a doc
-with no frontmatter at all. Note that `DOC-ROADMAP` is the id of `03_ROADMAP-v2.md`: the id
-is deliberately *not* the filename, which is what lets `BUD-S94` rename the file later
-without touching anything that refers to the doc.
+with no frontmatter at all. Note that `DOC-ROADMAP` is the id of the roadmap **whatever it is called**: it was
+`03_ROADMAP-v2.md` when the scheme landed and is `03_ROADMAP.md` since the `BUD-S94` cutover
+(2026-08-03). The id did not move when the file did — which is the entire point, and is what made
+that rename a contained change rather than a cascade.
 
 #### Link integrity — what "resolves" means, and the one exception
 
@@ -176,6 +177,25 @@ it. Two rules, and the second is the one this project had to settle deliberately
 A trailing `:227` (as in `api.ts:227`) is this repo's **line-reference** convention — prose,
 not part of a filename. It is stripped before the file is checked, so the file itself still
 has to exist.
+
+**When a doc is renamed, dated records get their pointer retargeted, never their prose rewritten.**
+Rule 1 is strict everywhere, so a rename breaks inbound links inside snapshots too — and the two
+rules only *appear* to collide. In a dated record the **visible link text is the record; the target
+is navigation.** Retargeting the pointer while leaving the text alone —
+
+```markdown
+[`03_ROADMAP-v2.md`](../03_ROADMAP-v2.md)   →   [`03_ROADMAP-v2.md`](../03_ROADMAP.md)
+```
+
+— preserves what the snapshot said *and* keeps the pointer reaching the same document; unlinking
+would destroy a working path to a live doc and preserve nothing. So: change what is inside the
+parentheses, leave the link text, the surrounding prose, and any fenced blocks exactly as written. (Applied at the `BUD-S94` cutover,
+2026-08-03: 7 links in 5 dated records retargeted, no prose touched.)
+
+**One hazard no link checker can catch:** if a retired file's *name is reused* by a different
+document — as `03_ROADMAP.md` was — then every old reference still resolves, silently, to different
+content. Links being green proves nothing here. The only defense is prose: the new occupant, and the
+history that describes the old one, must both say plainly which file a pre-cutover reference means.
 
 **Which states apply to which artifact** (not every status fits every doc):
 
@@ -200,8 +220,9 @@ A slice is the unit of progress. It is **not** "a layer."
 
 **Definition of Done (before calling a slice complete)**
 - Data → API → UI all present; the capability is **usable in the running app**.
-- Gate green: typecheck/types, lint, format, unit + integration tests, end-to-end for the
-  journey, build — per the project's stack. No skipped/failing tests.
+- Gate green: typecheck/types, lint, format, the docs check (§4 — frontmatter, stable ids, link
+  integrity), unit + integration tests, end-to-end for the journey, build — per the project's
+  stack. No skipped/failing tests.
 - Acceptance criteria met and tested; UX states (empty/loading/error/success) handled.
 - Accessibility check on any new UI.
 - Docs updated **in the same change**; doc status promoted as warranted.

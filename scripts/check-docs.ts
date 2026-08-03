@@ -14,8 +14,8 @@ import { readFileSync, writeFileSync, readdirSync, existsSync } from "node:fs";
 import { join, basename, dirname, relative, resolve } from "node:path";
 
 const DOCS = "docs";
-const V2 = join(DOCS, "03_ROADMAP-v2.md");
-const HIST = join(DOCS, "03_ROADMAP-HISTORY-v2.md");
+const PLAN = join(DOCS, "03_ROADMAP.md");
+const HIST = join(DOCS, "03_ROADMAP-HISTORY.md");
 const CROSSWALK = join(DOCS, "reviews", "2026-07-12-roadmap-artifact-crosswalk.md");
 const DONE_MARKER = "## 2. Done / shipped";
 // Where each generated file lives, as a docs-relative directory — the generator emits links
@@ -102,11 +102,11 @@ function items(fm: Frontmatter): string[] {
 }
 
 /** Parse the roadmap's §2 crosswalk for id metadata + the set of valid ids. */
-function parseV2(): { meta: Map<string, Meta>; valid: Set<string> } {
+function parsePlan(): { meta: Map<string, Meta>; valid: Set<string> } {
   const meta = new Map<string, Meta>();
   const valid = new Set<string>(Object.keys(EPIC_TITLES));
   let inCw = false;
-  for (const l of readFileSync(V2, "utf8").split("\n")) {
+  for (const l of readFileSync(PLAN, "utf8").split("\n")) {
     if (l.startsWith("## 2.")) inCw = true;
     else if (inCw && l.startsWith("## 3.")) break;
     else if (inCw && l.startsWith("| `")) {
@@ -167,7 +167,7 @@ function build(): {
   idToArts: Map<string, Set<string>>;
   meta: Map<string, Meta>;
 } {
-  const { meta, valid } = parseV2();
+  const { meta, valid } = parsePlan();
   const artToIds = new Map<string, string[]>();
   const idToArts = new Map<string, Set<string>>();
   const status = new Map<string, string>();
@@ -235,7 +235,7 @@ status: Generated
 Artifact crosswalk — Follow-up B of the 2026-07-12 restructure initiative, now GENERATED
 FROM DOC FRONTMATTER (K30 Part A) by scripts/check-docs.ts. Each artifact declares its own
 type/roadmap-item/status; this file is regenerated from that (\`npm run docs:crosswalk\`) and
-validated in the gate (\`npm run docs:check\`). Do not hand-edit. Id metadata from 03_ROADMAP-v2.md §2.
+validated in the gate (\`npm run docs:check\`). Do not hand-edit. Id metadata from 03_ROADMAP.md §2.
 -->
 
 # Artifact crosswalk — reports · spikes · specs ↔ BUD-* ids
@@ -246,7 +246,7 @@ validated in the gate (\`npm run docs:check\`). Do not hand-edit. Id metadata fr
 | Owner   | Wesley Cutting |
 | Date    | 2026-07-12     |
 | Parent  | [2026-07-12 restructure initiative](2026-07-12-roadmap-restructure-initiative.md) (Follow-up B) |
-| Source  | **doc frontmatter** (\`type\` · \`roadmap-item\` · \`status\`) across \`status-reports/ · spikes/ · features/ · ux/\`; id metadata from [\`03_ROADMAP-v2.md\`](../03_ROADMAP-v2.md) §2 |
+| Source  | **doc frontmatter** (\`type\` · \`roadmap-item\` · \`status\`) across \`status-reports/ · spikes/ · features/ · ux/\`; id metadata from [\`03_ROADMAP.md\`](../03_ROADMAP.md) §2 |
 
 ## What this is
 
@@ -291,7 +291,7 @@ function shippedDate(reports: string[]): string {
 function doneLedger(idToArts: Map<string, Set<string>>, meta: Map<string, Meta>): string {
   let inPlan = false;
   const shipped: string[] = [];
-  for (const l of readFileSync(V2, "utf8").split("\n")) {
+  for (const l of readFileSync(PLAN, "utf8").split("\n")) {
     if (l.startsWith("## 3.")) inPlan = true;
     else if (inPlan && l.startsWith("## 4.")) break;
     else if (inPlan && l.startsWith("| **BUD-S")) {
@@ -322,7 +322,7 @@ function doneLedger(idToArts: Map<string, Set<string>>, meta: Map<string, Meta>)
 
 Every shipped story (plan status **Done**), newest first — **generated from the plan** by
 \`npm run docs:crosswalk\`, so it can't drift; do not hand-edit. Shipped date = the item's
-newest linked status report. Full detail lives in the plan (${"`03_ROADMAP-v2.md`"} §3) and the
+newest linked status report. Full detail lives in the plan (${"`03_ROADMAP.md`"} §3) and the
 §1 log above.
 
 | Shipped | ID | Was | Item | Report |

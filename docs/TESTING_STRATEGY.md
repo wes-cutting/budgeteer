@@ -60,7 +60,7 @@ Guidelines:
 Every slice must pass, locally and in CI, before it's done:
 
 ```
-types/typecheck  →  lint  →  format check  →  unit + integration  →  e2e (incl. a11y)  →  build
+types/typecheck  →  lint  →  format check  →  docs check  →  unit + integration  →  e2e (incl. a11y)  →  build
 ```
 
 - **A failing or skipped test blocks completion.** No exceptions, no "temporarily

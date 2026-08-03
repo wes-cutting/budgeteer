@@ -18,7 +18,7 @@ makes deliberately. References use the new BUD-* ids (see 03_ROADMAP-v2.md §2 c
 | Owner   | Wesley Cutting |
 | Date    | 2026-07-12     |
 | Parent  | [2026-07-12 restructure initiative](2026-07-12-roadmap-restructure-initiative.md) (Follow-up A) |
-| Scope   | [`03_ROADMAP-v2.md`](../03_ROADMAP-v2.md) — where the *original* grain was wrong |
+| Scope   | [`03_ROADMAP-v2.md`](../03_ROADMAP.md) — where the *original* grain was wrong |
 
 ## What this is
 
