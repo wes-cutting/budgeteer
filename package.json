@@ -9,7 +9,7 @@
     "apps/*"
   ],
   "scripts": {
-    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p tsconfig.e2e.json",
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p tsconfig.e2e.json && tsc -p tsconfig.tools.json",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",

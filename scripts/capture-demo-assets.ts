@@ -42,7 +42,8 @@ const PGLITE_DIR = "../../data/budgeteer-demo";
 const VIEWPORT = { width: 1920, height: 1080 };
 const SKIP_VIDEO = process.argv.includes("--no-video");
 
-const stamp = new Date().toISOString().replace(/:/g, "-").split(".")[0];
+const isoStamp = new Date().toISOString().replace(/:/g, "-");
+const stamp = isoStamp.split(".")[0] ?? isoStamp;
 const OUT = path.resolve(ROOT, "data/demo-assets", stamp);
 mkdirSync(path.join(OUT, "screenshots"), { recursive: true });
 if (!SKIP_VIDEO) mkdirSync(path.join(OUT, "video"), { recursive: true });
@@ -145,7 +146,7 @@ async function provisionSession(): Promise<{ name: string; value: string }> {
 
   const header = login.headers.get("set-cookie");
   if (header === null) throw new Error("Login succeeded but sent no Set-Cookie.");
-  const [pair] = header.split(";");
+  const pair = header.split(";")[0] ?? header;
   const separator = pair.indexOf("=");
   if (separator < 1) throw new Error(`Could not parse the session cookie from "${pair}".`);
   return { name: pair.slice(0, separator), value: pair.slice(separator + 1) };

@@ -74,8 +74,9 @@ function parseFrontmatter(text: string): Frontmatter | null {
   const fm: Frontmatter = {};
   for (const line of text.slice(4, end).split("\n")) {
     const m = /^([\w-]+):\s*(.+)$/.exec(line);
-    if (!m) continue;
-    const [, k, raw] = m;
+    const k = m?.[1];
+    const raw = m?.[2];
+    if (k === undefined || raw === undefined) continue;
     fm[k] =
       raw.startsWith("[") && raw.endsWith("]")
         ? raw
@@ -109,9 +110,19 @@ function parseV2(): { meta: Map<string, Meta>; valid: Set<string> } {
         .replace(/\|$/, "")
         .split("|")
         .map((x) => x.trim());
-      if (c.length >= 5 && c[0].startsWith("`")) {
-        const id = c[0].replace(/`/g, "");
-        meta.set(id, { type: c[1], title: c[2], was: c[3].replace(/`/g, ""), epic: c[4] });
+      // Five cells, the first a backticked id — the `undefined` checks are what `c.length >= 5`
+      // used to assert (split() never leaves holes), stated per-cell so each one narrows.
+      const [rawId, type, title, rawWas, epic] = c;
+      if (
+        rawId !== undefined &&
+        type !== undefined &&
+        title !== undefined &&
+        rawWas !== undefined &&
+        epic !== undefined &&
+        rawId.startsWith("`")
+      ) {
+        const id = rawId.replace(/`/g, "");
+        meta.set(id, { type, title, was: rawWas.replace(/`/g, ""), epic });
         valid.add(id);
       }
     }
@@ -121,11 +132,11 @@ function parseV2(): { meta: Map<string, Meta>; valid: Set<string> } {
   return { meta, valid };
 }
 
-const kindOf = (p: string) => p.split("/")[0];
+const kindOf = (p: string): string => p.split("/")[0] ?? p;
 function idSort(a: string, b: string): number {
   const rank = (n: string): [number, number] => {
     const m = /^BUD-([EST])(\d+)/.exec(n);
-    if (m) return [{ E: 0, S: 1, T: 2 }[m[1]] ?? 9, Number(m[2])];
+    if (m) return [{ E: 0, S: 1, T: 2 }[m[1] ?? ""] ?? 9, Number(m[2])];
     const s = /^SPIKE-(\d+)/.exec(n);
     return [3, s ? Number(s[1]) : 0];
   };

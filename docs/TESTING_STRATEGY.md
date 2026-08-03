@@ -64,6 +64,13 @@ types/typecheck  →  lint  →  format check  →  unit + integration  →  e2e
 
 - **A failing or skipped test blocks completion.** No exceptions, no "temporarily
   skipped."
+- **A typecheck step's coverage is its tsconfig `include` list, and nothing tells you what
+  it misses.** A file in no project is silently not checked while the gate reports green —
+  the sibling of §5's "a scan suite's coverage is its list of surfaces" (`KIT_FEEDBACK` K40,
+  K41). Audit it directly — `find . -name '*.ts'` against `tsc --listFiles` per project —
+  and either cover every `.ts` or **write down** why a directory is excluded. Here that is
+  three projects (workspaces · [`tsconfig.e2e.json`](../tsconfig.e2e.json) ·
+  [`tsconfig.tools.json`](../tsconfig.tools.json)) covering everything but `spikes/**`.
 - CI runs the same gate as local; keep them identical. The baseline ships a CI skeleton at
   [`.github/workflows/gate.yml`](../.github/workflows/gate.yml) encoding this order — wire
   each step to the project's commands (it fails until configured, so a skeleton never

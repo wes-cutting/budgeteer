@@ -233,7 +233,7 @@ including the two places it deliberately differs from the production stack, is
 
 | Command | What it does |
 | ------- | ------------ |
-| `npm run typecheck` | `tsc --noEmit` across all workspaces |
+| `npm run typecheck` | `tsc --noEmit` across all workspaces, plus `tsconfig.e2e.json` (e2e + `playwright.config.ts`) and `tsconfig.tools.json` (`scripts/` + `vitest.workspace.ts`). Every `.ts` in the repo is covered except `spikes/**` — throwaway by definition, with its own per-spike tsconfig |
 | `npm run lint` | ESLint (flat config; `@typescript-eslint` + `react-hooks`), zero-warning gate |
 | `npm test` | Run the full Vitest suite once (unit + integration + web component) |
 | `npm run test:watch` | Vitest in watch mode |

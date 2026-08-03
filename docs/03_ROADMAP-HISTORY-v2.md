@@ -142,6 +142,7 @@ newest linked status report. Full detail lives in the plan (`03_ROADMAP-v2.md` �
 
 | Shipped | ID | Was | Item | Report |
 | --- | --- | --- | --- | --- |
+| 2026-08-02 | `BUD-S95` | `—` | Bring repo tooling under typecheck (`scripts/**`) | [report](../status-reports/2026-08-02-bud-s95-tooling-typecheck.md) |
 | 2026-08-02 | `BUD-S93` | `—` | Demo instance (separate showcase container) | [report](../status-reports/2026-08-02-docs-onboarding-gap.md) |
 | 2026-08-02 | `BUD-S92` | `—` | First-run setup UI (`/setup` — the first admin from the browser) | [report](../status-reports/2026-08-02-docs-onboarding-gap.md) |
 | 2026-08-02 | `BUD-S91` | `—` | Accessibility scans for the auth surfaces | [report](../status-reports/2026-08-02-bud-s91-auth-a11y.md) |

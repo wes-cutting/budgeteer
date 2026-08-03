@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true,
+    "rootDir": "."
+  },
+  // Repo tooling that belongs to no workspace: scripts/ (the docs gate, the demo-asset
+  // capture) and the Vitest workspace file. Everything here runs under tsx/Vitest on Node,
+  // so `types: ["node"]` and no DOM lib — the Playwright calls in capture-demo-assets.ts
+  // never cross into the browser (contrast tsconfig.e2e.json, which needs DOM for
+  // page.evaluate callbacks). K40: the gate covered app + test code but not this.
+  //
+  // `spikes/**` is the one deliberate exclusion: throwaway by definition
+  // (00_WAYS_OF_WORKING §6), carrying its own per-spike tsconfig, and already ignored by
+  // ESLint for the same reason. Everything else in the repo is typechecked.
+  "include": ["scripts/**/*.ts", "vitest.workspace.ts"]
+}
