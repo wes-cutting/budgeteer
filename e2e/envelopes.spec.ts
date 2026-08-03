@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   createAccount,
   createEnvelope,
+  dismissToasts,
   goToDashboard,
   goToEnvelopes,
   openAccount,
@@ -86,6 +87,9 @@ test("create, archive, and unarchive an envelope", async ({ page }) => {
   await expect(archiveDialog).toBeHidden();
   await expect(envelopeList.getByText(ENVELOPE)).toHaveCount(0);
   await expect(archivedList.getByText(ENVELOPE)).toBeVisible();
+  // See accounts.spec.ts: the "Envelope archived" toast covers the Unarchive button on a grown list,
+  // and a blocked click deadlocks rather than waiting the dwell out (Playwright's hover pauses it).
+  await dismissToasts(page);
 
   // Unarchive
   await archivedList

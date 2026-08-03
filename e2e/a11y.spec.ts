@@ -338,7 +338,7 @@ test.describe("a11y — inline validation (UX12d)", () => {
 test.describe("a11y — success toast (UX12c)", () => {
   test("a success toast is accessible", async ({ page }) => {
     await page.goto("/");
-    await createAccount(page, `${ACCOUNT}-toast`); // fires "Account created", leaves us on /accounts
+    await createAccount(page, `${ACCOUNT}-toast`, { keepToast: true }); // fires "Account created"
     const toast = page.getByRole("region", { name: "Notifications" }).getByText("Account created");
     await expect(toast).toBeVisible();
     await assertNoViolations(page);
@@ -742,7 +742,7 @@ test.describe("a11y — dark mode", () => {
 
   test("success toast is accessible in dark mode (UX12c)", async ({ page }) => {
     await page.goto("/");
-    await createAccount(page, `Dark-Toast-${Date.now()}`); // fires "Account created" on /accounts
+    await createAccount(page, `Dark-Toast-${Date.now()}`, { keepToast: true }); // fires it on /accounts
     const toast = page.getByRole("region", { name: "Notifications" }).getByText("Account created");
     await expect(toast).toBeVisible();
     await assertNoViolations(page);

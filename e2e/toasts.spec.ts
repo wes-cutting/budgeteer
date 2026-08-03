@@ -8,7 +8,10 @@ test("a success toast confirms a create and can be dismissed (UX12c)", async ({ 
   const stamp = Date.now();
   const ACCOUNT = `E2E Toast ${stamp}`;
   await page.goto("/");
-  await createAccount(page, ACCOUNT); // leaves us on /accounts with the account created
+  // `keepToast` because createAccount now clears the notifications region on the way out — a toast
+  // is fixed-position over the page for 5s and was intercepting the next click in other specs. This
+  // spec is the one caller that owns the toast, so it opts out and asserts the untouched behaviour.
+  await createAccount(page, ACCOUNT, { keepToast: true }); // leaves us on /accounts, account created
 
   // The success toast is announced in the notifications region…
   const region = page.getByRole("region", { name: "Notifications" });

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createAccount, goToManage } from "./setup";
+import { createAccount, dismissToasts, goToManage } from "./setup";
 
 test("the account and envelope lists load against the real API", async ({ page }) => {
   // UX6 — the home is the cockpit; the account/envelope reads live on their list routes now. This is
@@ -71,6 +71,11 @@ test("archive and unarchive an account (R7)", async ({ page }) => {
   await archiveDialog.getByRole("button", { name: "Archive", exact: true }).click();
   await expect(archiveDialog).toBeHidden();
   await expect(list.getByRole("link", { name: ACCOUNT, exact: true })).toHaveCount(0);
+  // Archiving raises its own "Account archived" toast over the bottom-right corner, where the
+  // Unarchive button sits once the shared list has grown. Waiting out the 5s dwell is not an option:
+  // Playwright hovers the target while retrying a blocked click, and Radix PAUSES the dwell while
+  // hovered — so the toast never expires and the click deadlocks to the 30s test timeout.
+  await dismissToasts(page);
 
   await page.getByRole("button", { name: "Show archived" }).click();
   await expect(page.getByRole("heading", { name: "Archived accounts" })).toBeVisible();

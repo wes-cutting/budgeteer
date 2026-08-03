@@ -32,12 +32,57 @@ export async function goToManage(page: Page) {
   await expect(page.getByRole("heading", { name: "Manage", level: 1 })).toBeVisible();
 }
 
+/** The FEAT-UX12c success-toast viewport (`ui/Toast.tsx` renders it `aria-label="Notifications"`). */
+function toastRegion(page: Page) {
+  return page.getByRole("region", { name: "Notifications" });
+}
+
+/**
+ * Clear the notifications region.
+ *
+ * A success toast is `position: fixed` in the bottom-right with a 5s dwell (`ui/Toast.module.css`),
+ * so it sits *over* whatever is beneath it and Playwright's actionability check refuses to click
+ * through it — `<li class="_toast_…"> … intercepts pointer events`. That is what made
+ * `a11y.spec.ts`'s dark-mode archive scan fail intermittently: it creates an envelope, then clicks
+ * that envelope's Archive button while the "Envelope created" toast is still up.
+ *
+ * Cleared via the toast's own Dismiss affordance rather than by waiting out the dwell: the wait
+ * would be paid on every create in the suite (~140 of them), which is minutes. No sleeps — each
+ * click is an ordinary actionable-element wait.
+ */
+export async function dismissToasts(page: Page) {
+  const dismiss = toastRegion(page).getByRole("button", { name: "Dismiss" });
+  // Bounded by the count taken up front — each click removes exactly one toast.
+  for (let remaining = await dismiss.count(); remaining > 0; remaining--) {
+    await dismiss.first().click();
+  }
+  await expect(dismiss).toHaveCount(0);
+  // Park the pointer away from the corner. Radix pauses a toast's dwell timer while the pointer is
+  // over it, so a mouse left where the Dismiss button was pins the NEXT toast open *indefinitely* —
+  // measured: parked, a toast was still up after 7s; moved away, gone within the 5s dwell. Skipping
+  // this turned the flake into a hard 30s timeout in the archive/unarchive specs, whose "Archived"
+  // toast then never expired and blocked the following click forever.
+  await page.mouse.move(0, 0);
+}
+
+/**
+ * Wait for a create's toast, then clear it.
+ *
+ * The wait is load-bearing, not decoration: the new table row and the toast land on **separate
+ * renders**, so clearing a region that is still empty would let the toast pop a beat later — on top
+ * of whatever the caller clicks next, which is the original flake with extra steps.
+ */
+async function settleCreateToast(page: Page, message: string) {
+  await expect(toastRegion(page).getByText(message)).toBeVisible();
+  await dismissToasts(page);
+}
+
 export async function createAccount(
   page: Page,
   name: string,
-  options: { kind?: string; balance?: string } = {},
+  options: { kind?: string; balance?: string; keepToast?: boolean } = {},
 ) {
-  const { kind = "checking", balance = "0.00" } = options;
+  const { kind = "checking", balance = "0.00", keepToast = false } = options;
   await goToAccounts(page);
   // The add form is progressive (UX6) — reveal it via the "Add account" affordance if it is hidden.
   const form = page.getByRole("form", { name: "Add account" });
@@ -55,6 +100,10 @@ export async function createAccount(
       .getByRole("table", { name: "Accounts", exact: true })
       .getByRole("link", { name, exact: true }),
   ).toBeVisible();
+  // `keepToast` is for the three callers whose subject IS the toast — toasts.spec.ts and the two
+  // axe scans of the toast in a11y.spec.ts. Every other caller gets a clear viewport without having
+  // to know toasts exist. (createEnvelope needs no such escape hatch: nothing scans its toast.)
+  if (!keepToast) await settleCreateToast(page, "Account created");
 }
 
 export async function createEnvelope(page: Page, name: string) {
@@ -70,6 +119,7 @@ export async function createEnvelope(page: Page, name: string) {
       .getByRole("table", { name: "Envelopes", exact: true })
       .getByRole("link", { name, exact: true }),
   ).toBeVisible();
+  await settleCreateToast(page, "Envelope created");
 }
 
 /** Create a recurring rule via the /recurring form (FEAT-009), single-envelope allocation. */
