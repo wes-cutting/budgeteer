@@ -33,12 +33,30 @@ do the kit pass, each row becomes a concrete change to the baseline.
 > a no-op here — `ARCHITECTURE.md` §2 already documents the real, more specific EH13 lint rules
 > than the kit's generic sketch).
 >
-> **Kit pass 3 in progress (2026-08-03):** K34–K48 — everything from the `BUD-S81`–`BUD-S97`
-> deploy · auth · hardening arc — is the open set, on baseline branch
-> **`kit-pass/from-budgeteer-2026-08-03`**. Ported cluster by cluster: **B** false-green gates
-> (K35/K40/K41/K42/K46) → **A** containerization & deploy (K34/K36/K39/K43/K45, which needs a
-> new `docs/DEPLOYMENT.md` — the kit ships no deploy guidance at all) → **C** agent/process
-> discipline (K37/K38/K44) → **D** docs mechanics (K47/K48).
+> **Kit pass 3 done (2026-08-04):** K34–K48 — the whole `BUD-S81`–`BUD-S97` deploy · auth ·
+> hardening arc — folded into the baseline on branch **`kit-pass/from-budgeteer-2026-08-03`**
+> (uncommitted pending review), in four reviewed clusters: **B** false-green gates
+> (K35/K40/K41/K42/K46) → **A** containerization & deploy (K34/K36/K39/K43/K45) → **C**
+> agent/process discipline (K37/K38/K44) → **D** docs mechanics (K47/K48).
+>
+> Two artifacts the kit did not have: **`docs/DEPLOYMENT.md`** (it shipped *no* deployment
+> guidance at all — the rules that are free at commit zero and breaking afterwards) and
+> **`templates/DEPLOY-CONTRACT-TEMPLATE.md`**. One new named anti-pattern, **Unasked-Question
+> Gate** (`00_WAYS_OF_WORKING` §10), unifies K35/K40/K41/K42/K46: *a gate's coverage is exactly
+> the set of properties it checks*, and nothing reports the complement.
+>
+> **Two gaps found mid-pass and closed:** `K30 Part B` had never reached the kit at all (pass 2
+> closed 2026-07-21; Part B was applied here 2026-08-03), and neither the kit's 11 own `docs/`
+> files nor its 14 templates carried the frontmatter their own process doc mandates — `K47`'s
+> defect one level up. Both are now true in the kit; see `K49`.
+>
+> **Full backport again:** every rule above is now also true here — the 12 templates stamped
+> (retiring the *"the `templates/` scaffolds do not yet"* caveat in `00 §4`), both DoD lines
+> rewritten (`K41`a/`K42`(1)), `K35` recorded in `07_NFR §1` beside the budget it broke, `K38`
+> in `00 §9`, `K44` in `TESTING_STRATEGY §5`, `K36` in `SECURITY §1`, and `DEPLOYMENT.md` +
+> the deploy-contract template carried across. Gate green: 215 ids, 2,026 links resolving.
+> Also fixed a dangling self-reference — `TESTING_STRATEGY §3` cited a `§5` sentence that
+> did not exist.
 
 | Field   | Value                                                       |
 | ------- | ---------------------------------------------------------- |
@@ -144,12 +162,22 @@ hiding a different unasked question.
 | K47 | Med | **The kit's `templates/` scaffolds ship without the frontmatter block the process doc says every doc carries — so the first doc created from a template fails the gate that enforces it.** `00_WAYS_OF_WORKING.md` §4 stated that every doc under `docs/` *"plus each `templates/` file, as a worked example"* carries YAML frontmatter. Not one of the 13 templates does; they open with an HTML comment. Harmless while the frontmatter was advisory — but the moment `docs:check` enforces `id`/`type` (K30 Part B), a status report copied from `STATUS-REPORT-TEMPLATE.md` arrives **pre-broken**, and the person who followed the template correctly is the one who gets the red gate. The process doc was corrected here to describe reality rather than the intent. | 2026-08-03 (`BUD-S97`) | Ship the frontmatter block **in** each template that produces a `docs/` artifact (feature spec · UX spec · spike report · status report · ADR · the roadmap pair), with the `id` field pre-filled to the naming rule for that type (`FEAT-<slug>`, `SR-<date>-<slug>`, …) and a comment saying it is required. A template is the only documentation most people read; a convention that lives solely in a process doc is a convention that gets skipped. General form: **whenever a gate starts enforcing a doc convention, the templates are part of that change, not a follow-up.** |
 | K48 | Med | **Reusing a retired document's filename is invisible to every link checker, because nothing breaks — the old references silently start resolving to different content.** The `BUD-S94` cutover deleted the pre-restructure `03_ROADMAP.md` and gave that exact name to its restructured replacement. The gate enumerated the 14 links that broke (the `-v2` names) and said nothing at all about the ~29 dated records linking `03_ROADMAP.md` — because those still resolve. They now land on a file whose §3 is the plan where the old file's §4 was, and whose §1/§2 live in a sibling history doc. **Green links, wrong destination.** This is the exact complement of `K46`: a link check verifies that a path *resolves*, never that it resolves to what the author meant, so name reuse is its blind spot. | 2026-08-03 (`BUD-S94`) | Two things for the kit's doc-rename guidance. **(1) Prefer not to reuse a retired name** — if the replacement can keep its own name, every stale reference stays visibly stale instead of quietly wrong. **(2) When reuse is the point** (as it was here — the unsuffixed name *is* the deliverable), the rename is not done until the prose says so in **both** directions: the new occupant states that pre-cutover references to this name mean the deleted file, and the doc that inherited the old content states which file it was migrated from and when it was deleted. Treat that as a required step of the rename, exactly like updating the tooling — it is the only part of a name-reuse rename that no gate can check for you. |
 
+## Open items — surfaced by the kit pass itself (2026-08-04)
+
+Both found while porting K34–K48, and both are about the *fold-back loop* rather than the
+project. Fixed in the kit during pass 3; recorded so the next pass inherits the lesson.
+
+| # | Priority | Kit improvement | Source | Recommendation |
+| - | -------- | --------------- | ------ | -------------- |
+| K49 | Med | **A multi-part item can be half-ported, and the pass boundary is what hides it.** `K30` has a Part A and a Part B. Pass 2 (2026-07-21) folded in "K17–K33" and marked the range done — but Part B was not *applied here* until 2026-08-03, twelve days later, so there was never a moment when anyone looked at `K30` and saw unfinished work: the row read "applied in Budgeteer" (true of Part A) and sat inside a range marked ported. It surfaced only because `K47` needed the typed-id scheme as a prerequisite and it wasn't in the kit. The general trap: **a kit item's row records what was applied *in the project*, while the pass records a *range of numbers* — and those two go out of sync silently the moment an item is amended after its pass closes.** Same family as `K48` (green links, wrong destination) and `K46`: the check that ran was not the check that was needed. | This pass (2026-08-04) | Two cheap habits. **(1)** A pass closes against **item state, not an id range** — re-read each row's own "applied/ported" annotations rather than trusting "K17–K33 done". **(2)** When a row is amended *after* the pass that folded it, say so in the row itself (`Part B added 2026-08-03, NOT in pass 2`), because the range header will never say it. Better still, split a genuinely two-part item into two ids at the moment the second part is written. |
+| K50 | Med | **The kit tells projects to enforce doc conventions it does not follow itself, and the templates are how that gets inherited.** `K47` caught this for `templates/`; it is broader. At the start of this pass **none** of the baseline's 11 own `docs/` files carried frontmatter — including `00_WAYS_OF_WORKING.md`, the doc that mandates it — and those files are carried **as-is** into every new project, so each one would arrive pre-broken the day that project's `docs:check` runs. A related instance in this very file: `K34`–`K48` were appended as **15 orphan table rows with no header row**, rendering as garbage on GitHub for weeks, and `docs:check` was green throughout because it validates frontmatter and links but nothing about markdown structure. | This pass (2026-08-04) | **The kit must satisfy its own conventions — it is the worked example, and everything in it is copied.** Before a convention ships, apply it to the kit's own `docs/`, `templates/`, and `adr/` in the same change (this is `K47` generalized past templates). And note the recurring shape for the gate roster: a docs gate that checks frontmatter *and* links still says nothing about whether a table renders — **each new check narrows the blind spot rather than closing it**, which is the standing argument for `00 §10`'s *Unasked-Question Gate*, not an argument that the gate is finished. |
+
 ## Kit-pass readiness (2026-06-21)
 
 **K1–K3 (the "make the gate real" cluster) are now validated — port the proven artifacts, not just the advice.** `#16` wired CI (`gate.yml`, deliberately kept `workflow_dispatch`), confirming K1's call; lint (EH4) and the Playwright e2e layer (EH5 → R14: per-area specs + `e2e/setup.ts`) are mature, closing K2/K3. The pass should copy the *actual shapes* into the scaffold:
 `.github/workflows/gate.yml` (workflow_dispatch + 7 wired steps incl. SCA `npm audit --omit=dev --audit-level=critical`) · `eslint.config.js` (flat) · `playwright.config.ts` + `e2e/setup.ts` · `e2e/a11y.spec.ts` · `apps/api/test/perf.test.ts` · `apps/web/src/index.css`.
 
-**K4–K9 remain as written; none are in `baseline-starter` yet** (it is still at the founding commit `c8e994b`). They were applied in-project and need porting to the scaffold/templates.
+**Superseded 2026-08-04 — this section is a snapshot of the *first* pass's readiness, kept for the record.** It once read *"none are in `baseline-starter` yet (it is still at the founding commit `c8e994b`)"*, which stopped being true on 2026-06-22. `K1`–`K33` are folded in (`abba1f7`, `e867e23`, both pushed) and `K34`–`K48` in pass 3 — see the header note for current state. Left in place rather than rewritten because it dates itself; the live status belongs at the top of this file, not here. (That it went stale for six weeks under a heading nobody re-read is itself the *Summary Drift* anti-pattern, `00 §10`.)
 
 **Suggested port order (highest leverage first):**
 1. **Gate-real-from-zero:** K1, K2, K3, K10, K11 (CI triggers + lint + e2e + a11y + perf harnesses, all wired).

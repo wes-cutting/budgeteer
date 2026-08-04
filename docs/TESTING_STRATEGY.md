@@ -88,6 +88,14 @@ types/typecheck  →  lint  →  format check  →  docs check  →  unit + inte
   its own command.
 - Reset state between tests (truncate/teardown) for isolation.
 - Flaky tests are bugs — fix or quarantine with a tracked issue, never ignore.
+- **A recurring flake in a *timing* test is a measurement bug until proven otherwise.** "The
+  perf test flaked again" reads as environmental noise, and that label is what lets a broken
+  measurement sit unfixed — here for a month. `measure()` computed
+  `latencies[Math.floor(n * 0.95)]`, which for n=20 indexes element 19: the **maximum**, not
+  p95. A budget documented as p95 was really "no single run of twenty may exceed it", so one
+  GC pause failed the suite. Use a **nearest-rank percentile** (`ceil(p × n) − 1`) and discard
+  a **warm-up phase**; the statistic asserted must be the statistic
+  [`07_NFR.md`](07_NFR.md) names (K35).
 - **Relative-date fixtures tested against the real calendar are a smell** — a test that
   passes today and fails on some future date with no code change. Use fixed/injected dates
   (the injected-clock pattern, [`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) §4; EH7).
@@ -103,6 +111,29 @@ types/typecheck  →  lint  →  format check  →  docs check  →  unit + inte
 - The a11y scan should fail on **serious/critical** violations and ship a baseline
   accessibility CSS floor (e.g. a minimum interactive target size) so WCAG 2.2 AA is enforced
   from commit zero, not discovered late.
+- **A scan suite's coverage is its list of surfaces — so adding a route is what obliges you to
+  add a scan.** A green suite is evidence about the pages someone remembered to add and
+  nothing at all about a page it has never loaded. This harness (58 scans, light and dark,
+  wired into the gate) stayed green across two slices shipping `/login` and `/users`, neither
+  of which it ever scanned — and the DoD's *"changed UI meets AA"* box was ticked in both on
+  the strength of that green. The defect it hid was real: a sign-in error at **2.78:1** in
+  dark mode. This is why the DoD now asks you to **name the scans**
+  ([`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) §2) (K41).
+- **Verify a new scan or regression test fails against an injected defect before trusting
+  it** — a test that passes the moment you write it has told you nothing. Corollary, because
+  this is where the confusion starts: **verify the defect you think you found actually
+  exists** before fixing it, by measuring the live system (`getComputedStyle`,
+  `elementFromPoint`, a timed probe) rather than inferring a cause from the source file.
+- **An auto-dismissing overlay that pauses on hover is a deadlock source, not a timing
+  nuisance.** The success toast (Radix, 5s dwell, fixed bottom-right) sat over buttons at the
+  foot of a growing list. The expectation is a test that waits ~5s; the reality was a **30s
+  timeout** — Playwright moves the pointer onto the target on every retry, the target is under
+  the toast, and Radix pauses the dwell while hovered, so the test and the toast hold each
+  other open. Measured, not assumed: pointer parked on the toast → still up after 7s; pointer
+  moved away → gone within the dwell. So a helper that triggers one must clear it
+  deterministically **and park the pointer away** — dismissing by *clicking* leaves the pointer
+  in that corner and pins the *next* toast open forever. Never wait the dwell out; you pay it
+  at every mutation in the suite (K44).
 - **The harness owns the ephemeral stack it tests against — never reuse a server it didn't
   start.** Attaching to a dev server "for convenience" silently invalidates empty-state
   assertions (a real dev store isn't empty) and can leak test-written data into it. Either

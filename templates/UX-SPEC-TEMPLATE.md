@@ -1,3 +1,9 @@
+---
+id:           UX-<slug>  # REQUIRED · stable + typed, see 00_WAYS_OF_WORKING.md §4
+type:         ux-spec
+status:       Draft  # Draft → Proposed → Validated → Accepted
+roadmap-item: <BUD-S##>  # the roadmap id this delivers
+---
 <!--
 UX SPEC TEMPLATE
 Every user-facing capability gets one BEFORE it is built (see

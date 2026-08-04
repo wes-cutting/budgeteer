@@ -1,3 +1,9 @@
+---
+id:           SR-<YYYY-MM-DD>-<slug>  # REQUIRED · stable + typed, see 00_WAYS_OF_WORKING.md §4
+type:         status-report
+status:       Snapshot  # point-in-time; never edited after landing
+roadmap-item: <BUD-S##>  # the ONE item this session built
+---
 <!--
 STATUS REPORT TEMPLATE — copy to docs/status-reports/<YYYY-MM-DD>-NN.md. A point-in-time
 snapshot for clean hand-offs between work sessions / context windows. Optimized for a

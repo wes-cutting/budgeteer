@@ -30,6 +30,13 @@ Targets for the critical read paths. Measured against synthetic (never real) dat
 All three API endpoints verified by `apps/api/test/perf.test.ts` (#16). Web LCP measured
 via `vite build` + Lighthouse audit (#16, developer machine: Apple M-series, local server).
 
+**The statistic asserted must be the statistic named here.** These budgets say `p95`, and for a
+month the helper enforcing them did not: `latencies[Math.floor(n * 0.95)]` indexes element 19 of
+20 — the **maximum**. That is not a stricter budget, it is an intermittent-failure generator, and
+it was triaged as "the perf test flaked again" rather than as the measurement bug it was. Use a
+nearest-rank percentile (`ceil(p × n) − 1`) and discard a warm-up phase
+([`TESTING_STRATEGY.md`](TESTING_STRATEGY.md) §4; `K35`).
+
 | Journey / operation | Budget | At volume | Measured p95 | How verified |
 | ------------------- | ------ | --------- | ------------ | ------------ |
 | `GET /accounts` (account list) | < 50 ms p95 | 50 accounts | **0.9 ms** | `apps/api/test/perf.test.ts` · Fastify `inject` against PGlite |

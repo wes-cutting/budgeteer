@@ -1,3 +1,8 @@
+---
+id:     DOC-DATA-MODEL  # REQUIRED · stable + typed, see 00_WAYS_OF_WORKING.md §4
+type:   standard
+status: Draft  # Draft → Proposed → Validated → Accepted
+---
 <!--
 DATA MODEL TEMPLATE — copy to docs/05_DATA_MODEL.md. The PHYSICAL model that realizes the
 domain model in the chosen datastore (SQL tables, document collections, etc. — per

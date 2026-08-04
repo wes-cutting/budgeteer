@@ -1,3 +1,8 @@
+---
+id:     DOC-PRD  # REQUIRED · stable + typed, see 00_WAYS_OF_WORKING.md §4
+type:   prd
+status: Proposed  # Draft → Proposed → Validated → Accepted
+---
 <!--
 PRD TEMPLATE — copy to docs/02_PRD.md. Write it AFTER the first value-hypothesis /
 data-profiling spikes (see docs/00_WAYS_OF_WORKING.md). Status starts at Proposed.

@@ -48,6 +48,8 @@ file when its stage arrives.
 | [`ENGINEERING_STANDARDS.md`](ENGINEERING_STANDARDS.md) | Conventions, the Definition of Done, and opt-in recommended patterns. |
 | [`TESTING_STRATEGY.md`](TESTING_STRATEGY.md) | Test layers and the gate. |
 | [`SECURITY.md`](SECURITY.md) | Secrets, data handling, authn/authz, dependency scanning. |
+| [`DEPLOYMENT.md`](DEPLOYMENT.md) | The deployment constraints that are nearly free at commit zero and breaking changes afterwards — API base path, deny-by-default build context, identity across restores, the demo-instance pattern. The rules; [`DEPLOY_CONTRACT.md`](DEPLOY_CONTRACT.md) is this project's concrete instance. |
+| [`DEPLOY_CONTRACT.md`](DEPLOY_CONTRACT.md) | What the operator (labs-hub) can rely on: image, ports, environment, health, first run, the demo box. |
 | [`KIT_FEEDBACK.md`](KIT_FEEDBACK.md) | A running log of improvements to **this baseline kit** found while building the project, for a later kit pass. Carry the stub; append as lessons surface ([`00_WAYS_OF_WORKING.md`](00_WAYS_OF_WORKING.md) §9). |
 
 ## Per-project folders
@@ -78,6 +80,7 @@ Copied only when a specific kind of work comes up, not per numbered doc:
 | Template | When |
 | -------- | ---- |
 | [`SCHEMA-MAP-TEMPLATE.md`](../templates/SCHEMA-MAP-TEMPLATE.md) | A bulk import/ETL will be prepared by an agent or person without repo access (see [`SECURITY.md`](SECURITY.md)'s ETL-artifact split). |
+| [`DEPLOY-CONTRACT-TEMPLATE.md`](../templates/DEPLOY-CONTRACT-TEMPLATE.md) | The project is about to be deployed somewhere real → `docs/DEPLOY_CONTRACT.md`. Read [`DEPLOYMENT.md`](DEPLOYMENT.md) first — two of its rules are breaking changes once anything has shipped. |
 
 ## Target `docs/` tree (once a project is underway)
 

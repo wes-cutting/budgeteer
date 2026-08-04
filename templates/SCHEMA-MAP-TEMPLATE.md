@@ -1,3 +1,8 @@
+---
+id:     DOC-SCHEMA-MAP  # REQUIRED · stable + typed, see 00_WAYS_OF_WORKING.md §4
+type:   standard
+status: Draft  # regenerate from the real docs; never hand-drift it
+---
 <!--
 SCHEMA MAP TEMPLATE — copy to a working (likely gitignored, see SECURITY.md) doc when a
 bulk import/ETL will be prepared by an agent or person WITHOUT repo access. It's a

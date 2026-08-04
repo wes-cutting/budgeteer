@@ -1,3 +1,8 @@
+---
+id:     DOC-NFR  # REQUIRED · stable + typed, see 00_WAYS_OF_WORKING.md §4
+type:   standard
+status: Draft  # Draft → Proposed → Validated → Accepted
+---
 <!--
 NFR / OPERATIONAL-READINESS TEMPLATE — copy to docs/07_NFR.md. The non-functional
 requirements and the operational readiness a project must meet before it's treated as

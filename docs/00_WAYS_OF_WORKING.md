@@ -109,7 +109,9 @@ Rule of thumb: the amount of code you may build on a document scales with its st
 ### Frontmatter (machine-readable identity)
 
 Every doc under `docs/` carries a lightweight YAML frontmatter block, not only the prose
-meta-table above (the `templates/` scaffolds do **not** yet — see `K47`):
+meta-table above — and **so does every `templates/` scaffold that produces one**, pre-filled
+with that type's naming rule, so a doc copied from a template arrives already valid rather
+than pre-broken (`K47`; `DISCOVERY-GUIDE.md` is exempt — it is read, never copied):
 
 ```yaml
 ---
@@ -196,6 +198,15 @@ parentheses, leave the link text, the surrounding prose, and any fenced blocks e
 document — as `03_ROADMAP.md` was — then every old reference still resolves, silently, to different
 content. Links being green proves nothing here. The only defense is prose: the new occupant, and the
 history that describes the old one, must both say plainly which file a pre-cutover reference means.
+So **prefer not to reuse a retired name at all** — if the replacement can keep its own name, every
+stale reference stays *visibly* stale instead of quietly wrong. Reuse only when the unsuffixed name
+is itself the deliverable, and then treat the both-directions prose as a required step of the
+rename, exactly like updating the tooling (`K48`).
+
+**When the gate starts enforcing a doc convention, the templates are part of that change — not a
+follow-up.** A convention living only in this doc is one that gets skipped: the template is the only
+documentation most people read. Shipped the other way round, the person who followed the template
+*correctly* is the one who gets the red gate, holding a doc that was broken before they typed a word.
 
 **Which states apply to which artifact** (not every status fits every doc):
 
@@ -303,7 +314,18 @@ executes a flawed plan flawlessly:
 - **The human reviews planning docs early**, at the start of each phase, not just the
   output. (Reviewing the plan is what catches "no UI is being built" immediately.)
 - **"Is it usable yet?"** is asked at every increment by both parties.
-- **Surprises become spikes**, not silent workarounds.
+- **Surprises become spikes**, not silent workarounds. **And before you pin a surprise with a
+  test or a runbook entry, decide whether it is behaviour or a bug.** `BUD-S85` re-proved
+  backup/restore on real Postgres and found that a restore left nobody able to log in. The
+  reflex was to do everything this doc asks: assert it in the deployment harness so the runbook
+  "cannot drift", and document it under *"two things that will bite you"*. Both were done well
+  and both were wrong — it was a **defect**. The artifacts then defended it: the harness check
+  was written to the broken behaviour, so **fixing the bug (`BUD-S90`) made the harness go
+  red**, and a later reader has every reason to conclude the *fix* is the regression. A
+  documented trap also reads as a decision somebody made. **Pin what you want to be true; file
+  what you don't.** If it can't be decided inside the slice, the honest artifact is a ⚠ carry
+  naming the open question — not a green assertion. A passing test is a statement of intent,
+  not merely of fact (K38).
 - **Close out each block with a Definition-of-Done snapshot.** At the end of every executed
   block — a spike, a vertical slice, or a phase — write a dated
   [status report](../templates/STATUS-REPORT-TEMPLATE.md) whose **outline is the Definition
@@ -351,6 +373,16 @@ executes a flawed plan flawlessly:
 - **Data-in-the-Repo** — confidential/real data committed because guardrails came late.
   (Scaffold the `.gitignore` first.)
 - **Build-Without-Use** — large surface with no one having used it. (Usable every step.)
+- **Unasked-Question Gate** — a step that *is* wired, *does* run, and is green over a scope
+  nobody ever checked. All four instances here looked like different bugs and are one:
+  `typecheck` green over `scripts/` because no tsconfig named it (K40); 58 axe scans green
+  over `/login` and `/users` because nobody added them (K41); `docs:check` green over 100
+  broken links because it validated frontmatter and never resolved one (K46); a whole test
+  suite green over a product no new user could open, because every consumer provisioned its
+  credential out of band (K42). Add the p95 helper that was arithmetically the maximum (K35)
+  and it is five. **A gate's coverage is exactly the set of properties it checks**, and
+  nothing reports the complement — so audit it mechanically rather than reasoning about it
+  ([`TESTING_STRATEGY.md`](TESTING_STRATEGY.md) §3).
 
 ---
 

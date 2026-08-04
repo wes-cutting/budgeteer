@@ -1,3 +1,9 @@
+---
+id:           SPIKE-<NN>  # REQUIRED · stable + typed, see 00_WAYS_OF_WORKING.md §4
+type:         spike
+status:       Open  # Open → Done
+roadmap-item: <SPIKE-NN>  # the roadmap id this answers
+---
 <!--
 SPIKE REPORT TEMPLATE
 A spike is a time-boxed, throwaway investigation that answers ONE question against

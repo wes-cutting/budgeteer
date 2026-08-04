@@ -30,6 +30,15 @@ own ADRs but never weakens the baseline below.
 > rewrite — expensive and error-prone. The guardrail belongs in the scaffold, not in a
 > spec written later.
 
+**A build context is a second exfiltration path, and `.gitignore` does not guard it.** The files
+sent to an image build are a separate list from the files under source control, and the image is
+**published** to a registry. This repo holds the owner's real ledger and a real `.env` in gitignored
+paths, so [`.dockerignore`](../.dockerignore) is written **deny-by-default** — `*` first, then
+explicit `!` allow-rules for exactly the build inputs, then a closing block re-excluding what the
+subtree allows pull back in. A `.gitignore`-shaped build-context file protects only what someone
+remembered to list; inverted, a new confidential file is excluded automatically. Treat it as an
+authorization rule, not a convenience filter ([`DEPLOYMENT.md`](DEPLOYMENT.md) §2; `K36`).
+
 ### ETL / bulk-import artifacts are two grades — plan the split when the ETL starts
 
 A real-data extraction or import effort produces two kinds of artifact, and they need

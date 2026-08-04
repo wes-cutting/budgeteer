@@ -1,3 +1,8 @@
+---
+id:     DOC-DOMAIN-MODEL  # REQUIRED · stable + typed, see 00_WAYS_OF_WORKING.md §4
+type:   standard
+status: Draft  # Draft → Proposed → Validated → Accepted
+---
 <!--
 DOMAIN MODEL TEMPLATE — copy to docs/04_DOMAIN_MODEL.md. The conceptual model: entities,
 relationships, invariants, lifecycles. Stack/storage-neutral (the data model doc maps

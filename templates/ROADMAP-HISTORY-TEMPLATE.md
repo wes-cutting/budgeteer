@@ -1,3 +1,8 @@
+---
+id:     DOC-ROADMAP-HISTORY  # REQUIRED · stable + typed, see 00_WAYS_OF_WORKING.md §4
+type:   roadmap
+status: Append-only  # never rewritten, only added to
+---
 <!--
 ROADMAP HISTORY TEMPLATE — copy to docs/03_ROADMAP-HISTORY.md, as the append-only sibling
 of docs/03_ROADMAP.md (from ROADMAP-TEMPLATE.md). K31: split out of the living plan so

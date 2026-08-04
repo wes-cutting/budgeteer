@@ -1,3 +1,8 @@
+---
+id:     DOC-ROADMAP  # REQUIRED · stable + typed, see 00_WAYS_OF_WORKING.md §4
+type:   roadmap
+status: Living  # the plan of record is never 'done'
+---
 <!--
 ROADMAP TEMPLATE — copy to docs/03_ROADMAP.md. The living plan of record: the ordered
 backlog of spikes and vertical slices, sequenced by uncertainty and value (NOT by layer).

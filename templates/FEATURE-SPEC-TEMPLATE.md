@@ -1,3 +1,9 @@
+---
+id:           FEAT-<slug>  # REQUIRED · stable + typed, see 00_WAYS_OF_WORKING.md §4
+type:         feature-spec
+status:       Draft  # Draft → Proposed → Validated → Accepted → Implemented
+roadmap-item: <BUD-S##>  # the roadmap id this delivers
+---
 <!--
 FEATURE SPEC TEMPLATE — copy to docs/features/<slug>.md. Pair with a UX spec
 (templates/UX-SPEC-TEMPLATE.md) for any user-facing feature. Status uses the ladder in
